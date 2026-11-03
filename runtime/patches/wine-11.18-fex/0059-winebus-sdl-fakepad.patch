@@ -1,4 +1,4 @@
-winebus: SQUARK_FAKEPAD=<path> adds a virtual SDL gamepad driven through a FIFO.
+winebus: SQUARK_FAKEPAD=<path>, or a FIFO named squark-fakepad in the prefix, adds a virtual SDL gamepad.
 
 For testing input without a controller at hand, and for driving a program with gamepad input in the
 background. winebus attaches an SDL virtual joystick of the game controller type, 045e:02fd and named
@@ -10,7 +10,11 @@ or "reset". Lines end in a newline or ';'. The pad goes through SDL's game contr
 rest of winebus like a real one, so XInput, DirectInput and Windows.Gaming.Input see it as they
 would a real pad. Needs the SDL bus.
 
-Unset or empty: no change.
+Without the variable, an existing FIFO $WINEPREFIX/squark-fakepad turns it on: the devices may have
+been started by an earlier process that did not have the variable (Steam runs a game's install script
+first, without the launch options, and the game reuses its winedevice).
+
+Neither set: no change.
 
 --- a/dlls/winebus.sys/bus_sdl.c
 +++ b/dlls/winebus.sys/bus_sdl.c
@@ -32,19 +36,21 @@ Unset or empty: no change.
  static int (*pSDL_JoystickRumble)(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms);
  static int (*pSDL_JoystickRumbleTriggers)(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble, Uint32 duration_ms);
  static Uint16 (*pSDL_JoystickGetProduct)(SDL_Joystick * joystick);
-@@ -1071,7 +1075,133 @@
+@@ -1070,8 +1074,145 @@
+     }
  
      pthread_mutex_unlock(&sdl_cs);
- }
++}
 +
-+/* SQUARK_FAKEPAD=<path>: a virtual SDL gamepad (045e:02fd, like a Bluetooth Xbox
-+ * Wireless Controller) driven by text lines written to the FIFO at <path>. It goes
++/* SQUARK_FAKEPAD=<path>, or a FIFO named squark-fakepad in the prefix: a virtual SDL
++ * gamepad (045e:02fd, like a Bluetooth Xbox Wireless Controller) driven by text lines
++ * written to the FIFO at <path>. It goes
 + * through SDL's game controller API and the rest of winebus like a real pad. */
 +static SDL_Joystick *fakepad;
 +static int fakepad_fd = -1;
 +static char fakepad_line[256];
 +static size_t fakepad_len;
- 
++
 +static const char *const fakepad_axes[] = {"lx", "ly", "rx", "ry", "lt", "rt"};
 +static const char *const fakepad_buttons[] =
 +{
@@ -116,14 +122,24 @@ Unset or empty: no change.
 +            else if (fakepad_len < sizeof(fakepad_line) - 1) fakepad_line[fakepad_len++] = buf[i];
 +        }
 +    }
-+}
-+
+ }
+ 
 +static void fakepad_init(void)
 +{
-+    const char *path = getenv("SQUARK_FAKEPAD");
++    const char *path = getenv("SQUARK_FAKEPAD"), *prefix;
++    static char prefix_fifo[4096];
 +    SDL_VirtualJoystickDesc desc;
++    struct stat st;
 +    int index;
 +
++    /* Without the variable, a FIFO named squark-fakepad in the prefix turns it on: the
++     * devices may have been started by an earlier process without the variable (Steam
++     * runs a game's install script first, with no launch options). */
++    if ((!path || !*path) && (prefix = getenv("WINEPREFIX")) && *prefix)
++    {
++        snprintf(prefix_fifo, sizeof(prefix_fifo), "%s/squark-fakepad", prefix);
++        if (!stat(prefix_fifo, &st) && S_ISFIFO(st.st_mode)) path = prefix_fifo;
++    }
 +    if (!path || !*path) return;
 +    if (!pSDL_JoystickAttachVirtualEx || !pSDL_JoystickSetVirtualAxis || !pSDL_JoystickSetVirtualButton)
 +    {
@@ -166,7 +182,7 @@ Unset or empty: no change.
  NTSTATUS sdl_bus_init(void *args)
  {
      const char *mapping;
-@@ -1147,6 +1277,9 @@
+@@ -1147,6 +1288,9 @@
      pSDL_JoystickGetVendor = dlsym(sdl_handle, "SDL_JoystickGetVendor");
      pSDL_JoystickGetType = dlsym(sdl_handle, "SDL_JoystickGetType");
      pSDL_JoystickGetSerial = dlsym(sdl_handle, "SDL_JoystickGetSerial");
@@ -176,7 +192,7 @@ Unset or empty: no change.
  
      if (pSDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) < 0)
      {
-@@ -1180,6 +1313,7 @@
+@@ -1180,6 +1324,7 @@
          }
      }
  
@@ -184,7 +200,7 @@ Unset or empty: no change.
      return STATUS_SUCCESS;
  
  failed:
-@@ -1199,6 +1333,7 @@
+@@ -1199,6 +1344,7 @@
      do
      {
          if (bus_event_queue_pop(&event_queue, result)) return STATUS_PENDING;

@@ -44,4 +44,7 @@ WineHQ Wine 11.18.
   Bluetooth Xbox Wireless Controller, driven by text lines written to the FIFO at `<path>` (`ly -32768`,
   `a 1`, `reset`; raw SDL values). It goes through SDL's game controller API and the rest of winebus like
   a real pad, for testing input without a controller and for driving a program with a pad in the
-  background. squark's `tools/padprobe/fakepad.py` sends physical moves; `fakepad-test.py` checks XInput.
+  background. Without the variable, an existing FIFO `$WINEPREFIX/squark-fakepad` turns it on (Steam runs a
+  game's install script first, without launch options, and the game reuses that winedevice). squark's
+  `tools/padprobe/fakepad.py` sends physical moves; `fakepad-test.py` checks XInput. Needs "Enable SDL",
+  which `compat_run.sh` turns on for a runtime that carries SDL.

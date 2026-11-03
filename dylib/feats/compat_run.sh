@@ -1077,6 +1077,12 @@ import_prefix_settings() {
   if [ "$verb" = waitforexitandrun ]; then
     plan_logpixels 2>/dev/null || dpi_value=""
   fi
+  # steamac: a runtime that carries SDL (lib/libSDL2-2.0.0.dylib, SDL=yes in its .env) takes
+  # pads through SDL, which lays every known pad out for XInput, and winebus then leaves
+  # gamepads to it; IOHID alone hands a Bluetooth Xbox pad over raw (sticks and triggers
+  # on the wrong axes). Without SDL, as upstream: IOHID only.
+  sdl_value='"Enable SDL"=dword:00000000'
+  [ ! -f "$np_root/lib/libSDL2-2.0.0.dylib" ] || sdl_value='"Enable SDL"=dword:00000001'
   settings_file=$(mktemp "$WINEPREFIX/drive_c/hadron-settings.XXXXXX" 2>/dev/null) \
     || settings_file=""
   if [ -z "$settings_file" ] || ! { printf '%s\r\n' \
@@ -1089,7 +1095,7 @@ import_prefix_settings() {
       '[HKEY_LOCAL_MACHINE\Software\Classes\steam\shell\open\command]' \
       '@="\"C:\\Program Files (x86)\\Steam\\steam.exe\" \"%1\""' '' \
       '[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\winebus]' \
-      '"Enable SDL"=dword:00000000' '"DisableInput"=dword:00000001' '' \
+      "$sdl_value" '"DisableInput"=dword:00000001' '' \
       && hidraw_lines add "$controllers_add" && hidraw_lines remove "$controllers_remove" \
       && winebus_lines; } \
       > "$settings_file" 2>/dev/null; then
