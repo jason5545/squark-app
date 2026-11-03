@@ -61,6 +61,8 @@ D3DMETAL=""
 FEX_SERIES=""
 # arm64 only: yes builds winegstreamer against the official GStreamer framework and stages it.
 GSTREAMER=""
+# arm64 only: yes gives winebus its SDL bus (Homebrew's sdl2-compat and SDL3, as Highball ships them).
+SDL=""
 # shellcheck disable=SC1090
 . "$definition"
 [ "$RUNTIME_ID" = "$1" ] || die "$definition names itself $RUNTIME_ID"
@@ -344,6 +346,43 @@ if [ ! -f "$DEPS/lib/libgnutls.30.dylib" ]; then
     done
 fi
 
+# SDL (SDL=yes) for winebus's SDL bus, as Highball's arm64 engine ships it: Homebrew's
+# sdl2-compat as libSDL2-2.0.0.dylib, and SDL3, which sdl2-compat opens at run time as
+# @loader_path/libSDL3.dylib (never as libSDL3.0.dylib; without that name it shows an error
+# dialog from winedevice that never returns). Without SDL, winebus reads gamepads raw through
+# IOHID, and xinput takes a Bluetooth Xbox controller's right stick (Z/Rz) for its triggers.
+SDL_LIBS="libSDL2-2.0.0.dylib libSDL3.0.dylib"
+sdl_cflags="" sdl_libs="" sdl_soname=""
+if [ "$SDL" = yes ]; then
+    [ "$ARCH" = arm64 ] || die "SDL=yes is for arm64 runtimes"
+    if [ ! -f "$DEPS/lib/libSDL3.dylib" ]; then
+        echo "==> taking Homebrew's sdl2-compat and SDL3 into $DEPS"
+        brew_opt="$(brew --prefix)/opt"
+        for pair in sdl2-compat:libSDL2-2.0.0.dylib sdl3:libSDL3.0.dylib; do
+            src="$brew_opt/${pair%%:*}/lib/${pair#*:}"
+            [ -f "$src" ] || die "SDL=yes needs Homebrew's ${pair%%:*} (brew install sdl2-compat sdl3)"
+            rm -f "$DEPS/lib/${pair#*:}"
+            cp "$(readlink -f "$src")" "$DEPS/lib/${pair#*:}"
+            chmod u+w "$DEPS/lib/${pair#*:}"
+            install_name_tool -id "@loader_path/${pair#*:}" "$DEPS/lib/${pair#*:}"
+            codesign -f -s - "$DEPS/lib/${pair#*:}"
+        done
+        rm -rf "$DEPS/include/SDL2" && mkdir -p "$DEPS/include"
+        cp -R "$brew_opt/sdl2-compat/include/SDL2" "$DEPS/include/SDL2"
+        mkdir -p "$DEPS/share/licenses"
+        cp "$brew_opt/sdl2-compat/LICENSE.txt" "$DEPS/share/licenses/sdl2-compat.txt"
+        cp "$brew_opt/sdl3/LICENSE.txt" "$DEPS/share/licenses/SDL3.txt"
+        ln -sf libSDL2-2.0.0.dylib "$DEPS/lib/libSDL2.dylib"
+        ln -sf libSDL3.0.dylib "$DEPS/lib/libSDL3.dylib"
+    fi
+    # sdl2-compat finds SDL3 when it is used, so loading is not enough: SDL_Init(0) has to work.
+    python3 -I -c 'import ctypes,sys; s=ctypes.CDLL(sys.argv[1]); s.SDL_GetError.restype=ctypes.c_char_p; r=s.SDL_Init(0); sys.exit("SDL_Init failed: %s" % s.SDL_GetError().decode()) if r else s.SDL_Quit()' \
+        "$DEPS/lib/libSDL2-2.0.0.dylib" || die "sdl2-compat in $DEPS cannot use its SDL3"
+    sdl_cflags="-I$DEPS/include/SDL2 -D_THREAD_SAFE"
+    sdl_libs="-L$DEPS/lib -lSDL2"
+    sdl_soname="$UNIX_TO_LIB/libSDL2-2.0.0.dylib"
+fi
+
 # GStreamer: GST_FRAMEWORK is the pruned framework the runtime gets, GST_SDK a copy of it before
 # pruning with the core and GLib headers, which Wine is built against.
 gst_cflags="" gst_libs=""
@@ -399,6 +438,7 @@ if [ ! -f "$WINE_BUILD/Makefile" ]; then
         --host="$HOST" CC="$CC_ARCH" CXX="$CXX_ARCH" \
         FREETYPE_CFLAGS="-I$DEPS/include/freetype2" FREETYPE_LIBS="-L$DEPS/lib -lfreetype" \
         GSTREAMER_CFLAGS="$gst_cflags" GSTREAMER_LIBS="$gst_libs" \
+        SDL2_CFLAGS="$sdl_cflags" SDL2_LIBS="$sdl_libs" ${sdl_soname:+"ac_cv_lib_soname_SDL2=$sdl_soname"} \
         ac_cv_lib_soname_freetype="$UNIX_TO_LIB/libfreetype.6.dylib" \
         ac_cv_lib_soname_vulkan="$UNIX_TO_LIB/libvulkan.1.dylib" \
         ac_cv_lib_soname_gnutls="$UNIX_TO_LIB/libgnutls.30.dylib" )
@@ -411,6 +451,10 @@ grep -q "^host_cpu = $HOST_CPU" "$WINE_BUILD/config.status" \
     || die "configure did not take the $HOST_CPU host"
 grep -q 'SONAME_LIBVULKAN "@loader_path/../../libvulkan.1.dylib"' "$WINE_BUILD/include/config.h" \
     || die "configure did not take the Vulkan loader, remove $WINE_BUILD to configure again"
+if [ "$SDL" = yes ]; then
+    grep -q 'SONAME_LIBSDL2 "@loader_path/../../libSDL2-2.0.0.dylib"' "$WINE_BUILD/include/config.h" \
+        || die "configure did not take SDL2, remove $WINE_BUILD/Makefile to configure again"
+fi
 grep -q 'SONAME_LIBGNUTLS "@loader_path' "$WINE_BUILD/include/config.h" \
     || die "configure did not take GnuTLS, remove $WINE_BUILD to configure again"
 
@@ -445,6 +489,12 @@ make -C "$WINE_BUILD" install-lib DESTDIR="$OUT" $skip
 rm -f "$OUT"/lib/wine/*-windows/steam.exe
 cp "$DEPS/lib/libfreetype.6.dylib" "$DEPS/lib/libMoltenVK.dylib" "$OUT/lib/"
 for lib in $TLS_LIBS; do cp "$DEPS/lib/$lib" "$OUT/lib/"; done
+if [ "$SDL" = yes ]; then
+    for lib in $SDL_LIBS; do cp "$DEPS/lib/$lib" "$OUT/lib/"; done
+    ln -sf libSDL3.0.dylib "$OUT/lib/libSDL3.dylib"
+    mkdir -p "$OUT/share/licenses"
+    cp "$DEPS/share/licenses/sdl2-compat.txt" "$DEPS/share/licenses/SDL3.txt" "$OUT/share/licenses/"
+fi
 if [ -n "$COMPONENTS_FROM" ]; then
     # Its unixlib interface is stable across Wine 11, so these load in the older Wine.
     donor="$repo/out/runtime/$COMPONENTS_FROM/lib/wine"
