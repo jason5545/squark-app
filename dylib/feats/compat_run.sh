@@ -327,18 +327,25 @@ echo "app_id=$app_id (STEAM_COMPAT_APP_ID=$STEAM_COMPAT_APP_ID)" >> "$log" 2>&1 
 # steamac: a background launch, for automated runs on a Mac someone else is using. Asked for by
 # the launch option HADRON_MAC_BACKGROUND=1, or for one launch by a file
 # $np_support/background/<app id> written less than 10 minutes before it (taken and removed
-# here, so a later launch by hand is a normal one). Wine keeps every window of the prefix off the
+# by the game's own run, so a later launch by hand is a normal one; a run Steam makes before it,
+# such as the install script's "run iscriptevaluator.exe", goes in the background too but leaves
+# the request for the game). Wine keeps every window of the prefix off the
 # screen (runtime patch 0056), open does not activate the game, and Hadron's launch window stays
 # shut. Set before anything runs Wine, so a prefix update's wineboot stays off the screen too.
 np_bg_request="$np_support/background/$app_id"
 if [ -f "$np_bg_request" ]; then
   if [ -n "$(find "$np_bg_request" -mmin -10 2>/dev/null)" ]; then
     HADRON_MAC_BACKGROUND=1
-    echo "background: one-shot request taken" >> "$log" 2>&1 || true
+    if [ "$verb" = waitforexitandrun ]; then
+      echo "background: one-shot request taken" >> "$log" 2>&1 || true
+      rm -f "$np_bg_request"
+    else
+      echo "background: one-shot request used by this $verb, left for the game" >> "$log" 2>&1 || true
+    fi
   else
     echo "background: request older than 10 minutes, ignored" >> "$log" 2>&1 || true
+    rm -f "$np_bg_request"
   fi
-  rm -f "$np_bg_request"
 fi
 case "${HADRON_MAC_BACKGROUND:-}" in
   ('' | 0) HADRON_MAC_BACKGROUND="" ;;
