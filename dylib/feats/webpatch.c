@@ -806,7 +806,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "D=(k,l)=>(0," RT ".jsx)(" BARREL ".Yh,{className:\"NPHadronRow\",label:l," \
     "checked:\"0\"!==G(k),onChange:v=>s([[k,w(k,v?\"1\":\"0\",\"1\")]])},k)," \
     "none=fex?\"dxvk1\":\"dxmt\",bv=G(\"HADRON_GRAPHICS\")||none," \
-    "b=fex&&[\"dxmt\",\"d3dmetal\",\"dxvk\"].indexOf(bv)>=0?\"dxvk1\":bv," \
+    "b=fex?([\"dxmt\",\"d3dmetal\"].indexOf(bv)>=0?\"dxvk1\":bv):(\"vkd3d\"===bv?\"dxmt\":bv)," \
     "dx=\"dxmt\"===b," \
     "sw=\"1\"===G(\"DXMT_METALFX_SPATIAL_SWAPCHAIN\")," \
     "F=\"d3d11.metalSpatialUpscaleFactor=\",fk=" NP_FACTOR_ENTRY "," \
@@ -822,10 +822,11 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "{data:\"3.0\",label:\"3x\"}]," \
     "B=[{data:\"dxmt\",label:npL(\"DXMT (Metal)\",\"DXMT（Metal）\",\"DXMT (Metal)\")}," \
     "{data:\"d3dmetal\",label:npL(\"D3DMetal (CrossOver Wine)\",\"D3DMetal（CrossOver Wine）\",\"D3DMetal (CrossOver Wine)\")}," \
-    "{data:\"dxvk\",label:\"DXVK 3.1\"}," \
+    "{data:\"vkd3d\",label:\"vkd3d-proton + KosmicKrisp\"}," \
+    "{data:\"dxvk\",label:fex?\"DXVK + KosmicKrisp\":\"DXVK 3.1\"}," \
     "{data:\"dxvk1\",label:\"DXVK 1.10\"}," \
     "{data:\"wined3d\",label:npL(\"WineD3D (Wine's own)\",\"WineD3D（Wine 自带）\",\"WineD3D (integrato in Wine)\")}]" \
-    ".filter(x=>!fex||x.data===\"dxvk1\"||x.data===\"wined3d\")," \
+    ".filter(x=>fex?[\"vkd3d\",\"dxvk\",\"dxvk1\",\"wined3d\"].indexOf(x.data)>=0:\"vkd3d\"!==x.data)," \
     "pick=f=>\"1\"===f(\"DXMT_METALFX_SPATIAL_SWAPCHAIN\")?(U.find(u=>u.data&&+u.data===pf(f(\"DXMT_CONFIG\")||\"\"))" \
     "||{data:String(pf(f(\"DXMT_CONFIG\")||\"\"))}).data:\"\";" \
     "return(0," RT ".jsx)(\"div\",{className:\"NPHadronPanel\",children:(0," RT ".jsxs)(" RT ".Fragment,{children:[" \

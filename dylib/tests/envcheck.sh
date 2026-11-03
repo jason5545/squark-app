@@ -92,6 +92,17 @@ HADRON_GRAPHICS=dxvk
 eval "$graphics"
 is "dxvk picks DXVK 3.1" "$np_root/lib/graphics/dxvk" "${HADRON_DLL_OVERLAY:-}"
 is "DXVK 3.1 runs on KosmicKrisp" "$np_root/share/vulkan/icd.d/kosmickrisp_icd.json" "${VK_DRIVER_FILES:-}"
+mkdir -p "$np_root/lib/graphics/vkd3d"
+unset VK_DRIVER_FILES
+HADRON_GRAPHICS=vkd3d
+eval "$graphics"
+is "vkd3d picks vkd3d-proton with DXVK" "$np_root/lib/graphics/vkd3d:$np_root/lib/graphics/dxvk" "${HADRON_DLL_OVERLAY:-}"
+is "vkd3d-proton runs on KosmicKrisp" "$np_root/share/vulkan/icd.d/kosmickrisp_icd.json" "${VK_DRIVER_FILES:-}"
+rmdir "$np_root/lib/graphics/vkd3d"
+unset VK_DRIVER_FILES
+eval "$graphics"
+is "vkd3d falls back whole, without its DXVK, where the runtime lacks it" "$np_root/lib/graphics/dxmt" "${HADRON_DLL_OVERLAY:-}"
+is "that fallback runs on MoltenVK" "$np_root/share/vulkan/icd.d/MoltenVK_icd.json" "${VK_DRIVER_FILES:-}"
 unset VK_DRIVER_FILES
 HADRON_GRAPHICS=dxvk1
 eval "$graphics"
@@ -122,7 +133,7 @@ mkdir "$np_root/lib/graphics/d3dmetal"
 rm "$np_root/share/vulkan/icd.d/kosmickrisp_icd.json"
 rmdir "$np_root/lib/graphics/dxmt" "$np_root/lib/graphics/d3dmetal" "$np_root/lib/graphics/d9vk" \
   "$np_root/lib/graphics/dxvk" "$np_root/lib/dxmt"
-for wanted in dxmt d3dmetal; do
+for wanted in dxmt d3dmetal vkd3d dxvk; do
   unset VK_DRIVER_FILES
   HADRON_GRAPHICS=$wanted HADRON_DDRAW=""
   eval "$graphics"
@@ -367,6 +378,20 @@ rm -f "$np_support/defaults-fex" "$np_support/defaults-override-26.1-fex" "$np_s
 unset -v np_build np_flavor
 clear; unset -v MTL_HUD_ENABLED HADRON_RETINA
 verb=run
+
+echo "== NotProton launch options (steamac) =="
+legacy=$(sed -n '/^np_legacy=""/,/^done$/p' "$SRC")
+[ -n "$legacy" ] || { echo "FAIL: NotProton launch option block not found"; exit 1; }
+legacy_case() {
+  env -i PATH=/usr/bin:/bin "$@" /bin/sh -c "$legacy"'
+    printf "%s|%s|%s" "${HADRON_GRAPHICS-unset}" "${HADRON_ENV_JSC_useJIT-unset}" "$np_legacy"'
+}
+is "CX_GRAPHICS_BACKEND and NOTPROTON_ENV_ stand for Hadron's" \
+  "vkd3d|false|CX_GRAPHICS_BACKEND=vkd3d NOTPROTON_ENV_JSC_useJIT" \
+  "$(legacy_case CX_GRAPHICS_BACKEND=vkd3d NOTPROTON_ENV_JSC_useJIT=false)"
+is "Hadron's own names win" "dxvk1|true|" \
+  "$(legacy_case CX_GRAPHICS_BACKEND=vkd3d HADRON_GRAPHICS=dxvk1 NOTPROTON_ENV_JSC_useJIT=false HADRON_ENV_JSC_useJIT=true)"
+is "CrossOver's automatic choice is no backend" "unset|unset|" "$(legacy_case CX_GRAPHICS_BACKEND=auto)"
 
 if [ "$fails" -eq 0 ]; then
 	echo "==> envcheck: all assertions hold"

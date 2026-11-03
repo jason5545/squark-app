@@ -1,0 +1,20 @@
+ntdll: HADRON_WINE_USER names the user instead of steamuser.
+
+A prefix that NotProton set up under CrossOver ran as "crossover" (CrossOver's user name;
+its profile folder is steamuser, with crossover linked to it). Wine's DPAPI hashes the user
+name into its keys, so data protected there (Xbox sign-in tokens among them) only decrypts
+under the same name. compat_run.sh sets HADRON_WINE_USER=crossover for such a prefix.
+
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -368,6 +368,10 @@
+     if ((p = strrchr( name, '\\' ))) name = p + 1;
+     /* Hadron: same profile name as Proton, which Steam Cloud paths expect. */
+     name = "steamuser";
++    /* steamac: a prefix set up under another Wine keeps the user name it had there. DPAPI
++     * (crypt32's CryptProtectData) mixes the user name into its keys, so what a program
++     * protected under that name, such as sign-in tokens, only opens under it again. */
++    if ((p = getenv( "HADRON_WINE_USER" )) && *p && strlen( p ) < 64 && !strpbrk( p, "/\\:" )) name = p;
+     home_dir = strdup( home );
+     user_name = strdup( name );
+ }

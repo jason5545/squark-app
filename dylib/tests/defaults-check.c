@@ -76,6 +76,12 @@ static void valid_cases(void) {
     check(valid(NP_DEFAULTS_ROSETTA, "HADRON_GRAPHICS=d3dmetal") &&
           !valid(NP_DEFAULTS_FEX, "HADRON_GRAPHICS=d3dmetal"),
           "only Rosetta takes D3DMetal");
+    check(valid(NP_DEFAULTS_FEX, "HADRON_GRAPHICS=vkd3d") &&
+          !valid(NP_DEFAULTS_ROSETTA, "HADRON_GRAPHICS=vkd3d"),
+          "only FEX takes vkd3d-proton on KosmicKrisp");
+    check(valid(NP_DEFAULTS_FEX, "HADRON_GRAPHICS=dxvk") &&
+          valid(NP_DEFAULTS_ROSETTA, "HADRON_GRAPHICS=dxvk"),
+          "both runners take DXVK on KosmicKrisp");
     check(valid(NP_DEFAULTS_FEX, "HADRON_GRAPHICS=dxvk1") &&
           !valid(NP_DEFAULTS_ROSETTA, "HADRON_GRAPHICS=auto") &&
           !valid(NP_DEFAULTS_ROSETTA, "HADRON_GRAPHICS=vulkan"),

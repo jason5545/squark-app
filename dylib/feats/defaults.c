@@ -18,8 +18,10 @@
 #define FEX     (1u << NP_DEFAULTS_FEX)
 
 static const char *const g_bools[]    = { "0", "1", NULL };
-static const char *const g_backends[] = { "dxvk1", "wined3d", NULL };
-static const char *const g_rosetta_backends[] = { "dxmt", "d3dmetal", "dxvk", NULL };
+static const char *const g_backends[] = { "dxvk1", "wined3d", "dxvk", NULL };
+static const char *const g_rosetta_backends[] = { "dxmt", "d3dmetal", NULL };
+// vkd3d-proton with DXVK on KosmicKrisp, built for ARM64EC, is in arm64 runtimes only.
+static const char *const g_fex_backends[] = { "vkd3d", NULL };
 static const char *const g_ddraw[]    = { "0", "cnc-ddraw", NULL };
 static const char *const g_factors[]  = { "1.5", "1.72", "2.0", "3.0", NULL };
 
@@ -29,8 +31,9 @@ static const struct {
     const char        *prefix;
     const char *const *values;
     const char *const *rosetta_values; // on top of `values`, for Rosetta only
+    const char *const *fex_values;     // on top of `values`, for FEX only
 } g_settings[] = {
-    { "HADRON_GRAPHICS",                ROSETTA | FEX, "", g_backends, g_rosetta_backends },
+    { "HADRON_GRAPHICS",                ROSETTA | FEX, "", g_backends, g_rosetta_backends, g_fex_backends },
     { "MTL_HUD_ENABLED",                ROSETTA | FEX, "", g_bools, NULL },
     { "DXMT_ENABLE_NVEXT",              ROSETTA | FEX, "", g_bools, NULL },
     { "ROSETTA_ADVERTISE_AVX",          ROSETTA,       "", g_bools, NULL },
@@ -59,7 +62,8 @@ static int valid_value(size_t i, uint32_t runner, const char *v, size_t len) {
     size_t pre = strlen(g_settings[i].prefix);
     if (len <= pre || memcmp(v, g_settings[i].prefix, pre) != 0) return 0;
     return is_one_of(g_settings[i].values, v + pre, len - pre)
-        || (runner == NP_DEFAULTS_ROSETTA && is_one_of(g_settings[i].rosetta_values, v + pre, len - pre));
+        || (runner == NP_DEFAULTS_ROSETTA && is_one_of(g_settings[i].rosetta_values, v + pre, len - pre))
+        || (runner == NP_DEFAULTS_FEX && is_one_of(g_settings[i].fex_values, v + pre, len - pre));
 }
 
 static int setting_index(uint32_t runner, const char *key, size_t key_len) {

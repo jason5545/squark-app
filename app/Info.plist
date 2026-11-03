@@ -38,11 +38,9 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/nheisterkamp/Hadron/updates/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>Npdd6SBIkPrgRsUnutL9nNHUrqscMH3apyaqhUlcfXE=</string>
+	<!-- steamac: no SUFeedURL or SUPublicEDKey, so AppUpdater never starts Sparkle and
+	     Hadron's own releases do not replace this build. Merge upstream and rebuild instead. -->
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
+	<false/>
 </dict>
 </plist>

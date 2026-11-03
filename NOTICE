@@ -35,3 +35,14 @@ These third party files carry their original notices from the project authors:
   steam-shim/json/json-forwards.h    JsonCpp, public domain / MIT (header)
   vendor/cJSON.c                     cJSON, MIT (header)
   vendor/cJSON.h                     cJSON, MIT (header)
+
+This fork (jason5545/Hadron, branch steamac) adds, from Highball's engine
+(https://github.com/gauthierpiarrette/highball-engine, at 2eedc50), unchanged:
+
+  runtime/patches/wine-11.18-fex/0018-0052  Wine patches, LGPL-2.1-or-later
+  runtime/fex/highball/*.patch              FEX patches, MIT
+  runtime/fex/highball/fexunixlib_darwin.cpp  FEX unix helper for macOS, MIT
+  runtime/gstreamer/unpkg.py, prune.py      GStreamer packaging, LGPL-2.1-or-later
+
+A runtime built with GSTREAMER=yes carries GStreamer's official macOS framework,
+pruned; the licence texts of its components are in its share/licenses.

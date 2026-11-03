@@ -1,6 +1,8 @@
-// A FEX tool runs arm64 Wine, which has DXVK 1.10 and WineD3D only and never runs under
-// Rosetta. Its panel offers just those two, shows DXMT, D3DMetal and DXVK 3.1 as the DXVK
-// 1.10 the game gets, and drops the AVX2 row. A Rosetta tool keeps every row.
+// A FEX tool runs arm64 Wine, which never runs under Rosetta and has no DXMT or D3DMetal.
+// Its panel offers vkd3d-proton and DXVK on KosmicKrisp (in the arm64 runtimes that carry
+// them, the run script falls back to DXVK 1.10 elsewhere), DXVK 1.10 and WineD3D, shows DXMT
+// and D3DMetal as the DXVK 1.10 the game gets, and drops the AVX2 row. A Rosetta tool keeps
+// every row but vkd3d, and shows vkd3d as DXMT.
 'use strict';
 const { panel, walk, details, runner, FORMS } = require('./harness');
 
@@ -28,7 +30,7 @@ for (const form of Object.keys(FORMS)) {
     const backends = ns => dropdown(ns).props.rgOptions.map(o => o.data);
 
     let r = nodes('');
-    const want = fex ? ['dxvk1', 'wined3d'] : ALL;
+    const want = fex ? ['vkd3d', 'dxvk', 'dxvk1', 'wined3d'] : ALL;
     t.ok(backends(r).join() === want.join(), `offers ${want} (${backends(r)})`);
     t.ok(toggles(r).includes(AVX) === !fex, `the AVX2 row is ${fex ? 'hidden' : 'shown'}`);
     t.ok(dropdown(r).props.selectedOption === (fex ? 'dxvk1' : 'dxmt'),
@@ -67,9 +69,10 @@ for (const form of Object.keys(FORMS)) {
     }
     t.ok(toggles(r).includes('DLSS') === !fex, `the DXMT DLSS row is ${fex ? 'hidden' : 'shown'}`);
 
-    for (const b of ['dxmt', 'd3dmetal', 'dxvk']) {
+    for (const b of ['dxmt', 'd3dmetal', 'dxvk', 'vkd3d']) {
       const picked = dropdown(nodes('HADRON_GRAPHICS=' + b)).props.selectedOption;
-      t.ok(picked === (fex ? 'dxvk1' : b), `a game set to ${b} shows ${picked}`);
+      const shown = fex ? (b === 'dxmt' || b === 'd3dmetal' ? 'dxvk1' : b) : (b === 'vkd3d' ? 'dxmt' : b);
+      t.ok(picked === shown, `a game set to ${b} shows ${picked}`);
     }
     r = nodes('HADRON_GRAPHICS=wined3d');
     t.ok(dropdown(r).props.selectedOption === 'wined3d', 'WineD3D shows as itself');

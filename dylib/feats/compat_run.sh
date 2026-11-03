@@ -161,6 +161,23 @@ WINELOADER="$wine_unix/wine"
 WINESERVER="$np_root/bin/wineserver"
 export WINELOADER WINESERVER
 
+# steamac: launch options written for NotProton keep working. Its CX_GRAPHICS_BACKEND (the
+# steamac fork's vkd3d included) and NOTPROTON_ENV_<name> stand for HADRON_GRAPHICS and
+# HADRON_ENV_<name> wherever those are not set themselves.
+np_legacy=""
+if [ -n "${CX_GRAPHICS_BACKEND:-}" ] && [ -z "${HADRON_GRAPHICS+x}" ]; then
+  case "$CX_GRAPHICS_BACKEND" in
+    dxmt | d3dmetal | dxvk | wined3d | vkd3d)
+      export HADRON_GRAPHICS="$CX_GRAPHICS_BACKEND"
+      np_legacy="CX_GRAPHICS_BACKEND=$CX_GRAPHICS_BACKEND" ;;
+  esac
+fi
+for np_legacy_name in $(env | LC_ALL=C sed -nE 's/^NOTPROTON_ENV_([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p'); do
+  eval "[ -z \"\${HADRON_ENV_$np_legacy_name+x}\" ]" || continue
+  eval "export HADRON_ENV_$np_legacy_name=\"\$NOTPROTON_ENV_$np_legacy_name\""
+  np_legacy="$np_legacy${np_legacy:+ }NOTPROTON_ENV_$np_legacy_name"
+done
+
 np_from_defaults() {
   case " $np_defaulted " in *" $1="*) return 0 ;; esac
   return 1
@@ -177,8 +194,10 @@ if [ "$verb" = waitforexitandrun ] && [ -f "$np_defaults_file" ] && [ -r "$np_de
     key=${line%%=*}
     value=${line#*=}
     case "$line" in
-      HADRON_GRAPHICS=dxvk1 | HADRON_GRAPHICS=wined3d) ;;
-      HADRON_GRAPHICS=dxmt | HADRON_GRAPHICS=d3dmetal | HADRON_GRAPHICS=dxvk | ROSETTA_ADVERTISE_AVX=[01])
+      HADRON_GRAPHICS=dxvk1 | HADRON_GRAPHICS=wined3d | HADRON_GRAPHICS=dxvk) ;;
+      HADRON_GRAPHICS=vkd3d)
+        [ "${wine_unix##*/}" = aarch64-unix ] || continue ;;
+      HADRON_GRAPHICS=dxmt | HADRON_GRAPHICS=d3dmetal | ROSETTA_ADVERTISE_AVX=[01])
         [ "${wine_unix##*/}" != aarch64-unix ] || continue ;;
       FEX_X87REDUCEDPRECISION=[01])
         [ "${wine_unix##*/}" = aarch64-unix ] || continue ;;
@@ -248,6 +267,7 @@ fi
   env | grep -iE '^(Steam|SDL_)' | sort
   [ -z "$np_defaulted" ] || echo "from ${np_defaults_file##*/}: $np_defaulted"
   [ -z "$np_dropped" ] || echo "ignored on arm64 Wine: $np_dropped"
+  [ -z "$np_legacy" ] || echo "NotProton launch options taken as Hadron's: $np_legacy"
 } >> "$log" 2>&1 || true
 
 # Hadron's launch window follows a game's start through this record, one per game.
@@ -1095,7 +1115,9 @@ echo "runner: build $np_build ($np_display) at $np_root" >> "$log" 2>&1 || true
 # Each runtime carries graphics backends under lib/graphics, beside Wine's own Direct3D,
 # and its Wine searches HADRON_DLL_OVERLAY first. HADRON_GRAPHICS in a game's launch
 # options picks dxmt (D3D10/11 on Metal, D3D8/9 on DXVK), d3dmetal (Apple's D3D11/12,
-# D3D8/9 on DXVK), dxvk (DXVK 3.1), dxvk1 (DXVK 1.10) or wined3d (Wine's own).
+# D3D8/9 on DXVK), dxvk (DXVK 3.1), dxvk1 (DXVK 1.10), vkd3d (vkd3d-proton for D3D12 with
+# DXVK for DXGI and D3D10/11, on KosmicKrisp, arm64 runtimes that carry them) or wined3d
+# (Wine's own).
 # HADRON_DDRAW=cnc-ddraw adds cnc-ddraw.
 unset HADRON_DLL_OVERLAY CX_APPLEGPTK_LIBD3DSHARED_PATH
 np_graphics="${HADRON_GRAPHICS:-dxmt}"
@@ -1104,6 +1126,7 @@ case "$np_graphics" in
   d3dmetal) np_overlays="d3dmetal d9vk" ;;
   dxvk) np_overlays="dxvk" ;;
   dxvk1) np_overlays="dxvk1" ;;
+  vkd3d) np_overlays="vkd3d dxvk" ;;
   *) np_overlays="" ;;
 esac
 [ "${HADRON_DDRAW:-}" != cnc-ddraw ] || np_overlays="$np_overlays ddraw"
@@ -1117,10 +1140,26 @@ done
 # D3DMetal is only in the CrossOver runtime, and the arm64 runtimes have neither DXMT
 # nor D3DMetal. A backend the runtime lacks falls back to DXMT, or to DXVK 1.10 (which FEX
 # runs), rather than to Wine's own Direct3D.
+# vkd3d and DXVK 3 are in some arm64 runtimes only, and only whole: without the backend's own
+# overlay, none of its other overlays is kept either.
+np_has_overlay() {
+  case ":${HADRON_DLL_OVERLAY:-}:" in *"/graphics/$1:"*|*"/lib/$1:"*) return 0 ;; esac
+  return 1
+}
 case "$np_graphics" in
-  dxmt|d3dmetal)
-    case ":${HADRON_DLL_OVERLAY:-}:" in
-      *"/dxmt:"*|*"/d3dmetal:"*) ;;
+  dxmt|d3dmetal|vkd3d|dxvk)
+    np_have=0
+    case "$np_graphics" in
+      dxmt|d3dmetal) { np_has_overlay dxmt || np_has_overlay d3dmetal; } && np_have=1 ;;
+      *)
+        if np_has_overlay "$np_graphics"; then
+          np_have=1
+        else
+          HADRON_DLL_OVERLAY="" np_overlays=""
+        fi ;;
+    esac
+    case "$np_have" in
+      1) ;;
       *)
         for np_fallback in dxmt dxvk1; do
           np_dir="$np_root/lib/graphics/$np_fallback"
@@ -1145,11 +1184,51 @@ np_icd="$np_root/share/vulkan/icd.d"
 if [ -z "${VK_DRIVER_FILES:-}" ] && [ -d "$np_icd" ]; then
   np_driver=MoltenVK
   case " $np_overlays " in
-    *" dxvk "*|*" d9vk "*) [ ! -f "$np_icd/kosmickrisp_icd.json" ] || np_driver=kosmickrisp ;;
+    *" dxvk "*|*" d9vk "*|*" vkd3d "*) [ ! -f "$np_icd/kosmickrisp_icd.json" ] || np_driver=kosmickrisp ;;
   esac
   export VK_DRIVER_FILES="$np_icd/${np_driver}_icd.json"
 fi
 echo "graphics: $np_graphics (${HADRON_DLL_OVERLAY:-Wine builtin}, Vulkan ${VK_DRIVER_FILES:-direct})" >> "$log" 2>&1 || true
+# vkd3d-proton on KosmicKrisp: the feature level and shader model MSFS 2024 needs, and DXGI's
+# memory as DXVK should report it. Launch options win.
+case " $np_overlays " in
+  *" vkd3d "*)
+    export VKD3D_FEATURE_LEVEL="${VKD3D_FEATURE_LEVEL:-12_1}"
+    export VKD3D_SHADER_MODEL="${VKD3D_SHADER_MODEL:-6_7}"
+    export DXVK_CONFIG="${DXVK_CONFIG:-dxgi.maxDeviceMemory = 16384; dxgi.maxSharedMemory = 8192}"
+    echo "graphics: VKD3D_FEATURE_LEVEL=$VKD3D_FEATURE_LEVEL VKD3D_SHADER_MODEL=$VKD3D_SHADER_MODEL DXVK_CONFIG=$DXVK_CONFIG" >> "$log" 2>&1 || true ;;
+esac
+# The arm64 runtime's vkd3d-proton and DXVK (steamac's) share textures between D3D11 and D3D12
+# through host memory, which they only do where Wine does not offer VK_KHR_external_memory_win32;
+# runtime patch 0055 hides it when this is 1.
+case "${wine_unix##*/}: $np_overlays " in
+  aarch64-unix:*" vkd3d "* | aarch64-unix:*" dxvk "*)
+    export HADRON_VK_HOST_SHARING="${HADRON_VK_HOST_SHARING:-1}"
+    echo "graphics: HADRON_VK_HOST_SHARING=$HADRON_VK_HOST_SHARING" >> "$log" 2>&1 || true ;;
+esac
+# steamac: Microsoft Flight Simulator 2024 on an arm64 runtime gets the FEX switches Highball's
+# recipe for it sets (highball-engine fex/README.md, patches 0020 and 0023): its copy protection
+# rewrites code beside the game's own all the time. HB_FEX_SMC_INLINE is left out: it is faster
+# still, but a thread looping in a block another thread patches can miss the change for good.
+# Launch options win.
+np_recipe=""
+if [ "${wine_unix##*/}" = aarch64-unix ] && [ "${STEAM_COMPAT_APP_ID:-}" = 2537590 ]; then
+  for np_recipe_var in HB_FEX_SMC_RETIRE=1 HB_FEX_SMC_SKIP_SAME=1 HB_FEX_SMC_HOT_MAXINST=64 \
+      HB_FEX_VM_FASTPATH=1 HB_FEX_SMC_DEFER_CALLRET=1; do
+    eval "[ -z \"\${${np_recipe_var%%=*}+x}\" ]" || continue
+    export "${np_recipe_var?}"
+    np_recipe="$np_recipe${np_recipe:+ }$np_recipe_var"
+  done
+  echo "recipe: Microsoft Flight Simulator 2024 sets ${np_recipe:-nothing, the launch options set it all}" >> "$log" 2>&1 || true
+fi
+# A runtime with GStreamer (winegstreamer, for videos games play through Media Foundation)
+# has its framework in lib, and its plugins only come from there.
+np_gst="$np_root/lib/GStreamer.framework/Versions/1.0"
+if [ -d "$np_gst/lib/gstreamer-1.0" ]; then
+  export GST_PLUGIN_PATH="$np_gst/lib/gstreamer-1.0" GST_PLUGIN_SYSTEM_PATH="$np_gst/lib/gstreamer-1.0"
+  [ ! -x "$np_gst/libexec/gstreamer-1.0/gst-plugin-scanner" ] \
+    || export GST_PLUGIN_SCANNER="$np_gst/libexec/gstreamer-1.0/gst-plugin-scanner"
+fi
 
 # Each runtime build needs its own template.
 runner_id=""
@@ -1569,6 +1648,14 @@ native_vc_runtime() {
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   export WINEPREFIX="$STEAM_COMPAT_DATA_PATH/pfx"
+  # steamac: a prefix NotProton set up under CrossOver ran as "crossover" (users/crossover links
+  # to steamuser). Wine's DPAPI mixes the user name into its keys, so such a prefix keeps that
+  # name (runtime patch 0054), or what its programs protected, sign-in tokens included, no
+  # longer opens. A runtime without the patch ignores the variable.
+  if [ -z "${HADRON_WINE_USER:-}" ] && [ -L "$WINEPREFIX/drive_c/users/crossover" ]; then
+    export HADRON_WINE_USER=crossover
+    echo "user: crossover, as under NotProton (users/crossover links to steamuser)" >> "$log" 2>&1 || true
+  fi
   set_stage "prefix lock"
   prepare_prefix_directory
   set_stage "prefix build check"
@@ -2247,7 +2334,7 @@ while IFS= read -r np_feat_env; do
 done <<NP_FEAT_ENVS
 $np_feat_envs
 NP_FEAT_ENVS
-for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|MTL_|ROSETTA_)[A-Z0-9_]*)=.*/\1/p'); do
+for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|HB_|MTL_|ROSETTA_|VKD3D_|GST_|MESA_)[A-Z0-9_]*)=.*/\1/p'); do
   eval "value=\$$name"
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"
@@ -2275,6 +2362,8 @@ set -- \
   --env WINEDLLPATH="$WINEDLLPATH" \
   --env WINEDLLOVERRIDES="$WINEDLLOVERRIDES" \
   --env HADRON_DLL_OVERLAY="${HADRON_DLL_OVERLAY:-}" \
+  --env HADRON_WINE_USER="${HADRON_WINE_USER:-}" \
+  --env HADRON_VK_HOST_SHARING="${HADRON_VK_HOST_SHARING:-}" \
   --env WINEPREFIX="$WINEPREFIX" \
   --env WINEDEBUG="$WINEDEBUG" \
   --env PATH="$PATH" \

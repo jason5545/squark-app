@@ -56,6 +56,11 @@ COMPONENTS_FROM=""
 ARCH=x86_64
 # yes for a Wine with CodeWeavers' D3DMetal glue, see where D3DMetal is staged.
 D3DMETAL=""
+# arm64 only: a folder in fex/ whose patches FEX gets instead of fex/*.patch, with its own
+# unix helper when the folder has fexunixlib_darwin.cpp.
+FEX_SERIES=""
+# arm64 only: yes builds winegstreamer against the official GStreamer framework and stages it.
+GSTREAMER=""
 # shellcheck disable=SC1090
 . "$definition"
 [ "$RUNTIME_ID" = "$1" ] || die "$definition names itself $RUNTIME_ID"
@@ -141,6 +146,19 @@ wine-gecko-2.47.4-x86.tar.xz 2cfc8d5c948602e21eff8a78613e1826f2d033df9672cace87f
 wine-gecko-2.47.4-x86_64.tar.xz fd88fc7e537d058d7a8abf0c1ebc90c574892a466de86706a26d254710a82814
 "
 
+# GStreamer for winegstreamer (GSTREAMER=yes), the official macOS framework: the runtime and
+# devel packages from gstreamer.freedesktop.org, with Highball's unchanged mirror of them as the
+# fallback (the site's CDN closed transfers of them in October 2026). The digests are the ones
+# published beside the packages. Only the components below are unpacked, then gstreamer/prune.py
+# keeps what winegstreamer uses, thinned to arm64.
+GST_VERSION=1.28.7
+GST_URLS="https://gstreamer.freedesktop.org/data/pkg/osx/$GST_VERSION https://github.com/gauthierpiarrette/highball-engine/releases/download/inputs-gstreamer-$GST_VERSION"
+GST_PINS="
+runtime gstreamer-1.0-$GST_VERSION-universal.pkg 529fdf4a4027d942e59b5b3564f6400adaa008f63ce5f3fed4ffe35d73911994
+devel gstreamer-1.0-devel-$GST_VERSION-universal.pkg 72a44870cf02472cbf6e9a84bcc25ee6807dd1c26659a112066373544d365e7a
+"
+GST_COMPONENTS="base-system-1.0 base-crypto gstreamer-1.0-core gstreamer-1.0-playback gstreamer-1.0-codecs gstreamer-1.0-codecs-restricted gstreamer-1.0-effects gstreamer-1.0-libav gstreamer-1.0-system"
+
 PATH="/opt/homebrew/bin:/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:/opt/homebrew/opt/autoconf/bin:$PATH"
 if [ "$ARCH" = arm64 ]; then
     llvm_mingw="$DOWNLOADS/llvm-mingw-$LLVM_MINGW_VERSION-ucrt-macos-universal"
@@ -179,12 +197,19 @@ runtime_patches() {
 prepare_source() {
     if [ -f "$WINE_SRC/.hadron-prepared" ]; then
         echo "==> source tree ready: $WINE_SRC"
-        # A patch added since the tree was prepared goes on top. One already there
-        # reverses cleanly.
+        # A patch added since the tree was prepared goes on top. The tree lists the patches it
+        # has; one from before that list tells by reversing each, which fails for a patch a
+        # later one changed the context of.
         for patch in $(runtime_patches); do
-            git -C "$WINE_SRC" apply --reverse --check "$patch" 2>/dev/null && continue
-            echo "==> applying ${patch#"$here"/patches/} to the prepared tree"
+            name="${patch#"$here"/patches/}"
+            if [ -f "$WINE_SRC/.hadron-patches" ]; then
+                grep -qxF "$name" "$WINE_SRC/.hadron-patches" && continue
+            else
+                git -C "$WINE_SRC" apply --reverse --check "$patch" 2>/dev/null && continue
+            fi
+            echo "==> applying $name to the prepared tree"
             git -C "$WINE_SRC" apply "$patch" || die "${patch##*/} does not apply to $RUNTIME_ID"
+            [ ! -f "$WINE_SRC/.hadron-patches" ] || echo "$name" >> "$WINE_SRC/.hadron-patches"
             if grep -qE '^\+\+\+ b/(configure\.ac|server/protocol\.def)' "$patch"; then
                 ( cd "$WINE_SRC" && autoreconf -f && tools/make_requests )
             fi
@@ -231,9 +256,11 @@ prepare_source() {
         echo "==> registering lsteamclient and steam.exe with configure"
         git -C "$WINE_SRC" apply --include=configure.ac "$repo/bridge/register-components.diff"
     fi
+    : > "$WINE_SRC/.hadron-patches"
     for patch in $(runtime_patches); do
         echo "==> applying ${patch#"$here"/patches/}"
         git -C "$WINE_SRC" apply "$patch" || die "${patch##*/} does not apply to $RUNTIME_ID"
+        echo "${patch#"$here"/patches/}" >> "$WINE_SRC/.hadron-patches"
     done
     # configure is regenerated from configure.ac rather than patched, so the same
     # registration works on any Wine. wine-staging may also change the server protocol.
@@ -317,6 +344,49 @@ if [ ! -f "$DEPS/lib/libgnutls.30.dylib" ]; then
     done
 fi
 
+# GStreamer: GST_FRAMEWORK is the pruned framework the runtime gets, GST_SDK a copy of it before
+# pruning with the core and GLib headers, which Wine is built against.
+gst_cflags="" gst_libs=""
+if [ "$GSTREAMER" = yes ]; then
+    [ "$ARCH" = arm64 ] || die "GSTREAMER=yes is for arm64 runtimes"
+    gst="$repo/scratch/gstreamer/$GST_VERSION"
+    GST_FRAMEWORK="$gst/GStreamer.framework"
+    GST_SDK="$gst/sdk/GStreamer.framework/Versions/1.0"
+    if [ ! -f "$gst/.prepared" ]; then
+        echo "==> preparing GStreamer $GST_VERSION in $gst"
+        rm -rf "$gst" && mkdir -p "$gst" "$DOWNLOADS/gstreamer"
+        echo "$GST_PINS" | while read -r kind file sha; do
+            [ -n "$kind" ] || continue
+            pkg="$DOWNLOADS/gstreamer/$file"
+            for url in $GST_URLS; do
+                [ "$(shasum -a 256 "$pkg" 2>/dev/null | cut -d' ' -f1)" = "$sha" ] && break
+                rm -f "$pkg"
+                curl -fsSL --retry 3 -o "$pkg" "$url/$file" || true
+            done
+            [ "$(shasum -a 256 "$pkg" | cut -d' ' -f1)" = "$sha" ] || die "$pkg does not match its pin"
+            pkgutil --expand "$pkg" "$gst/$kind"
+        done
+        python3 -I "$here/gstreamer/unpkg.py" "$gst/runtime/osx-framework-$GST_VERSION-universal.pkg" "$GST_FRAMEWORK"
+        for c in $GST_COMPONENTS; do
+            python3 -I "$here/gstreamer/unpkg.py" "$gst/runtime/$c-$GST_VERSION-universal.pkg" "$GST_FRAMEWORK/Versions/1.0"
+        done
+        mkdir -p "$gst/sdk" && ditto "$GST_FRAMEWORK" "$gst/sdk/GStreamer.framework"
+        python3 -I "$here/gstreamer/unpkg.py" "$gst/devel/base-system-1.0-devel-$GST_VERSION-universal.pkg" "$GST_SDK" './include/*' './lib/glib-2.0/*'
+        python3 -I "$here/gstreamer/unpkg.py" "$gst/devel/gstreamer-1.0-core-devel-$GST_VERSION-universal.pkg" "$GST_SDK" './include/*'
+        python3 -I "$here/gstreamer/prune.py" "$GST_FRAMEWORK" --thin
+        for c in $GST_COMPONENTS; do
+            [ -d "$gst/devel/$c-devel-$GST_VERSION-universal.pkg" ] || continue
+            python3 -I "$here/gstreamer/unpkg.py" "$gst/devel/$c-devel-$GST_VERSION-universal.pkg" "$GST_FRAMEWORK/Versions/1.0" './share/licenses/*'
+        done
+        cp "$gst/runtime/Resources/license.txt" "$GST_FRAMEWORK/Versions/1.0/share/licenses/gstreamer-installer-license.txt"
+        rm -rf "$gst/runtime" "$gst/devel"
+        touch "$gst/.prepared"
+    fi
+    gst_cflags="-I$GST_SDK/include/gstreamer-1.0 -I$GST_SDK/include/glib-2.0 -I$GST_SDK/lib/glib-2.0/include -I$GST_SDK/include"
+    # winegstreamer.so is in lib/wine/aarch64-unix, the framework in lib.
+    gst_libs="-L$GST_SDK/lib -lgstvideo-1.0 -lgstaudio-1.0 -lgsttag-1.0 -lgstbase-1.0 -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lintl -Wl,-rpath,@loader_path/../../GStreamer.framework/Versions/1.0/lib"
+fi
+
 if [ ! -f "$WINE_BUILD/Makefile" ]; then
     echo "==> configuring $WINE_BUILD"
     mkdir -p "$WINE_BUILD"
@@ -328,9 +398,14 @@ if [ ! -f "$WINE_BUILD/Makefile" ]; then
         --prefix=/ --enable-archs="$WINE_ARCHS" --without-x $disable \
         --host="$HOST" CC="$CC_ARCH" CXX="$CXX_ARCH" \
         FREETYPE_CFLAGS="-I$DEPS/include/freetype2" FREETYPE_LIBS="-L$DEPS/lib -lfreetype" \
+        GSTREAMER_CFLAGS="$gst_cflags" GSTREAMER_LIBS="$gst_libs" \
         ac_cv_lib_soname_freetype="$UNIX_TO_LIB/libfreetype.6.dylib" \
         ac_cv_lib_soname_vulkan="$UNIX_TO_LIB/libvulkan.1.dylib" \
         ac_cv_lib_soname_gnutls="$UNIX_TO_LIB/libgnutls.30.dylib" )
+fi
+if [ "$GSTREAMER" = yes ]; then
+    grep -q "^GSTREAMER_LIBS = .*-lgstreamer-1.0" "$WINE_BUILD/Makefile" \
+        || die "configure did not take GStreamer, remove $WINE_BUILD to configure again"
 fi
 grep -q "^host_cpu = $HOST_CPU" "$WINE_BUILD/config.status" \
     || die "configure did not take the $HOST_CPU host"
@@ -386,6 +461,17 @@ fi
 
 # compat_run.sh runs the loader from the unix dir, beside ntdll.so.
 [ -e "$OUT/lib/wine/$UNIX_DIR/wine" ] || cp "$OUT/bin/wine" "$OUT/lib/wine/$UNIX_DIR/wine"
+
+# winegstreamer finds GStreamer through its rpath, lib/GStreamer.framework, and the run script
+# points GST_PLUGIN_PATH at its plugins. Every library winegstreamer links has to be there.
+if [ "$GSTREAMER" = yes ]; then
+    echo "==> adding GStreamer $GST_VERSION as lib/GStreamer.framework"
+    [ -f "$OUT/lib/wine/$UNIX_DIR/winegstreamer.so" ] || die "winegstreamer.so was not built"
+    ditto "$GST_FRAMEWORK" "$OUT/lib/GStreamer.framework"
+    for dep in $(otool -L "$OUT/lib/wine/$UNIX_DIR/winegstreamer.so" | awk '/@rpath\/lib/ { print $1 }'); do
+        [ -f "$OUT/lib/GStreamer.framework/Versions/1.0/lib/${dep#@rpath/}" ] || die "GStreamer lacks $dep, which winegstreamer links"
+    done
+fi
 
 # Wine builds with -g, which is most of the size. The x86_64 unix halves stay unsigned,
 # because a signed x86_64 builtin no longer loads. arm64 is the other way round: an
@@ -474,6 +560,15 @@ drivers="MoltenVK:libMoltenVK.dylib:1.4.0"
 if [ "$ARCH" = x86_64 ]; then
     cp "$vulkan/libvulkan_kosmickrisp.dylib" "$OUT/lib/"
     drivers="$drivers kosmickrisp:libvulkan_kosmickrisp.dylib:1.4.363"
+elif [ -n "${HADRON_KOSMICKRISP:-}" ]; then
+    # An arm64 KosmicKrisp built outside this tree: a folder with libvulkan_kosmickrisp.dylib
+    # (self-contained, signed) and, if there is one, a KOSMICKRISP.txt saying what it is.
+    [ -f "$HADRON_KOSMICKRISP/libvulkan_kosmickrisp.dylib" ] || die "no libvulkan_kosmickrisp.dylib in $HADRON_KOSMICKRISP"
+    lipo -archs "$HADRON_KOSMICKRISP/libvulkan_kosmickrisp.dylib" | grep -qw arm64 || die "$HADRON_KOSMICKRISP has no arm64 KosmicKrisp"
+    echo "==> adding KosmicKrisp from $HADRON_KOSMICKRISP"
+    cp "$HADRON_KOSMICKRISP/libvulkan_kosmickrisp.dylib" "$OUT/lib/"
+    [ ! -f "$HADRON_KOSMICKRISP/KOSMICKRISP.txt" ] || cp "$HADRON_KOSMICKRISP/KOSMICKRISP.txt" "$OUT/lib/"
+    drivers="$drivers kosmickrisp:libvulkan_kosmickrisp.dylib:1.3.0"
 fi
 mkdir -p "$OUT/share/vulkan/icd.d"
 for driver in $drivers; do
@@ -503,6 +598,29 @@ for pair in $backends; do
     cp "$renderers/$from/LICENSE" "$renderers/$from/version" "$OUT/lib/graphics/$name/"
 done
 
+# arm64: graphics layers built for ARM64EC outside this tree, so they run natively inside an
+# x86-64 game's process instead of through FEX. HADRON_ARM64EC_GRAPHICS lists
+# name:folder[:licence file] entries; a folder's DLLs become lib/graphics/<name>, marked builtin
+# to load through the overlay, with the licence and the DLLs' digests beside them. compat_run.sh
+# knows vkd3d (vkd3d-proton's d3d12 and d3d12core) and dxvk (DXVK's dxgi, d3d11, d3d10core).
+for entry in ${HADRON_ARM64EC_GRAPHICS:-}; do
+    [ "$ARCH" = arm64 ] || die "HADRON_ARM64EC_GRAPHICS is for arm64 runtimes"
+    name="${entry%%:*}"
+    from="${entry#*:}"
+    licence=""
+    case "$from" in *:*) licence="${from#*:}" from="${from%%:*}" ;; esac
+    ls "$from"/*.dll >/dev/null 2>&1 || die "no DLLs in $from for $name"
+    echo "==> adding ARM64EC $name from $from under lib/graphics/$name"
+    rm -rf "$OUT/lib/graphics/$name"
+    mkdir -p "$OUT/lib/graphics/$name/$PE64_DIR"
+    for dll in "$from"/*.dll; do
+        cp "$dll" "$OUT/lib/graphics/$name/$PE64_DIR/"
+        "$WINE_BUILD/tools/winebuild/winebuild" --builtin "$OUT/lib/graphics/$name/$PE64_DIR/${dll##*/}"
+    done
+    [ -z "$licence" ] || cp "$licence" "$OUT/lib/graphics/$name/LICENSE"
+    ( cd "$from" && shasum -a 256 ./*.dll ) > "$OUT/lib/graphics/$name/version"
+done
+
 # D3DMetal, Apple's D3D11/12 on Metal from the Game Porting Toolkit. It needs the glue
 # CodeWeavers keeps in their Wine, and it calls its unix code straight from Windows code,
 # which only works in a Wine that leaves %gs alone on macOS, as theirs does and upstream
@@ -526,32 +644,56 @@ if [ "$ARCH" = arm64 ]; then
     # FEX at its pin with runtime/fex on top, which lets its unix half switch threads to
     # hardware TSO on macOS when HADRON_FEX_HARDWARE_TSO=1; by default FEX orders memory
     # itself. The builds are incremental, so they run every time.
+    # A FEX_SERIES folder replaces fex/*.patch, in a source tree of its own.
     fex="$repo/scratch/fex/$FEX_TAG"
+    fex_patches="$here/fex"
+    if [ -n "$FEX_SERIES" ]; then
+        fex="$fex-$FEX_SERIES"
+        fex_patches="$here/fex/$FEX_SERIES"
+        [ -d "$fex_patches" ] || die "no FEX series at $fex_patches"
+    fi
     if [ ! -d "$fex/.git" ]; then
         git clone --quiet --depth 1 --branch "$FEX_TAG" --recurse-submodules --shallow-submodules "$FEX_URL" "$fex"
     fi
     [ "$(git -C "$fex" rev-parse HEAD)" = "$FEX_COMMIT" ] || die "$FEX_TAG is not at the pinned $FEX_COMMIT"
     if [ ! -f "$fex/.hadron-patched" ]; then
-        for patch in "$here"/fex/*.patch; do
-            echo "==> applying fex/${patch##*/}"
+        for patch in "$fex_patches"/*.patch; do
+            echo "==> applying ${patch#"$here"/}"
             git -C "$fex" apply "$patch" || die "${patch##*/} does not apply to $FEX_TAG"
         done
         touch "$fex/.hadron-patched"
     fi
-    for target in arm64ec:arm64ec wow64:aarch64; do
+    for target in arm64ec:arm64ec:arm64ecfex wow64:aarch64:wow64fex; do
+        build="$fex/build_${target%%:*}"
+        triple="${target#*:}" && triple="${triple%%:*}"
         echo "==> building FEX $FEX_TAG for ${target%%:*}"
-        [ -f "$fex/build_${target%%:*}/build.ninja" ] || cmake -S "$fex" -B "$fex/build_${target%%:*}" -G Ninja \
+        [ -f "$build/build.ninja" ] || cmake -S "$fex" -B "$build" -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$fex/Data/CMake/toolchain_mingw.cmake" \
-            -DMINGW_TRIPLE="${target#*:}-w64-mingw32" -DENABLE_LTO=False -DENABLE_ASSERTIONS=False \
+            -DMINGW_TRIPLE="$triple-w64-mingw32" -DENABLE_LTO=False -DENABLE_ASSERTIONS=False \
             -DENABLE_JEMALLOC_GLIBC_ALLOC=False -DBUILD_TESTING=False -DTUNE_ARCH=generic \
             -DTUNE_CPU=none -DRANGES_NATIVE=OFF
-        cmake --build "$fex/build_${target%%:*}"
+        # A series builds the two DLLs only; the rest of the tree is not needed and its own
+        # Linux unix helper may not build with the series (Highball's 0023).
+        if [ -n "$FEX_SERIES" ]; then
+            cmake --build "$build" --target "${target##*:}"
+        else
+            cmake --build "$build"
+        fi
     done
     echo "==> building FEX's unix half"
-    [ -f "$fex/build_unixlib/build.ninja" ] || cmake -S "$fex/Source/Windows/UnixLib" -B "$fex/build_unixlib" -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_ARCHITECTURES=arm64 \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=26.5
-    cmake --build "$fex/build_unixlib"
+    if [ -f "$fex_patches/fexunixlib_darwin.cpp" ]; then
+        # The series' own helper, one source for both modules.
+        mkdir -p "$fex/build_unixlib"
+        for name in libarm64ecfex libwow64fex; do
+            /usr/bin/clang++ -std=c++17 -O2 -arch arm64 -mmacosx-version-min=26.5 -shared -fPIC \
+                -o "$fex/build_unixlib/$name.so" "$fex_patches/fexunixlib_darwin.cpp"
+        done
+    else
+        [ -f "$fex/build_unixlib/build.ninja" ] || cmake -S "$fex/Source/Windows/UnixLib" -B "$fex/build_unixlib" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=26.5
+        cmake --build "$fex/build_unixlib"
+    fi
 
     # install_name_tool keeps a linker signature valid but breaks a codesign one, such as
     # MoltenVK's, and an arm64 library without a valid signature takes the process down.
