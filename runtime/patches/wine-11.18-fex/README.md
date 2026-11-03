@@ -29,3 +29,14 @@ WineHQ Wine 11.18.
   and ignore the mouse, and it leaves the host cursor and display modes alone. Input comes from inside
   Wine (SendHardwareInput), without the macOS input method (it would swallow keys of a program that is
   never the active app). `compat_run.sh` sets it for one launch when asked to (see there).
+- `0057-crypt32-pfx-key-only-to-matching-certificate.patch`: `PFXImportCertStore` gives the private key
+  only to the certificate whose public key matches it, as Windows does. Wine gave it to every
+  certificate in the PFX, so .NET, which deletes the key container of the certificates of a PFX it does
+  not keep, deleted the one container they shared and the kept server certificate lost its key
+  (schannel: SEC_E_UNKNOWN_CREDENTIALS). Found with MSFS Map Enhancement's local HTTPS server;
+  `tools/tls-server-test` in squark reproduces it.
+- `0058-secur32-machine-keyset-server-key.patch`: schannel also looks under HKEY_LOCAL_MACHINE for the
+  rsaenh container of a server certificate's CAPI private key, where rsaenh keeps machine key sets
+  (.NET's `X509KeyStorageFlags.MachineKeySet`); it looked only under HKEY_CURRENT_USER and refused the
+  certificate (SEC_E_INTERNAL_ERROR). Also found with MSFS Map Enhancement; `tools/tls-server-test`
+  (`serve <port> filem=<pfx>|<password>`) reproduces it.
