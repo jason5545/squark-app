@@ -58,21 +58,25 @@ done
 
 sh_backends=$(printf '%s\n' "$arms" | grep -oE 'HADRON_GRAPHICS=[a-z0-9]+' | sed 's/.*=//')
 sh_rosetta_backends=$(printf '%s\n' "$sh_rosetta" | grep -oE 'HADRON_GRAPHICS=[a-z0-9]+' | sed 's/.*=//')
+sh_fex_backends=$(printf '%s\n' "$sh_fex" | grep -oE 'HADRON_GRAPHICS=[a-z0-9]+' | sed 's/.*=//')
 # shellcheck disable=SC2016 # Match the literal case line.
 sh_factors=$(printf '%s\n' "$arms" | grep -F 'case "${value#*=}" in' \
   | sed 's/.* in \(.*\)) ;;.*/\1/' | tr -d '|')
 panel_list() { printf '%s\n' "$panel_src" | tr -d '\n' | grep -oE "$1=\[[^]]*\]" \
   | grep -oE 'data:\\"[a-z0-9.]+\\"' | sed 's/data:\\"//; s/\\"//'; }
-panel_fex_backends=$(printf '%s\n' "$panel_src" | grep -oE 'x\.data===\\"[a-z0-9]+\\"' \
-  | sed 's/.*===\\"//; s/\\"//')
+# The FEX filter lists what a FEX tool offers: fex?[\"a\",\"b\"].indexOf(x.data)
+panel_fex_backends=$(printf '%s\n' "$panel_src" | tr -d '\n' | grep -oE 'fex\?\[[^]]*\]\.indexOf\(x\.data\)' \
+  | grep -oE '\\"[a-z0-9]+\\"' | sed 's/\\"//g')
 
-c_backends="$(field values HADRON_GRAPHICS) $(field rosetta-values HADRON_GRAPHICS)"
+c_backends="$(field values HADRON_GRAPHICS) $(field rosetta-values HADRON_GRAPHICS) $(field fex-values HADRON_GRAPHICS)"
 c_rosetta_backends=$(field rosetta-values HADRON_GRAPHICS)
+c_fex_backends=$(field fex-values HADRON_GRAPHICS)
 c_factors=$(field values DXMT_CONFIG)
 same "backends in defaults.c and compat_run.sh" "$c_backends" "$sh_backends"
 same "backends in defaults.c and the panel" "$c_backends" "$(panel_list B)"
 same "Rosetta-only backends in defaults.c and compat_run.sh" "$c_rosetta_backends" "$sh_rosetta_backends"
-same "FEX backends in defaults.c and the panel" "$(field values HADRON_GRAPHICS)" "$panel_fex_backends"
+same "FEX-only backends in defaults.c and compat_run.sh" "$c_fex_backends" "$sh_fex_backends"
+same "FEX backends in defaults.c and the panel" "$(field values HADRON_GRAPHICS) $c_fex_backends" "$panel_fex_backends"
 same "upscale factors in defaults.c and compat_run.sh" "$c_factors" "$sh_factors"
 same "upscale factors in defaults.c and the panel" "$c_factors" "$(panel_list U)"
 

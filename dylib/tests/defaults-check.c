@@ -318,6 +318,8 @@ static void print_settings(void) {
         for (const char *const *v = g_settings[i].values; *v; v++) printf(" %s", *v);
         printf("\nrosetta-values %s", g_settings[i].key);
         for (const char *const *v = g_settings[i].rosetta_values; v && *v; v++) printf(" %s", *v);
+        printf("\nfex-values %s", g_settings[i].key);
+        for (const char *const *v = g_settings[i].fex_values; v && *v; v++) printf(" %s", *v);
         printf("\n");
     }
 }
