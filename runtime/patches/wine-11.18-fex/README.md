@@ -40,3 +40,8 @@ WineHQ Wine 11.18.
   (.NET's `X509KeyStorageFlags.MachineKeySet`); it looked only under HKEY_CURRENT_USER and refused the
   certificate (SEC_E_INTERNAL_ERROR). Also found with MSFS Map Enhancement; `tools/tls-server-test`
   (`serve <port> filem=<pfx>|<password>`) reproduces it.
+- `0059-winebus-sdl-fakepad.patch`: `SQUARK_FAKEPAD=<path>` adds a virtual SDL gamepad, 045e:02fd like a
+  Bluetooth Xbox Wireless Controller, driven by text lines written to the FIFO at `<path>` (`ly -32768`,
+  `a 1`, `reset`; raw SDL values). It goes through SDL's game controller API and the rest of winebus like
+  a real pad, for testing input without a controller and for driving a program with a pad in the
+  background. squark's `tools/padprobe/fakepad.py` sends physical moves; `fakepad-test.py` checks XInput.
