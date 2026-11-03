@@ -324,9 +324,33 @@ case "$app_id" in ''|0) app_id=$(basename "$STEAM_COMPAT_DATA_PATH" 2>/dev/null)
 case "$app_id" in ''|*[!0-9]*) app_id=0 ;; esac
 echo "app_id=$app_id (STEAM_COMPAT_APP_ID=$STEAM_COMPAT_APP_ID)" >> "$log" 2>&1 || true
 
+# steamac: a background launch, for automated runs on a Mac someone else is using. Asked for by
+# the launch option HADRON_MAC_BACKGROUND=1, or for one launch by a file
+# $np_support/background/<app id> written less than 10 minutes before it (taken and removed
+# here, so a later launch by hand is a normal one). Wine keeps every window of the prefix off the
+# screen (runtime patch 0056), open does not activate the game, and Hadron's launch window stays
+# shut. Set before anything runs Wine, so a prefix update's wineboot stays off the screen too.
+np_bg_request="$np_support/background/$app_id"
+if [ -f "$np_bg_request" ]; then
+  if [ -n "$(find "$np_bg_request" -mmin -10 2>/dev/null)" ]; then
+    HADRON_MAC_BACKGROUND=1
+    echo "background: one-shot request taken" >> "$log" 2>&1 || true
+  else
+    echo "background: request older than 10 minutes, ignored" >> "$log" 2>&1 || true
+  fi
+  rm -f "$np_bg_request"
+fi
+case "${HADRON_MAC_BACKGROUND:-}" in
+  ('' | 0) HADRON_MAC_BACKGROUND="" ;;
+  (*)
+    HADRON_MAC_BACKGROUND=1
+    echo "background: on (windows under the desktop, open -g, no launch window)" >> "$log" 2>&1 || true ;;
+esac
+export HADRON_MAC_BACKGROUND
+
 # Only a game gets a record and the window, not the helpers Steam runs around it. Hadron
 # starts in the background when it is not running; a running Hadron watches the records.
-if [ "$verb" = waitforexitandrun ] && [ "$app_id" != 0 ] \
+if [ "$verb" = waitforexitandrun ] && [ "$app_id" != 0 ] && [ -z "$HADRON_MAC_BACKGROUND" ] \
     && mkdir -p "$np_support/launches" 2>/dev/null; then
   launch_record="$np_support/launches/$app_id"
   note_launch
@@ -2364,6 +2388,7 @@ set -- \
   --env HADRON_DLL_OVERLAY="${HADRON_DLL_OVERLAY:-}" \
   --env HADRON_WINE_USER="${HADRON_WINE_USER:-}" \
   --env HADRON_VK_HOST_SHARING="${HADRON_VK_HOST_SHARING:-}" \
+  --env HADRON_MAC_BACKGROUND="${HADRON_MAC_BACKGROUND:-}" \
   --env WINEPREFIX="$WINEPREFIX" \
   --env WINEDEBUG="$WINEDEBUG" \
   --env PATH="$PATH" \
@@ -2382,6 +2407,8 @@ if [ ! -f "$registered" ] || [ "$loader_app/Contents/Info.plist" -nt "$registere
     touch "$registered" 2>/dev/null || true
   fi
 fi
+# A background launch: open does not activate the game (its options may follow -a).
+[ -z "$HADRON_MAC_BACKGROUND" ] || set -- -g "$@"
 np_started=$(date +%s)
 np_terminated=0
 launch_state=running

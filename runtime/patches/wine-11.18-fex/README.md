@@ -23,3 +23,9 @@ WineHQ Wine 11.18.
   `VK_KHR_external_memory_win32` (which Highball's 0036 exposes through Metal objects) from the
   program, so the steamac DXVK and vkd3d-proton share textures through host memory on KosmicKrisp,
   the path they were validated on. `compat_run.sh` sets it for those graphics layers.
+- `0056-winemac-background-mode.patch`: `HADRON_MAC_BACKGROUND=1` keeps the program off the screen
+  for automated runs on a Mac someone else is using: it never activates itself or unhides, its
+  windows sit under the desktop picture (still on screen, so they draw and `screencapture -l` works)
+  and ignore the mouse, and it leaves the host cursor and display modes alone. Input comes from inside
+  Wine (SendHardwareInput), without the macOS input method (it would swallow keys of a program that is
+  never the active app). `compat_run.sh` sets it for one launch when asked to (see there).
