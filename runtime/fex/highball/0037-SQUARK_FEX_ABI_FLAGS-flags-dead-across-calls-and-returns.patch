@@ -1,0 +1,199 @@
+SQUARK_FEX_ABI_FLAGS: flags are dead across calls and returns in listed modules
+
+The dead flag pass treats every exit from a multiblock as reading all flags, so before each call and
+return the JIT keeps AF and PF, the canonical carry (cfinv) and the flags of the epilogue's add to rsp.
+The x64 calling convention leaves flags undefined across a call and a return, and compiled code never
+passes a value in them; hand-written or protected code can, so this is opt in per module.
+
+SQUARK_FEX_ABI_FLAGS lists pieces of module paths (';'-separated, any case). The ARM64EC frontend keeps
+the address ranges of matching images (append only, cleared when unmapped) and sets
+FEXCore::Context::SqABILocalFlagsFn; the dead flag pass then takes no flags as read at an ExitFunction
+with the Call or Return hint for a block whose entry is in such a range. Without the variable nothing
+changes. Microsoft Flight Simulator's WebAssembly modules (WASM\MSFS2024\<package>\*.dll, compiled by
+LLVM) are such code; the game's own executable is protected and must not be listed.
+
+FBW A380X benchmark with SQUARK_FEX_ABI_FLAGS=fbwbench.exe: 2.729M -> 2.630M instructions (-3.6%),
+488k -> 485k cycles per tick, median tick 0.1105 -> 0.1095 ms.
+diff --git a/FEXCore/include/FEXCore/Core/Context.h b/FEXCore/include/FEXCore/Core/Context.h
+--- a/FEXCore/include/FEXCore/Core/Context.h
++++ b/FEXCore/include/FEXCore/Core/Context.h
+@@ -44,6 +44,11 @@
+     HbJitWriteFn(Enable);
+   }
+ }
++
++// squark: set by the Windows frontend. True for guest code of a module listed in SQUARK_FEX_ABI_FLAGS, compiler output
++// that keeps no flag live across a call or a return (as the x64 calling convention allows), so the JIT need not
++// compute flags for them. Only for modules known to be that: hand-written or protected code can pass flags that way.
++FEX_DEFAULT_VISIBILITY extern bool (*SqABILocalFlagsFn)(uint64_t RIP);
+ 
+ enum OperatingMode {
+   MODE_32BIT,
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -100,6 +100,7 @@
+ 
+ namespace FEXCore::Context {
+ void (*HbJitWriteFn)(bool Enable) = nullptr;
++bool (*SqABILocalFlagsFn)(uint64_t RIP) = nullptr;
+ 
+ #ifdef ARCHITECTURE_arm64ec
+ // Private profiling data, separate from the versioned shared statistics layout.
+diff --git a/FEXCore/Source/Interface/IR/Passes/RedundantFlagCalculationElimination.cpp b/FEXCore/Source/Interface/IR/Passes/RedundantFlagCalculationElimination.cpp
+--- a/FEXCore/Source/Interface/IR/Passes/RedundantFlagCalculationElimination.cpp
++++ b/FEXCore/Source/Interface/IR/Passes/RedundantFlagCalculationElimination.cpp
+@@ -10,6 +10,7 @@
+ #include "Interface/IR/Passes.h"
+ #include "Interface/IR/PassManager.h"
+ 
++#include <FEXCore/Core/Context.h>
+ #include <FEXCore/Core/X86Enums.h>
+ #include <FEXCore/IR/IR.h>
+ #include <FEXCore/Utils/CompilerDefs.h>
+@@ -160,6 +161,7 @@
+   CondClass X86ToArmFloatCond(CondClass X86);
+   bool ProcessBlock(IREmitter* IREmit, IRListView& CurrentIR, Ref Block, ControlFlowGraph& CFG);
+   void OptimizeParity(IREmitter* IREmit, IRListView& CurrentIR, ControlFlowGraph& CFG);
++  bool ABILocalFlags {};
+ };
+ 
+ unsigned DeadFlagCalculationEliminination::FlagsForCondClassType(CondClass Cond) {
+@@ -541,6 +543,12 @@
+     FlagsRead = CFG.Get(Op->TrueBlock)->Flags | CFG.Get(Op->FalseBlock)->Flags;
+   } else if (ExitOp->Op == IR::OP_JUMP) {
+     FlagsRead = CFG.Get(ExitOp->Args[0])->Flags;
++  } else if (ExitOp->Op == IR::OP_EXITFUNCTION && ABILocalFlags) {
++    // Compiler output (SqABILocalFlagsFn): no flag is live across a call or a return.
++    auto Op = ExitOp->C<IR::IROp_ExitFunction>();
++    if (Op->Hint == IR::BranchHint::Call || Op->Hint == IR::BranchHint::Return) {
++      FlagsRead = 0;
++    }
+   }
+ 
+   // Iterate the block in reverse
+@@ -685,6 +693,7 @@
+ 
+   auto CurrentIR = IREmit->ViewIR();
+   fextl::deque<uint32_t> Worklist;
++  ABILocalFlags = FEXCore::Context::SqABILocalFlagsFn && FEXCore::Context::SqABILocalFlagsFn(CurrentIR.GetHeader()->OriginalRIP);
+ 
+   // Initialize CFG
+   ControlFlowGraph CFG {.IR = CurrentIR};
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -8,6 +8,7 @@
+ 
+ #include <FEXCore/fextl/fmt.h>
+ #include <algorithm>
++#include <atomic>
+ #include <cctype>
+ #include <FEXCore/Core/X86Enums.h>
+ #include <FEXCore/Core/SignalDelegator.h>
+@@ -556,16 +557,97 @@
+   }
+ }
+ 
++// SQUARK_FEX_ABI_FLAGS: ';'-separated pieces of module paths (any case) whose code is compiler output that keeps no
++// flag live across a call or a return, such as the DLLs Microsoft Flight Simulator compiles from WebAssembly. Their
++// address ranges, append-only; an unmapped image's range becomes empty. Written under ThreadCreationMutex.
++fextl::vector<fextl::string> ABILocalFlagsModules;
++struct ABILocalFlagsRange {
++  std::atomic<uint64_t> Start;
++  std::atomic<uint64_t> End;
++};
++ABILocalFlagsRange ABILocalFlagsRanges[256];
++std::atomic<uint32_t> ABILocalFlagsRangeCount;
++
++bool IsABILocalFlagsCode(uint64_t RIP) {
++  const uint32_t Count = ABILocalFlagsRangeCount.load(std::memory_order_acquire);
++  for (uint32_t i = 0; i < Count; i++) {
++    const uint64_t Start = ABILocalFlagsRanges[i].Start.load(std::memory_order_acquire);
++    if (RIP >= Start && RIP < ABILocalFlagsRanges[i].End.load(std::memory_order_acquire)) {
++      return true;
++    }
++  }
++  return false;
++}
++
++void InitABILocalFlags() {
++  const char* Setting = std::getenv("SQUARK_FEX_ABI_FLAGS");
++  if (!Setting || !*Setting) {
++    return;
++  }
++  std::string_view List {Setting};
++  while (!List.empty()) {
++    const auto End = List.find(';');
++    fextl::string Piece {List.substr(0, End)};
++    for (auto& c : Piece) {
++      c = std::tolower(static_cast<unsigned char>(c));
++    }
++    if (!Piece.empty()) {
++      ABILocalFlagsModules.push_back(std::move(Piece));
++    }
++    List = End == std::string_view::npos ? std::string_view {} : List.substr(End + 1);
++  }
++  if (!ABILocalFlagsModules.empty()) {
++    FEXCore::Context::SqABILocalFlagsFn = IsABILocalFlagsCode;
++  }
++}
++
++void AddABILocalFlagsModule(const fextl::string& ModulePath, uint64_t Address) {
++  if (ABILocalFlagsModules.empty()) {
++    return;
++  }
++  fextl::string Path = ModulePath;
++  for (auto& c : Path) {
++    c = std::tolower(static_cast<unsigned char>(c));
++  }
++  if (std::none_of(ABILocalFlagsModules.begin(), ABILocalFlagsModules.end(),
++                   [&](const fextl::string& Piece) { return Path.find(Piece) != fextl::string::npos; })) {
++    return;
++  }
++  const uint32_t Index = ABILocalFlagsRangeCount.load(std::memory_order_relaxed);
++  if (Index == std::size(ABILocalFlagsRanges)) {
++    LogMan::Msg::EFmt("FEX: no room to list {} for SQUARK_FEX_ABI_FLAGS", ModulePath);
++    return;
++  }
++  const auto* Nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(Address + reinterpret_cast<const IMAGE_DOS_HEADER*>(Address)->e_lfanew);
++  ABILocalFlagsRanges[Index].End.store(Address + Nt->OptionalHeader.SizeOfImage, std::memory_order_relaxed);
++  ABILocalFlagsRanges[Index].Start.store(Address, std::memory_order_relaxed);
++  ABILocalFlagsRangeCount.store(Index + 1, std::memory_order_release);
++  LogMan::Msg::IFmt("FEX: {} at {:x} uses call and return boundaries for flags", ModulePath, Address);
++}
++
++void RemoveABILocalFlagsModule(uint64_t Address, uint64_t Size) {
++  const uint32_t Count = ABILocalFlagsRangeCount.load(std::memory_order_relaxed);
++  for (uint32_t i = 0; i < Count; i++) {
++    const uint64_t Start = ABILocalFlagsRanges[i].Start.load(std::memory_order_relaxed);
++    if (Start && Start - Address < Size) {
++      ABILocalFlagsRanges[i].Start.store(0, std::memory_order_release);
++      ABILocalFlagsRanges[i].End.store(0, std::memory_order_release);
++    }
++  }
++}
++
+ void HandleImageMap(uint64_t Address, bool MainImage = false) {
+   fextl::string ModulePath = FEX::Windows::GetSectionFilePath(Address);
+   fextl::string ModuleName = fextl::string {FEX::Windows::BaseName(ModulePath)};
+   InvalidationTracker->HandleImageMap(ModuleName, Address);
+   ImageTracker->HandleImageMap(ModulePath, Address, MainImage);
+   AddFPCRNeutralTargets(ModuleName, Address);
++  AddABILocalFlagsModule(ModulePath, Address);
+ }
+ 
+ void HandleImageUnmap(uint64_t Address, uint64_t Size) {
+   RemoveFPCRNeutralTargets(Address, Size);
++  RemoveABILocalFlagsModule(Address, Size);
+   ImageTracker->HandleImageUnmap(Address, Size);
+ }
+ } // namespace
+@@ -1059,6 +1141,7 @@
+     CTX = FEXCore::Context::Context::CreateNewContext(HostFeatures);
+   }
+ 
++  InitABILocalFlags();
+   CTX->SetSignalDelegator(SignalDelegator.get());
+   CTX->SetSyscallHandler(SyscallHandler.get());
+   CTX->InitCore();

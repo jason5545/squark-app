@@ -1,0 +1,87 @@
+JIT: no suspend check at the entry of a block a call returns to
+
+Every entry point of a multiblock stores the block header (adr, str) and then checks the suspend
+doorbell (ldr, cbz, brk #0xCAFE). The block a call in the same multiblock returns to is an entry point
+too, so each call paid the check twice: at the callee's entry and again on the way back. The return site
+keeps the header store (the callee replaced it) but drops the check: the callee's entry just made one,
+and every way to loop back to the return site still passes a function entry or a backward branch, which
+keep theirs.
+
+FBW A380X systems benchmark (squark tools/wasm-bench, 17,900 calls per 33 ms tick): 2.758M -> 2.727M host
+instructions per tick (-1.1%); the time per tick did not change measurably.
+diff --git a/FEXCore/Source/Interface/Core/JIT/JIT.cpp b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/JIT.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+@@ -32,6 +32,7 @@
+ #include <FEXCore/Utils/Profiler.h>
+ #include <FEXCore/Utils/Telemetry.h>
+ #include <FEXCore/Utils/TypeDefines.h>
++#include <FEXCore/fextl/set.h>
+ #include <FEXCore/HLE/SyscallHandler.h>
+ 
+ #include <cstdio>
+@@ -877,7 +878,7 @@
+ #endif
+ }
+ 
+-void Arm64JITCore::EmitEntryPoint(ARMEmitter::BackwardLabel& HeaderLabel, bool CheckTF) {
++void Arm64JITCore::EmitEntryPoint(ARMEmitter::BackwardLabel& HeaderLabel, bool CheckTF, bool SuspendCheck) {
+   // Get the address of the JITCodeHeader and store in to the core state.
+   // Two instruction cost, each 1 cycle.
+   adr_OrRestart(TMP1, &HeaderLabel);
+@@ -898,7 +899,9 @@
+     }
+   }
+ 
+-  EmitSuspendInterruptCheck();
++  if (SuspendCheck) {
++    EmitSuspendInterruptCheck();
++  }
+ }
+ 
+ 
+@@ -1016,6 +1019,23 @@
+   PendingTargetLabel = nullptr;
+   PendingCallReturnTargetLabel = nullptr;
+ 
++  // Blocks a call in this multiblock returns to. Their entry needs the block header (the callee
++  // replaced it) but not the suspend check: the callee's entry made one, and every way to loop back
++  // here goes through a function entry or a backward branch, which check.
++  fextl::set<IR::NodeID> CallReturnSites;
++  for (auto [BlockNode, BlockHeader] : IR->GetBlocks()) {
++    auto Block = BlockHeader->C<FEXCore::IR::IROp_CodeBlock>();
++    auto CodeLast = IR->at(Block->Last);
++    --CodeLast;
++    auto [ExitNode, ExitOp] = CodeLast();
++    if (ExitOp->Op == IR::OP_EXITFUNCTION) {
++      auto Exit = ExitOp->C<IR::IROp_ExitFunction>();
++      if (Exit->Hint == IR::BranchHint::Call && !Exit->CallReturnBlock.IsInvalid()) {
++        CallReturnSites.insert(Exit->CallReturnBlock.ID());
++      }
++    }
++  }
++
+   for (auto [BlockNode, BlockHeader] : IR->GetBlocks()) {
+     auto BlockIROp = BlockHeader->CW<FEXCore::IR::IROp_CodeBlock>();
+ #if defined(ASSERTIONS_ENABLED) && ASSERTIONS_ENABLED
+@@ -1053,7 +1073,7 @@
+         CodeData.EntryPoints.emplace(BlockStartRIP, GetCursorAddress<uint8_t*>());
+         DebugData->GuestOpcodes.push_back({BlockIROp->GuestEntryOffset, GetCursorAddress<uint8_t*>() - CodeData.BlockBegin});
+ 
+-        EmitEntryPoint(JITCodeHeaderLabel, CheckTF);
++        EmitEntryPoint(JITCodeHeaderLabel, CheckTF, !CallReturnSites.contains(Node));
+       }
+ 
+       if (PendingCallReturnTargetLabel) {
+diff --git a/FEXCore/Source/Interface/Core/JIT/JITClass.h b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+--- a/FEXCore/Source/Interface/Core/JIT/JITClass.h
++++ b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+@@ -683,7 +683,7 @@
+ 
+   void EmitSuspendInterruptCheck();
+ 
+-  void EmitEntryPoint(ARMEmitter::BackwardLabel& HeaderLabel, bool CheckTF);
++  void EmitEntryPoint(ARMEmitter::BackwardLabel& HeaderLabel, bool CheckTF, bool SuspendCheck = true);
+ 
+   [[nodiscard]] CodeBuffer::CodeBufferAllocation AllocateCodeBufferInSharedCache(size_t Size);
+ 

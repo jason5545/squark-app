@@ -13,3 +13,23 @@ FEX for a runtime with `FEX_SERIES=highball`, from
 With `0018` hardware TSO is on in every thread. Hadron turned it off by default because Ubisoft
 Connect deadlocked with it (6bb8d87); Highball runs Microsoft Flight Simulator 2024 with it on.
 The switches for programs that rewrite their own code (`HB_FEX_*`) are off unless a game sets them.
+
+## Ours (squark), on top of Highball's series
+
+Measured on squark's `tools/wasm-bench` FBW A380X systems benchmark (Rust to WebAssembly, wasm2c, x64),
+the stand-in for the WebAssembly gauges of Microsoft Flight Simulator's add-on aircraft. Highball's
+upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start at `0035`.
+
+- `0035`: the entry of a block a call returns to stores the block header but skips the suspend check;
+  the callee's entry made one. -1% host instructions.
+- `0036`: `ExitFunctionEC` keeps the JIT's FPCR for memcpy, memmove and memset of Wine's builtin
+  ucrtbase, msvcrt and ntdll (no floating-point arithmetic in their ARM64EC code), saving the two FPCR
+  writes of each such call. -5% cycles on the benchmark.
+- `0037`: `SQUARK_FEX_ABI_FLAGS=<path piece>;...` treats flags as dead across calls and returns in the
+  listed modules (compiler output only, never a protected executable). Off without the variable.
+  -3.6% instructions with the benchmark listed.
+- `0038`: LEA with a 32-bit destination uses 32-bit adds. -2% instructions.
+
+Wine loads FEX from the prefix's `C:\windows\system32\xtajit64.dll`, not from the runtime's
+`lib/wine/aarch64-windows`: a prefix made with an older runtime keeps its old FEX until that copy is
+replaced.

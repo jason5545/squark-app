@@ -1,0 +1,176 @@
+ARM64EC: memcpy, memmove and memset of Wine's builtin CRT and ntdll keep the JIT's FPCR
+
+ExitFunctionEC clears FPCR's AH, NEP and the trap enables before native code runs, and the way back
+(DispatcherLoopTopEnterEC, FillSpecialRegs) sets them again: two FPCR writes, each of which stalls an
+Apple core. x64 code calls memmove and memset through ucrtbase all the time (wasm2c's memory.copy and
+memory.fill, compilers' struct copies), and for those the two writes cost more than the call.
+
+The ARM64EC memcpy, memmove and memset of Wine's ucrtbase, msvcrt and ntdll only load, store and move
+data (ldr/str/ldp/stp of d and q registers and dup, no floating-point arithmetic), so FPCR's AH, NEP and
+trap enables change nothing they do. Their addresses go into FPCRNeutralTargets (zero-terminated) when
+such an image is mapped: the export, followed through the image's ARM64EC redirection table to the
+native code ExitFunctionEC sees in x9 (the export itself is an x64 fast-forward sequence). Only images
+with the "Wine builtin DLL" mark: a native CRT someone installed is not known to be the same. An unmapped
+image's slots become 1, which matches no target. ExitFunctionEC compares x9 with the list (sub and cbz,
+NZCV untouched) and skips the FPCR switch on a match.
+
+FBW A380X benchmark: 512k -> 488k cycles per tick (-5%), median tick 0.1164 -> 0.1105 ms. In Microsoft
+Flight Simulator 2024 with the TFDi MD-11 the main thread spends 1.4% in ExitFunctionEC, so it gains
+little there.
+diff --git a/Source/Windows/ARM64EC/Module.S b/Source/Windows/ARM64EC/Module.S
+--- a/Source/Windows/ARM64EC/Module.S
++++ b/Source/Windows/ARM64EC/Module.S
+@@ -55,6 +55,18 @@
+   // Expects the target code address in x9
+ .global ExitFunctionEC
+ ExitFunctionEC:
++  // A target in FPCRNeutralTargets (zero-terminated, see Module.cpp) does no floating-point arithmetic, so it runs
++  // with the JIT's FPCR: writing FPCR here and again on the way back costs more than a short memmove. sub and cbz
++  // leave NZCV alone.
++  adrp x17, FPCRNeutralTargets
++  add x17, x17, #:lo12:FPCRNeutralTargets
++2:
++  ldr x16, [x17], #8
++  cbz x16, 3f
++  sub x16, x16, x9
++  cbnz x16, 2b
++  b 1f
++3:
+   // Clear any the AFP NEP and AH bits in FPCR as native code won't expect their behaviour.
+   mrs x17, fpcr
+   and x16, x17, #~6 // NEP + AH
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -7,6 +7,8 @@
+ */
+ 
+ #include <FEXCore/fextl/fmt.h>
++#include <algorithm>
++#include <cctype>
+ #include <FEXCore/Core/X86Enums.h>
+ #include <FEXCore/Core/SignalDelegator.h>
+ #include <FEXCore/Core/Context.h>
+@@ -81,6 +83,10 @@
+ void* X64ReturnInstr; // See Module.S
+ uintptr_t NtDllBase;
+ 
++// Native functions that ExitFunctionEC (Module.S) calls without switching FPCR out of the JIT's mode, zero-terminated.
++// Filled by AddFPCRNeutralTargets; a slot of an unmapped image becomes 1, which no target address matches.
++uint64_t FPCRNeutralTargets[16];
++
+ // Exports on ARM64EC point to x64 fast forward sequences to allow for redirecting to the JIT if functions are hotpatched. This LUT is from their addresses to the relative addresses of the native code exports.
+ uint32_t* NtDllRedirectionLUT;
+ uint32_t NtDllRedirectionLUTSize;
+@@ -455,14 +461,111 @@
+   return true;
+ }
+ 
++// memcpy, memmove and memset of Wine's own CRT and ntdll only load, store and move data (their ARM64EC code has no
++// floating-point arithmetic), so FPCR's AH, NEP and trap enables change nothing they do. x64 code calls them often
++// (wasm2c's memory.copy and memory.fill, compilers' struct copies), and each call that leaves the JIT otherwise writes
++// FPCR twice. Only builtin images: a native CRT someone installed is not known to be the same. Under ThreadCreationMutex.
++void AddFPCRNeutralTargets(std::string_view ModuleName, uint64_t Address) {
++  auto Is = [&](std::string_view Name) {
++    return ModuleName.size() == Name.size() &&
++           std::equal(Name.begin(), Name.end(), ModuleName.begin(), [](char a, char b) { return a == std::tolower(b); });
++  };
++  if (!Is("ucrtbase.dll") && !Is("msvcrt.dll") && !Is("ntdll.dll")) {
++    return;
++  }
++  if (memcmp(reinterpret_cast<const char*>(Address) + 0x40, "Wine builtin DLL", 16) != 0) {
++    return;
++  }
++
++  ULONG Size;
++  const auto* Exports = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
++    RtlImageDirectoryEntryToData(reinterpret_cast<HMODULE>(Address), true, IMAGE_DIRECTORY_ENTRY_EXPORT, &Size));
++  if (!Exports) {
++    return;
++  }
++  const auto ExportsRVA = reinterpret_cast<uint64_t>(Exports) - Address;
++  const auto* NameTable = reinterpret_cast<const uint32_t*>(Address + Exports->AddressOfNames);
++  const auto* FunctionTable = reinterpret_cast<const uint32_t*>(Address + Exports->AddressOfFunctions);
++  const auto* OrdinalTable = reinterpret_cast<const uint16_t*>(Address + Exports->AddressOfNameOrdinals);
++
++  const IMAGE_ARM64EC_REDIRECTION_ENTRY* Redirection {};
++  const IMAGE_ARM64EC_REDIRECTION_ENTRY* RedirectionEnd {};
++  ULONG LoadConfigSize;
++  const auto* LoadConfig = reinterpret_cast<const _IMAGE_LOAD_CONFIG_DIRECTORY64*>(
++    RtlImageDirectoryEntryToData(reinterpret_cast<HMODULE>(Address), true, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &LoadConfigSize));
++  if (LoadConfig && LoadConfigSize > offsetof(_IMAGE_LOAD_CONFIG_DIRECTORY64, CHPEMetadataPointer) && LoadConfig->CHPEMetadataPointer) {
++    const auto* Nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(Address + reinterpret_cast<const IMAGE_DOS_HEADER*>(Address)->e_lfanew);
++    uint64_t Metadata = LoadConfig->CHPEMetadataPointer;
++    if (Metadata - Address >= Nt->OptionalHeader.SizeOfImage) {
++      Metadata = Metadata - Nt->OptionalHeader.ImageBase + Address; // Not relocated yet.
++    }
++    if (Metadata - Address < Nt->OptionalHeader.SizeOfImage) {
++      const auto* CHPE = reinterpret_cast<const IMAGE_ARM64EC_METADATA*>(Metadata);
++      Redirection = reinterpret_cast<const IMAGE_ARM64EC_REDIRECTION_ENTRY*>(Address + CHPE->RedirectionMetadata);
++      RedirectionEnd = Redirection + CHPE->RedirectionMetadataCount;
++    }
++  }
++
++  for (uint32_t Idx = 0; Idx < Exports->NumberOfNames; Idx++) {
++    const char* Name = reinterpret_cast<const char*>(Address + NameTable[Idx]);
++    if (strcmp(Name, "memcpy") && strcmp(Name, "memmove") && strcmp(Name, "memset")) {
++      continue;
++    }
++    uint32_t RVA = FunctionTable[OrdinalTable[Idx]];
++    if (RVA >= ExportsRVA && RVA < ExportsRVA + Size) {
++      continue; // A forwarder.
++    }
++    // The exports of an ARM64X image are x64 fast-forward sequences, which reach the native code through
++    // ExitFunctionEC with its address: follow the image's redirection table (as FillNtDllLUTs does for ntdll).
++    for (auto It = Redirection; It != RedirectionEnd; It++) {
++      if (It->Source == RVA) {
++        RVA = It->Destination;
++        break;
++      }
++    }
++    const uint64_t Target = Address + RVA;
++    bool Present = false;
++    size_t Free = std::size(FPCRNeutralTargets);
++    for (size_t i = 0; i + 1 < std::size(FPCRNeutralTargets); i++) {
++      const uint64_t Value = FPCRNeutralTargets[i];
++      if (Value == Target) {
++        Present = true;
++        break;
++      }
++      if (Value <= 1 && Free == std::size(FPCRNeutralTargets)) {
++        Free = i;
++      }
++      if (Value == 0) {
++        break;
++      }
++    }
++    if (Present || Free == std::size(FPCRNeutralTargets)) {
++      continue;
++    }
++    // The last slot stays zero, and a zero slot is only ever the first one past the filled ones.
++    __atomic_store_n(&FPCRNeutralTargets[Free], Target, __ATOMIC_RELEASE);
++    LogMan::Msg::IFmt("FEX: {}!{} {:x} keeps the JIT's FPCR", ModuleName, Name, Target);
++  }
++}
++
++void RemoveFPCRNeutralTargets(uint64_t Address, uint64_t Size) {
++  for (auto& Target : FPCRNeutralTargets) {
++    if (Target > 1 && Target - Address < Size) {
++      __atomic_store_n(&Target, 1, __ATOMIC_RELEASE);
++    }
++  }
++}
++
+ void HandleImageMap(uint64_t Address, bool MainImage = false) {
+   fextl::string ModulePath = FEX::Windows::GetSectionFilePath(Address);
+   fextl::string ModuleName = fextl::string {FEX::Windows::BaseName(ModulePath)};
+   InvalidationTracker->HandleImageMap(ModuleName, Address);
+   ImageTracker->HandleImageMap(ModulePath, Address, MainImage);
++  AddFPCRNeutralTargets(ModuleName, Address);
+ }
+ 
+ void HandleImageUnmap(uint64_t Address, uint64_t Size) {
++  RemoveFPCRNeutralTargets(Address, Size);
+   ImageTracker->HandleImageUnmap(Address, Size);
+ }
+ } // namespace
