@@ -9,22 +9,27 @@ let space = CGColorSpace(name: CGColorSpace.sRGB)!
 let white = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
 let coverage: CGFloat = 0.82
 
-// A hadron: three quarks, one of each colour charge, bound by a Y-shaped gluon string
-// inside the hadron's boundary.
-let bagRadius: CGFloat = 430
-let bagWidth: CGFloat = 46
-let quarkOrbit: CGFloat = 228
-let quarkRadius: CGFloat = 118
-let stringWidth: CGFloat = 54
-let junctionRadius: CGFloat = 58
-let quarkAngles: [CGFloat] = [90, 210, 330]
+// steamac: Squark's icon. Squark is squawk (a transponder code, what a radar shows beside a
+// target) plus quark, so a radar scope: the scope's rim, a range ring, the sweep with its
+// fading trail, and a quark as the target it has just painted.
+let scopeRadius: CGFloat = 430
+let scopeWidth: CGFloat = 40
+let ringRadius: CGFloat = 262
+let ringWidth: CGFloat = 20
+let hubRadius: CGFloat = 30
+let sweepAngle: CGFloat = 38
+let sweepLength: CGFloat = 404
+let sweepWidth: CGFloat = 44
+let trailSpan: CGFloat = 80
+let trailAlpha: CGFloat = 0.6
+let quarkAngle: CGFloat = 76
+let quarkOrbit: CGFloat = 340
+let quarkRadius: CGFloat = 66
 
 enum Element: String, CaseIterable {
-    case bag = "Bag"
-    case strings = "Strings"
-    case quarkRed = "Quark Red"
-    case quarkGreen = "Quark Green"
-    case quarkBlue = "Quark Blue"
+    case scope = "Scope"
+    case sweep = "Sweep"
+    case quark = "Quark"
 
     var fileName: String {
         rawValue.lowercased().replacingOccurrences(of: " ", with: "-") + ".png"
@@ -32,17 +37,16 @@ enum Element: String, CaseIterable {
 
     var fill: String {
         switch self {
-        case .bag, .strings: "srgb:1.00000,1.00000,1.00000,1.00000"
-        case .quarkRed: "srgb:1.00000,0.27059,0.34118,1.00000"
-        case .quarkGreen: "srgb:0.18824,0.85882,0.48627,1.00000"
-        case .quarkBlue: "srgb:0.25098,0.58824,1.00000,1.00000"
+        case .scope: "srgb:1.00000,1.00000,1.00000,1.00000"
+        case .sweep: "srgb:0.43137,0.94902,0.76078,1.00000"
+        case .quark: "srgb:1.00000,0.69020,0.12549,1.00000"
         }
     }
 }
 
-func quarkCenter(_ index: Int) -> CGPoint {
-    let angle = quarkAngles[index] * .pi / 180
-    return CGPoint(x: center.x + quarkOrbit * cos(angle), y: center.y + quarkOrbit * sin(angle))
+func point(angle degrees: CGFloat, radius: CGFloat) -> CGPoint {
+    let angle = degrees * .pi / 180
+    return CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
 }
 
 func makeContext(size: CGFloat) -> CGContext {
@@ -74,23 +78,35 @@ func draw(_ element: Element, into context: CGContext) {
     context.setFillColor(white)
 
     switch element {
-    case .bag:
-        context.setLineWidth(bagWidth)
-        context.strokeEllipse(in: circle(bagRadius))
+    case .scope:
+        context.setLineWidth(scopeWidth)
+        context.strokeEllipse(in: circle(scopeRadius))
+        context.setLineWidth(ringWidth)
+        context.strokeEllipse(in: circle(ringRadius))
+        context.fillEllipse(in: circle(hubRadius))
 
-    case .strings:
-        context.setLineWidth(stringWidth)
-        context.setLineCap(.round)
-        for index in quarkAngles.indices {
+    case .sweep:
+        // The sweep turns clockwise, so its trail lies counterclockwise of it, fading the
+        // further back it lies.
+        let steps = 140
+        for step in 0..<steps {
+            let back = CGFloat(step) / CGFloat(steps)
+            let from = (sweepAngle + trailSpan * back) * .pi / 180
+            let to = (sweepAngle + trailSpan * (back + 1 / CGFloat(steps))) * .pi / 180
+            context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: trailAlpha * pow(1 - back, 1.6)))
             context.move(to: center)
-            context.addLine(to: quarkCenter(index))
+            context.addArc(center: center, radius: sweepLength, startAngle: from, endAngle: to, clockwise: false)
+            context.closePath()
+            context.fillPath()
         }
+        context.setLineWidth(sweepWidth)
+        context.setLineCap(.round)
+        context.move(to: center)
+        context.addLine(to: point(angle: sweepAngle, radius: sweepLength))
         context.strokePath()
-        context.fillEllipse(in: circle(junctionRadius))
 
-    case .quarkRed, .quarkGreen, .quarkBlue:
-        let index = [Element.quarkRed, .quarkGreen, .quarkBlue].firstIndex(of: element)!
-        let at = quarkCenter(index)
+    case .quark:
+        let at = point(angle: quarkAngle, radius: quarkOrbit)
         context.fillEllipse(in: CGRect(x: at.x - quarkRadius, y: at.y - quarkRadius,
                                        width: quarkRadius * 2, height: quarkRadius * 2))
     }
@@ -171,11 +187,11 @@ func layer(_ element: Element) -> [String: Any] {
     ["fill": ["solid": element.fill], "image-name": element.fileName, "name": element.rawValue]
 }
 
-// Back to front: the boundary, the string, the quarks on top.
+// Back to front: the scope, the sweep, the target on top.
 let groups: [(name: String, elements: [Element], depth: Double, translucency: Double)] = [
-    ("Bag", [.bag], 0.40, 0.35),
-    ("Strings", [.strings], 0.70, 0.30),
-    ("Quarks", [.quarkRed, .quarkGreen, .quarkBlue], 1.00, 0.15),
+    ("Scope", [.scope], 0.40, 0.35),
+    ("Sweep", [.sweep], 0.70, 0.25),
+    ("Quark", [.quark], 1.00, 0.15),
 ]
 
 func group(_ entry: (name: String, elements: [Element], depth: Double, translucency: Double)) -> [String: Any] {
@@ -211,8 +227,8 @@ let document: [String: Any] = [
     "features": ["refractivity", "specular-location"],
     "fill": [
         "linear-gradient": [
-            "srgb:0.20392,0.17647,0.45098,1.00000",
-            "srgb:0.06667,0.05882,0.17647,1.00000",
+            "srgb:0.05098,0.29020,0.38824,1.00000",
+            "srgb:0.02353,0.08627,0.14902,1.00000",
         ]
     ],
     "groups": groups.reversed().map(group),
