@@ -48,3 +48,8 @@ WineHQ Wine 11.18.
   game's install script first, without launch options, and the game reuses that winedevice). squark's
   `tools/padprobe/fakepad.py` sends physical moves; `fakepad-test.py` checks XInput. Needs "Enable SDL",
   which `compat_run.sh` turns on for a runtime that carries SDL.
+- `0060-winemac-onmainthread-on-main-thread.patch`: `OnMainThread` runs the block directly when called on
+  the main thread. `-[WineContentView viewWillDraw]` updates pending GL contexts on the main thread, and
+  `macdrv_update_opengl_context` then called `OnMainThread`, which queued the block and waited for the main
+  thread itself: the process hung. Found with the TFDi MD-11 Install Manager (WPF, d3d9 through wined3d's
+  OpenGL), which froze when a tooltip popup closed. Wine master still has the same code.

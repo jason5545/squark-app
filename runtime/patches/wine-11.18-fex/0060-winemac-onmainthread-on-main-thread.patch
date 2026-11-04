@@ -1,0 +1,33 @@
+winemac: OnMainThread runs the block directly when called on the main thread.
+
+-[WineContentView viewWillDraw] runs on the main thread during a Core Animation commit and calls
+macdrv_update_opengl_context() for each pending GL context. When the context needs an update and has
+no latent view, that calls OnMainThread(^{ [context update]; }). On the main thread there is no
+WineEventQueue, so OnMainThread queued the block with OnMainThreadAsync() and waited on a semaphore
+that only the main thread itself could signal: the main thread hung, and every Wine thread that then
+waited for it hung too (a window being destroyed in macdrv_dispose_view, wglMakeCurrent in
+macdrv_make_context_current, a new window in macdrv_get_input_source_info).
+
+Seen with a WPF program on .NET Framework 4.8 (hardware rendering through d3d9, wined3d's OpenGL):
+hovering a control opens a Popup (a GL-rendered layered window); the program froze at the next
+DestroyWindow of that popup. Wine master (2026-11) still has the same code.
+
+diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
+index 5c4009f..298d363 100644
+--- a/dlls/winemac.drv/cocoa_event.m
++++ b/dlls/winemac.drv/cocoa_event.m
+@@ -489,6 +489,14 @@ void OnMainThread(dispatch_block_t block)
+ {
+ @autoreleasepool
+ {
++    /* Already on the main thread (-[WineContentView viewWillDraw] updating a GL context): queueing the
++     * block and waiting for it would wait for this thread itself. */
++    if ([NSThread isMainThread])
++    {
++        block();
++        return;
++    }
++
+     NSMutableDictionary* threadDict = [[NSThread currentThread] threadDictionary];
+     WineEventQueue* queue = threadDict[WineEventQueueThreadDictionaryKey];
+     dispatch_semaphore_t semaphore = NULL;
