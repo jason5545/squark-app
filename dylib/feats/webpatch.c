@@ -243,9 +243,9 @@ void np_webpatch_set_builds(const np_webpatch_build_t *builds, size_t count) {
 
 static int has_suffix(const char *s, const char *suf);
 
-// "Developer" section rows are declared in ~/Library/Application Support/hadron/plugins/*.conf,
+// "Developer" section rows are declared in ~/Library/Application Support/squark/plugins/*.conf,
 // one "key = value" per line, applied at launch by compat_run.sh.
-#define NP_FEAT_DIR      "Library/Application Support/hadron/plugins"
+#define NP_FEAT_DIR      "Library/Application Support/squark/plugins"
 #define NP_FEAT_MAX      32
 #define NP_FEAT_REQ_MAX  4
 #define NP_FEAT_STR      192
@@ -672,9 +672,9 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "(" NP_WEB_IS_ZH "?\"" ZH "\":" NP_WEB_IS_IT "?\"" IT "\":\"" EN "\")"
 
 #define NP_COMPAT_HINT NP_WEB_TEXT( \
-    "Enable Hadron under Properties > Compatibility to install and run the Windows version.", \
-    "请在“属性 > 兼容性”中启用 Hadron，以安装并运行 Windows 版本。", \
-    "Abilita Hadron in Propriet\\u00e0 > Compatibilit\\u00e0 per installare e avviare la versione Windows.")
+    "Enable Squark under Properties > Compatibility to install and run the Windows version.", \
+    "请在“属性 > 兼容性”中启用 Squark，以安装并运行 Windows 版本。", \
+    "Abilita Squark in Propriet\\u00e0 > Compatibilit\\u00e0 per installare e avviare la versione Windows.")
 
 #define NP_IMAGE_FILES_LABEL NP_WEB_TEXT( \
     "Image Files (*.tga,*.png,*.exe)", "图像文件 (*.tga,*.png,*.exe)", "File immagine (*.tga,*.png,*.exe)")
@@ -700,10 +700,10 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 #define NP_PREFIX_COPY NP_WEB_TEXT("Copying your files\\u2026", "Copying your files\\u2026", "Copia dei tuoi file\\u2026")
 #define NP_PREFIX_FINISH NP_WEB_TEXT("Finishing\\u2026", "Finishing\\u2026", "Ultimi passaggi\\u2026")
 #define NP_PREFIX_DONE NP_WEB_TEXT("Prefix rebuilt.", "Prefix rebuilt.", "Prefisso ricostruito.")
-#define NP_PREFIX_DONE_BACKUP NP_WEB_TEXT("Prefix rebuilt. A backup of the original is in Hadron's Prefixes view.", "Prefix rebuilt. A backup of the original is in Hadron's Prefixes view.", "Prefisso ricostruito. Il backup dell'originale \\u00e8 nella sezione Prefissi di Hadron.")
+#define NP_PREFIX_DONE_BACKUP NP_WEB_TEXT("Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefisso ricostruito. Il backup dell'originale \\u00e8 nella sezione Prefissi di Squark.")
 #define NP_PREFIX_FAILED NP_WEB_TEXT("Prefix rebuild failed!", "Prefix rebuild failed!", "Ricostruzione del prefisso non riuscita.")
 #define NP_PREFIX_LOG NP_WEB_TEXT("Open Log", "Open Log", "Apri registro")
-#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Hadron app. Move Hadron to Applications, open it and click Install again.", "Couldn't find the Hadron app. Move Hadron to Applications, open it and click Install again.", "App Hadron non trovata. Sposta Hadron in Applicazioni, aprila e fai di nuovo clic su Installa.")
+#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "App Squark non trovata. Sposta Squark in Applicazioni, aprila e fai di nuovo clic su Installa.")
 
 #define NP_PREFIX_ROW \
     "globalThis.NPHadronPrefixRow=(e,id)=>{if(e.npApp===id)return;e.npStop&&e.npStop();e.npApp=id;let ter" \
@@ -888,19 +888,19 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "[r,sr]=use(d0&&\"fex\"===d0.runner?1:0),[id,si]=use(d0?d0.id:\"\"),[,bump]=use(0),[ok,sok]=use(\"\"),all=" NP_SAVED_DEFAULTS "," \
     "fex=1===r,n=fex?\"fex\":\"rosetta\",b=BL.find(x=>x.id===id)," \
     "set=(nn,c)=>c?c.override||all[nn]||{}:all[nn]||{},DF=set(n,b),G=k=>DF[k]||\"\"," \
-    "q=f=>{Q=Q.then(f).catch(e=>console.error(\"Hadron: the defaults were not saved\",e))}," \
+    "q=f=>{Q=Q.then(f).catch(e=>console.error(\"Squark: the defaults were not saved\",e))}," \
     "clr=()=>{gen++;sok(\"\")}," \
     "done=(x,f)=>{if(x.BSuccess()){f();bump(c=>c+1);return 1}" \
-    "console.error(\"Hadron: the defaults were not saved, result \"+x.GetEResult());return 0}," \
+    "console.error(\"Squark: the defaults were not saved, result \"+x.GetEResult());return 0}," \
     "put=(rv,nn,c,d)=>(c?send(\"Hadron.SetToolDefaults#1\",0,c.id+\"\\n\"+ser(d))" \
     ":send(\"Hadron.SetDefaults#1\",rv,ser(d))).then(x=>done(x,()=>{c?c.override=d:all[nn]=d}))," \
     "s=ps=>{const rv=r,nn=n,c=b;clr();q(()=>{const d=Object.assign({},set(nn,c));" \
     "ps.forEach(p=>{p[1]&&\"auto\"!==p[1]?d[p[0]]=p[1]:delete d[p[0]]});return put(rv,nn,c,d)})}," \
-    "kind=only===n?\"Hadron\":fex?\"FEX\":\"Rosetta\"," \
+    "kind=only===n?\"Squark\":fex?\"FEX\":\"Rosetta\"," \
     "apply=()=>{const nn=n,c=b,kk=kind;clr();const my=gen;" \
     "q(()=>{const d=Object.assign({},c.override||all[nn]||{});" \
     "return send(\"Hadron.ApplyToolDefaults#1\",0,c.id).then(x=>{" \
-    "if(" NP_STR(NP_COMPATSVC_PARTLY_APPLIED) "===x.GetEResult()){all[nn]=d;lost=1;globalThis.NPHadronDefaultsLost=1;bump(c=>c+1);console.error(\"Hadron: Apply left some versions " \
+    "if(" NP_STR(NP_COMPATSVC_PARTLY_APPLIED) "===x.GetEResult()){all[nn]=d;lost=1;globalThis.NPHadronDefaultsLost=1;bump(c=>c+1);console.error(\"Squark: Apply left some versions " \
     "with their own settings, so Default Compatibility Settings are hidden until Steam restarts\");return}" \
     "done(x,()=>{all[nn]=d;BL.forEach(y=>{y.runner===nn&&(y.override=null)})})" \
     "&&my===gen&&sok(" NP_WEB_IS_IT "?\"Applicate. Ora tutti gli strumenti di compatibilit\\u00e0 \"+kk+\" usano queste impostazioni.\":\"Applied. Every \"+kk+\" Compatibility Tool now uses these settings.\")})})}," \
@@ -920,10 +920,10 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "return()=>{const up=typeof globalThis.NPHadronUseState==\"function\"&&typeof globalThis.NPHadronUseEffect==\"function\"" \
     "&&typeof globalThis.NPHadronSpecifyRoute==\"function\";" \
 "const dd=" NP_SAVED_DEFAULTS ";if(null===dd.rosetta||null===dd.fex){" \
-    "warned||(warned=1,console.error(\"Hadron: the saved defaults could not be read, so Default Compatibility Settings are hidden\"));" \
+    "warned||(warned=1,console.error(\"Squark: the saved defaults could not be read, so Default Compatibility Settings are hidden\"));" \
     "return null}" \
     "if(up&&" NP_BARREL_READY(BARREL) ")return(0," RT ".jsx)(I,{});" \
-    "up&&!warned&&(warned=1,console.error(\"Hadron: Steam renamed its settings components, so Default Compatibility Settings are hidden\"));" \
+    "up&&!warned&&(warned=1,console.error(\"Squark: Steam renamed its settings components, so Default Compatibility Settings are hidden\"));" \
     "return null}})()"
 #define NP_CAPTURE(BODY, RT, BARREL) \
     "((npReact,npUI)=>" BODY("npReact()", "npUI()") ")(()=>" RT ",()=>" BARREL ")"
@@ -962,14 +962,14 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "for(let i=0;i<A.length;i+=20)await Promise.all(A.slice(i,i+20).map(async a=>{const id=a.appid;" \
     "const t=await Promise.race([window.appDetailsStore.RequestAppDetails(id)," \
     "new Promise(r=>setTimeout(r,5e3))]);" \
-    "if(!t){console.warn(\"Hadron: no details for app \"+id+\", its launch options were not moved\");return}" \
+    "if(!t){console.warn(\"Squark: no details for app \"+id+\", its launch options were not moved\");return}" \
     "if(!(id<2147483648&&(t.vecPlatforms||[]).indexOf(\"osx\")>=0&&!t.strCompatToolName)){" \
     "const r=M(t.strLaunchOptions||\"\");" \
     "if(r!==null){SteamClient.Apps.SetAppLaunchOptions(id,r);n++;" \
-    "console.log(\"Hadron: moved the launch options of app \"+id)}}}));" \
-    "console.log(\"Hadron: checked the launch options of \"+A.length+\" apps, moved \"+n);" \
+    "console.log(\"Squark: moved the launch options of app \"+id)}}}));" \
+    "console.log(\"Squark: checked the launch options of \"+A.length+\" apps, moved \"+n);" \
     "localStorage.setItem(K,\"1\")" \
-    "}catch(e){console.error(\"Hadron: launch options migration failed\",e)}})()"
+    "}catch(e){console.error(\"Squark: launch options migration failed\",e)}})()"
 
 static const np_gate_t g_gates_forcetool[] = {
     // SteamPlay settings section
@@ -1060,7 +1060,7 @@ static const np_gate_t g_gates_selecttool[] = {
       ".SendMsg(\"CompatManager.SpecifyCompatTool#1\",(0," NP_C7 ".I8)(" NP_C8 "," NP_C2 "),"
       NP_C9 ",{ePrivilege:1,eClientExecutionSite:2})}"
       "globalThis.NPHadronSpecifyRoute=(npRt,npA,npX)=>{const npT=(0," NP_C4 ".OI)().GetDefaultTransport();"
-      "return!/^Hadron\\./.test(npRt)?Promise.reject(\"not a Hadron route\"):"
+      "return!/^Hadron\\./.test(npRt)?Promise.reject(\"not a Squark route\"):"
       "npT==null?Promise.reject(\"Transport Error: no transport is available for request\"):"
       "npT.SendMsg(npRt,(0," NP_C7 ".I8)(" NP_C8 ",{appid:npA,tool_name:npX}),"
       NP_C9 ",{ePrivilege:1,eClientExecutionSite:2})},"
@@ -1089,7 +1089,7 @@ static const np_gate_t g_gates_selecttool[] = {
       NP_C7 ".SendMsg(\"CompatManager.GetCompatTools#1\",(0," NP_C1 ".I8)(" NP_C2 "," NP_C3 ")," NP_C4 ","
       "{ePrivilege:1,eClientExecutionSite:2})}"
       "globalThis.NPHadronRoute=(r,id)=>{const t=(0," NP_C8 ".OI)().GetDefaultTransport();"
-      "return!/^Hadron\\./.test(r)?Promise.reject(\"not a Hadron route\"):t?t.SendMsg(r,(0," NP_C1 ".I8)(" NP_C2 ",{appid:id})," NP_C4 ",{ePrivilege:1,eClientExecutionSite:2})"
+      "return!/^Hadron\\./.test(r)?Promise.reject(\"not a Squark route\"):t?t.SendMsg(r,(0," NP_C1 ".I8)(" NP_C2 ",{appid:id})," NP_C4 ",{ePrivilege:1,eClientExecutionSite:2})"
       ".then(x=>x.BSuccess()?x.Body().toObject().default_tool_identifier||\"\":Promise.reject(\"result \"+x.GetEResult()))"
       ":Promise.reject(\"no transport\")};" NP_PREFIX_ROW NP_C5 ".GetCompatTools=" NP_C6 ";", 1, 1 },
     { "get is_invalid_os_type(){return this.most_available_per_client_data.is_invalid_os_type}",

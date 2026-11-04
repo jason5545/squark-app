@@ -19,9 +19,9 @@ enum RemoveEverythingCommand {
             }
             output.say(
                 result.partialRemoval ?? (result.steamNeedsRedownload
-                    ? "Hadron has been removed. Steam could not be restored. "
+                    ? "Squark has been removed. Steam could not be restored. "
                         + "Reinstall Steam from steampowered.com before using it again."
-                    : "Hadron has been removed.")
+                    : "Squark has been removed.")
             )
             return result.partialRemoval == nil ? 0 : 1
         } catch {

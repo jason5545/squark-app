@@ -12,7 +12,7 @@ esac
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-feats="$work/Library/Application Support/hadron/plugins"
+feats="$work/Library/Application Support/squark/plugins"
 sys32="$work/pfx/drive_c/windows/system32"
 mkdir -p "$work/stage" "$sys32" "$feats" "$work/lib"
 printf 'ours\n' > "$work/stage/d3d11.dll"
@@ -34,7 +34,7 @@ restore() {
 # Output: line 1 WINEDLLOVERRIDES, line 2 the dylibs, then the env lines.
 run() {
   # shellcheck disable=SC2016 # expanded by the inner shell
-  env -i PATH="$PATH" HOME="$work" np_support="$work/Library/Application Support/hadron" \
+  env -i PATH="$PATH" HOME="$work" np_support="$work/Library/Application Support/squark" \
     log="$work/log" WINEPREFIX="$work/pfx" WINEDLLOVERRIDES="steamclient=n;lsteamclient=b" "$@" \
     sh -c 'set -e; . "$1/block.sh"; printf "%s\n%s\n%s" "$WINEDLLOVERRIDES" "$np_feat_dylibs" "$np_feat_envs"' \
     sh "$work"
@@ -245,13 +245,13 @@ ok "plugin env reaches open in order" "$args" "[--env][GOOD=a b][--env][LATER=2]
 launcher=$(sed -n '/^cat > "\$loader_macos\/launcher" <<LAUNCHER$/,/^LAUNCHER$/p' "$SRC")
 inject=$(loader_macos="$work" WINELOADER=x loader_root="$work" HOME="$work" \
   sh -c 'eval "$1"; sed -n "/^shim=/,/HADRON_GAME_CWD/p" "$loader_macos/launcher"' sh "$launcher")
-mkdir -p "$work/Library/Application Support/hadron"
-: > "$work/Library/Application Support/hadron/overlay-shim.dylib"
+mkdir -p "$work/Library/Application Support/squark"
+: > "$work/Library/Application Support/squark/overlay-shim.dylib"
 # shellcheck disable=SC2016 # expanded by the inner shell
 dyld=$(env -i HOME="$work" STEAM_DYLD_INSERT_LIBRARIES=/o.dylib HADRON_FEATURE_DYLIBS=/f.dylib \
   sh -c 'eval "$1"; printf "%s|%s" "$DYLD_INSERT_LIBRARIES" "${HADRON_OVERLAY_SHIM:+shim}"' sh "$inject")
 ok "plugin dylibs load after the overlay" "$dyld" \
-  "$work/Library/Application Support/hadron/overlay-shim.dylib:/o.dylib:/f.dylib|shim"
+  "$work/Library/Application Support/squark/overlay-shim.dylib:/o.dylib:/f.dylib|shim"
 # shellcheck disable=SC2016 # expanded by the inner shell
 dyld=$(env -i HOME="$work" HADRON_FEATURE_DYLIBS=/f.dylib \
   sh -c 'eval "$1"; printf "%s|%s" "$DYLD_INSERT_LIBRARIES" "${HADRON_OVERLAY_SHIM:+shim}"' sh "$inject")

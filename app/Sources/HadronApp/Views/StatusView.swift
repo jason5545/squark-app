@@ -163,7 +163,7 @@ struct StatusView: View {
     @Environment(SystemStatus.self) private var status
 
     private static let updateBlockPrompt =
-        String(localized: "Steam client updates may break Hadron. If you don't want to wait for Hadron to be updated to be compatible with future Steam versions at the cost of not getting updates to the Steam client, you can stop the Steam client from updating itself.")
+        String(localized: "Steam client updates may break Squark. If you don't want to wait for Squark to be updated to be compatible with future Steam versions at the cost of not getting updates to the Steam client, you can stop the Steam client from updating itself.")
 
     var body: some View {
         Group {
@@ -206,7 +206,7 @@ struct StatusView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(
-                String(localized: "This will restore Steam itself to its original state but does not remove the support components used by Hadron.")
+                String(localized: "This will restore Steam itself to its original state but does not remove the support components used by Squark.")
             )
         }
         .confirmationDialog(
@@ -224,7 +224,7 @@ struct StatusView: View {
             Text("The runtime folder it was copied from is not removed.")
         }
         .confirmationDialog(
-            String(localized: "Remove everything Hadron has created?"),
+            String(localized: "Remove everything Squark has created?"),
             isPresented: asking(.removeEverything),
             titleVisibility: .visible
         ) {
@@ -358,7 +358,7 @@ struct StatusView: View {
                     Spacer()
                     Button("Add Wine Runtime\u{2026}") { Task { await status.addRuntime() } }
                         .disabled(!status.isIdle)
-                        .help("Add a Hadron Wine runtime from another folder.")
+                        .help("Add a Squark Wine runtime from another folder.")
                 }
             }
 
@@ -382,7 +382,7 @@ struct StatusView: View {
             )
             StatusRow(
                 title: String(localized: "Remove Everything"),
-                value: String(localized: "Remove Hadron and restore Steam to its original state."),
+                value: String(localized: "Remove Squark and restore Steam to its original state."),
                 action: StatusAction(
                     label: String(localized: "Remove"),
                     role: .destructive,
@@ -403,7 +403,7 @@ struct StatusView: View {
         StatusAction(
             label: label,
             isProminent: prominent,
-            help: String(localized: "Install Hadron into Steam."),
+            help: String(localized: "Install Squark into Steam."),
             isEnabled: status.canInstall
         ) {
             Task { await status.requestInstall() }
@@ -456,24 +456,24 @@ struct StatusView: View {
             }
             deploymentRow(.installed(version: version), payload: payload)
         case .newerInstalled:
-            StatusRow(title: "Hadron", value: String(localized: "A newer build is installed."), tone: .neutral,
-                      detail: String(localized: "Use the newer Hadron app to update or repair the installed files."))
+            StatusRow(title: "Squark", value: String(localized: "A newer build is installed."), tone: .neutral,
+                      detail: String(localized: "Use the newer Squark app to update or repair the installed files."))
         case .unavailable(let reason):
-            StatusRow(title: "Hadron", value: String(localized: "Could not check installed files."), tone: .warning, detail: reason)
+            StatusRow(title: "Squark", value: String(localized: "Could not check installed files."), tone: .warning, detail: reason)
         case .update(let files):
-            StatusRow(title: "Hadron", value: String(localized: "Update available."), tone: .warning,
+            StatusRow(title: "Squark", value: String(localized: "Update available."), tone: .warning,
                       detail: [String(localized: "This app includes newer files than those installed for Steam."),
                                versionChange()].compactMap { $0 }.joined(separator: "\n"),
                       action: installAction(prominent: true, label: String(localized: "Update")))
                 .help(files.joined(separator: "\n"))
         case .repair(let files):
-            StatusRow(title: "Hadron", value: String(localized: "Installed files differ from this build."), tone: .warning,
+            StatusRow(title: "Squark", value: String(localized: "Installed files differ from this build."), tone: .warning,
                       detail: [String(localized: "Restore the files included with this app."),
                                versionChange()].compactMap { $0 }.joined(separator: "\n"),
                       action: installAction(prominent: true, label: String(localized: "Repair")))
                 .help(files.joined(separator: "\n"))
         case .unrecorded(let files):
-            StatusRow(title: "Hadron", value: String(localized: "Update available."), tone: .warning,
+            StatusRow(title: "Squark", value: String(localized: "Update available."), tone: .warning,
                       detail: String(localized: "This app includes updated files for Steam."),
                       action: installAction(prominent: true, label: String(localized: "Update")))
                 .help(files.joined(separator: "\n"))
@@ -484,10 +484,10 @@ struct StatusView: View {
     private func deploymentRow(_ deployment: SteamDeployment, payload: PayloadState) -> some View {
         switch deployment {
         case .steamMissing:
-            StatusRow(title: "Hadron", value: String(localized: "Steam not found."), tone: .bad)
+            StatusRow(title: "Squark", value: String(localized: "Steam not found."), tone: .bad)
         case .notInstalled:
             StatusRow(
-                title: "Hadron",
+                title: "Squark",
                 value: String(localized: "Not installed."),
                 tone: .neutral,
                 action: installAction(prominent: true)
@@ -495,13 +495,13 @@ struct StatusView: View {
         case .installed(let version):
             if payload.isSteamComplete {
                 StatusRow(
-                    title: "Hadron",
+                    title: "Squark",
                     value: String(localized: "Installed") + (version.map { " (\($0))" } ?? ""),
                     tone: .ok
                 )
             } else {
                 StatusRow(
-                    title: "Hadron",
+                    title: "Squark",
                     value: String(localized: "Steam integration needs repair."),
                     tone: .warning,
                     detail: steamRepairDetail(payload),
@@ -510,17 +510,17 @@ struct StatusView: View {
             }
         case .outdated(_, let bundled):
             StatusRow(
-                title: "Hadron",
+                title: "Squark",
                 value: String(localized: "Update available (\(bundled))."),
                 tone: .warning,
                 action: installAction(prominent: true)
             )
         case .foreign:
             StatusRow(
-                title: "Hadron",
+                title: "Squark",
                 value: String(localized: "Another dylib is present."),
                 tone: .warning,
-                detail: String(localized: "Repair your Steam install before installing Hadron.")
+                detail: String(localized: "Repair your Steam install before installing Squark.")
             )
         }
     }
@@ -530,11 +530,11 @@ struct StatusView: View {
             title: String(localized: "Block Steam client updates"),
             value: blocked
                 ? String(localized: "The Steam client will not update itself.")
-                : String(localized: "A Steam client update may break Hadron."),
+                : String(localized: "A Steam client update may break Squark."),
             toggle: blockUpdates
         )
         .disabled(!status.isIdle)
-        .help("Steam client updates may break Hadron.")
+        .help("Steam client updates may break Squark.")
     }
 
     private var blockUpdates: Binding<Bool> {
@@ -586,7 +586,7 @@ struct StatusView: View {
                     title: "D3DMetal",
                     value: added ? String(localized: "Added") : String(localized: "Not added"),
                     tone: added ? .ok : .neutral,
-                    detail: added ? String(localized: "Pick it per game in Steam, in the game's Hadron settings.") : nil,
+                    detail: added ? String(localized: "Pick it per game in Steam, in the game's Squark settings.") : nil,
                     action: added ? nil : d3dmetalAction(row)
                 )
                 .padding(.leading, 20)
@@ -594,7 +594,7 @@ struct StatusView: View {
         }
         ForEach(status.unavailableRuntimes) { build in
             StatusRow(
-                title: "Hadron \(build.releaseVersion)",
+                title: "Squark \(build.releaseVersion)",
                 value: String(localized: "Not available to download yet"),
                 tone: .neutral,
                 detail: String(localized: "Build it with runtime/build-wine.sh and add its folder with Add Wine Runtime\u{2026}")
@@ -602,7 +602,7 @@ struct StatusView: View {
         }
         ForEach(downloads) { download in
             StatusRow(
-                title: "Hadron \(download.build?.releaseVersion ?? download.id)",
+                title: "Squark \(download.build?.releaseVersion ?? download.id)",
                 value: String(localized: "Available to download"),
                 tone: .neutral,
                 trailing: ByteCountFormatter.string(fromByteCount: download.bytes, countStyle: .file),
@@ -650,7 +650,7 @@ struct StatusView: View {
     // it is on this Mac.
     private func d3dmetalAction(_ row: RuntimeRow) -> StatusAction? {
         guard let root = d3dmetalRoot(row), !D3DMetalImport.isPresent(in: root) else { return nil }
-        let about = String(localized: "D3DMetal runs DirectX 11 and 12 games through Metal. Hadron cannot ship it, so it takes it from CrossOver or the Game Porting Toolkit on this Mac.")
+        let about = String(localized: "D3DMetal runs DirectX 11 and 12 games through Metal. Squark cannot ship it, so it takes it from CrossOver or the Game Porting Toolkit on this Mac.")
         if let known = D3DMetalImport.knownSources().first {
             return StatusAction(
                 label: String(localized: "Add from \(known.name)"),
@@ -770,7 +770,7 @@ struct StatusView: View {
         StatusAction(
             label: label,
             role: .destructive,
-            help: String(localized: "Delete Hadron's copy of this build."),
+            help: String(localized: "Delete Squark's copy of this build."),
             isEnabled: status.canInstall
         ) {
             status.requestBuildRemoval(build)
@@ -796,11 +796,11 @@ struct StatusView: View {
     @ViewBuilder
     private func componentsSection(_ payload: PayloadState) -> some View {
         if let problem = payload.manifestProblem {
-            Section("Hadron Components") {
+            Section("Squark Components") {
                 StatusRow(title: String(localized: "Components"), value: String(localized: "Component list unreadable."), tone: .bad, detail: problem)
             }
         } else if payload.isComplete {
-            Section("Hadron Components") {
+            Section("Squark Components") {
                 StatusRow(
                     title: String(localized: "Components"), value: String(localized: "Ready."), tone: .ok,
                     trailing: status.bridgeCopyBytes > 0
@@ -808,11 +808,11 @@ struct StatusView: View {
                 )
             }
         } else if payload.isEmpty {
-            Section("Hadron Components") {
+            Section("Squark Components") {
                 StatusRow(title: String(localized: "Components"), value: String(localized: "Not yet deployed."), tone: .neutral)
             }
         } else {
-            Section("Hadron Components") {
+            Section("Squark Components") {
                 if !payload.missing.isEmpty {
                     let names = payload.missing.map(\.path).joined(separator: ", ")
                     StatusRow(

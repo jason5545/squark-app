@@ -20,10 +20,10 @@ struct LaunchRecordTests {
         app=2225070
         name=Trackmania
         build=wine-11.19-fex
-        display=Hadron Wine 11.19 (Apple Silicon)
+        display=Squark Wine 11.19 (Apple Silicon)
         compatdata=/Users/tester/Library/Application Support/Steam/steamapps/compatdata/2225070
         install=/Users/tester/Library/Application Support/Steam/steamapps/common/Trackmania
-        log=/Users/tester/Library/Application Support/Steam/steamapps/compatdata/2225070/hadron-run.log
+        log=/Users/tester/Library/Application Support/Steam/steamapps/compatdata/2225070/squark-run.log
         pid=4242
         started=1791970000
         updated=1791970030
@@ -41,7 +41,7 @@ struct LaunchRecordTests {
         #expect(record.appID == "2225070")
         #expect(record.title == "Trackmania")
         #expect(record.build == "wine-11.19-fex")
-        #expect(record.display == "Hadron Wine 11.19 (Apple Silicon)")
+        #expect(record.display == "Squark Wine 11.19 (Apple Silicon)")
         #expect(record.prefix.path(percentEncoded: false).hasSuffix("compatdata/2225070/pfx"))
         #expect(record.install?.lastPathComponent == "Trackmania")
         #expect(record.pid == 4242)

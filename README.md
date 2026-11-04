@@ -1,24 +1,35 @@
-# Hadron
+# Squark
 
-Hadron runs Windows games from the macOS Steam client through Steam Play, with an
-open-source Wine runtime that it builds itself.
+Squark runs Microsoft Flight Simulator 2024 from the macOS Steam client on Apple Silicon.
+It is a fork of [Hadron](https://github.com/nheisterkamp/Hadron) and the app half of
+[squark](https://github.com/jason5545/squark), which holds the investigation notes, tools
+and the list of patches. It carries a Wine 11.18 runtime with Highball's arm64 engine
+(FEX), D3D12 through vkd3d-proton and DXVK on KosmicKrisp, and its own Wine and FEX
+patches (`runtime/patches/wine-11.18-fex`, `runtime/fex/highball`).
 
-Hadron is a fork of [NotProton](https://github.com/NotProtonNot/NotProton), and nearly
-all of its Steam integration is NotProton's work. NotProton is built around a commercial
-Wine distribution and deliberately supports only that, so please report problems with
-Hadron here, not there.
+Squark is not Hadron. Please report problems with Squark in squark, not to Hadron or
+NotProton. Hadron is itself a fork of [NotProton](https://github.com/NotProtonNot/NotProton),
+and nearly all of the Steam integration is NotProton's work. Squark keeps their licences,
+see NOTICE.
 
-It follows the Steam client versions NotProton supports, currently the stable client
-(version 1792618285) and the beta (version 1792626604). Tuxera NTFS is not supported,
-because of a corruption bug in Tuxera's driver. Paragon NTFS may work better, but it has
-not been tested.
+Squark took over from a Hadron install on 2026-11-04. Its first start moves Hadron's data
+(`~/Library/Application Support/hadron`, `~/Library/Caches/hadron`, the record of modified
+Steam bundles and the app's settings) to Squark's names and leaves a link at the old
+folder; Install then replaces the hadron.dylib in Steam with squark.dylib. Names nobody
+sees stay as Hadron had them: the `HADRON_*` variables, the compatibility tool ids
+(`hadron-proton-*`), the marker files in each prefix, the Steam signing identity and the
+game launchers' bundle ids, so prefixes, Steam's per-game tool choice and macOS
+permissions carry over.
+
+Like Hadron, it follows the Steam client versions NotProton supports. Tuxera NTFS is not
+supported, because of a corruption bug in Tuxera's driver.
 
 ## How it works
 
 - **Steam Play in macOS Steam.** A dylib injected into the Steam client enables the
   Steam Play support that macOS Steam carries but keeps switched off, and registers
-  Hadron as a compatibility tool.
-- **The Wine runtimes.** Hadron downloads them from this repository's releases, or
+  Squark as a compatibility tool.
+- **The Wine runtimes.** Squark downloads them from Hadron's releases, or
   `runtime/build-wine.sh` builds them, with lsteamclient, the steam.exe shim, wine-mono
   and wine-gecko built in. Each is a small definition in `runtime/runtimes`, and each
   shows up in Steam as its own compatibility tool:
@@ -40,7 +51,7 @@ not been tested.
   `runtime/fex` ports FEX's unix side.
 - **Graphics.** Direct3D 10 and 11 go to Metal through
   [DXMT](https://github.com/3Shain/dxmt) by default. Each game's Properties in Steam has a
-  Hadron panel to pick DXVK 3.1 on KosmicKrisp, DXVK 1.10 on MoltenVK, D3DMetal (with
+  Squark panel to pick DXVK 3.1 on KosmicKrisp, DXVK 1.10 on MoltenVK, D3DMetal (with
   CrossOver Wine, once added from Apple's Game Porting Toolkit or CrossOver), or Wine's
   own Direct3D. On Apple Silicon Wine, DXVK 1.10 and Wine's own Direct3D are available.
 - **Starting games.** A small window follows each launch: its steps, the game's Windows
@@ -51,7 +62,7 @@ not been tested.
 
 Early, but games run. All runtimes boot, reach Steam through lsteamclient for 32 and 64
 bit games, make HTTPS connections through schannel, and create Direct3D 11 devices with
-every backend they ship. Hadron updates itself through Sparkle. Not yet done:
+every backend they ship. Hadron updates itself through Sparkle; Squark has that off. Not yet done:
 
 - Direct3D 12 outside D3DMetal goes no further than Wine's own vkd3d manages on MoltenVK.
 - The Apple Silicon runtime is new and starts heavy programs slowly: Ubisoft Connect takes
@@ -64,20 +75,20 @@ matchmake.
 ## Adding D3DMetal
 
 D3DMetal is Apple's translation of DirectX 11 and 12 to Metal, from the Game Porting
-Toolkit. Apple's licence does not let Hadron pass it on, so the CrossOver Wine runtime
-Hadron downloads comes without it. Hadron adds it from a copy on your Mac:
+Toolkit. Apple's licence does not let Squark pass it on, so the CrossOver Wine runtime
+Squark downloads comes without it. Squark adds it from a copy on your Mac:
 
 1. Get a copy. Either one works:
-   - **CrossOver:** install it in Applications. The free trial is enough: Hadron copies
+   - **CrossOver:** install it in Applications. The free trial is enough: Squark copies
      D3DMetal into its runtime, so the copy stays after the trial ends.
    - **Game Porting Toolkit:** sign in at
      [developer.apple.com/download/all](https://developer.apple.com/download/all/) with a
      free Apple developer account, download the Game Porting Toolkit and open its disk
      image.
-2. In Hadron's Status page, the CrossOver Wine row says whether D3DMetal is added. Click
+2. In Squark's Status page, the CrossOver Wine row says whether D3DMetal is added. Click
    **Add D3DMetal from CrossOver** (or from the Game Porting Toolkit). With neither
    installed, **Add D3DMetal…** lets you pick a folder that has it.
-3. In Steam, open the game's Properties, go to Hadron, and pick D3DMetal. A game set to
+3. In Steam, open the game's Properties, go to Squark, and pick D3DMetal. A game set to
    D3DMetal without it added runs with DXMT instead.
 
 ## Building
@@ -88,19 +99,20 @@ make runtime                  # every runtime in runtime/runtimes
 make bridge dobby fonts app
 ```
 
-`make fonts` also needs FontForge, GNU patch and afdko 4.0. Then open `out/Hadron.app`,
+`make fonts` also needs FontForge, GNU patch and afdko 4.0. Then open `out/Squark.app`,
 add a folder from `out/runtime` with "Add Wine Runtime…" (or put it in
-`~/Library/Application Support/hadron/runtimes/`), set it up, and install into Steam.
+`~/Library/Application Support/squark/runtimes/`), set it up, and install into Steam.
 
-Hadron can also download the runtimes. `runtime/release.sh <tag> <runtime>...` packs
+Squark can also download the runtimes. `runtime/release.sh <tag> <runtime>...` packs
 staged runtimes into `out/release/<tag>` and writes the manifest the app bundles, with
 each archive's SHA-256; `--publish` uploads them as a GitHub release. The archives leave
-out D3DMetal, which Apple's licence does not allow passing on: Hadron's "Add D3DMetal…"
+out D3DMetal, which Apple's licence does not allow passing on: Squark's "Add D3DMetal…"
 takes it from the Game Porting Toolkit or CrossOver on the user's Mac. An Apple Silicon
 runtime is only packed when its loader is signed with a Developer ID profile, since a
 development profile runs on its own devices only.
 
-`app/release.sh` releases Hadron itself: it signs the app and all code in it with
+`app/release.sh` is Hadron's release script and Squark does not use it: Squark has no
+releases and Sparkle is off (see `app/Info.plist`), so build it from source. The script it signs the app and all code in it with
 Developer ID and the hardened runtime, has it notarized, signs the zip for Sparkle and
 adds it to the appcast on the `updates` branch, which Hadron's update checks read.
 `--publish` uploads it as GitHub release `app-<version>`. For every release, raise
@@ -117,6 +129,9 @@ Proton 9.0. `runtime` builds the Wine runtime, with its patches and tests.
 Please read NOTICE for license information.
 
 ## Made with AI
+
+Squark's changes to Hadron were written by Claude in Claude Code, directed and tested by
+Jason Chien. What follows is Hadron's own note.
 
 Much of what Hadron adds to NotProton was written by Claude, Anthropic's AI model,
 working in Claude Code: the Wine runtime builds and their patches, the macOS port of FEX

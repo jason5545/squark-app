@@ -405,7 +405,7 @@ int np_compat_load_tool_list(const char *path, const char *tools_dir) {
     FILE *f = fopen(path, "r");
     if (!f) {
         NP_WARN("np_compat_load_tool_list: %s is missing, so no build has a tool "
-                "until Hadron sets one up", path);
+                "until Squark sets one up", path);
         return 0;
     }
     g_tool_list_present = 1;
@@ -464,7 +464,7 @@ static void load_tool_list(void) {
     if (!home || tools_dir_path(tools_dir, sizeof(tools_dir)) != 0) return;
 
     char path[512];
-    snprintf(path, sizeof(path), "%s/Library/Application Support/hadron/tools", home);
+    snprintf(path, sizeof(path), "%s/Library/Application Support/squark/tools", home);
     np_compat_load_tool_list(path, tools_dir);
 }
 

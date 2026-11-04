@@ -1,4 +1,4 @@
-// Copies a Wine runtime into ~/Library/Application Support/hadron/runners
+// Copies a Wine runtime into ~/Library/Application Support/squark/runners
 
 import Darwin
 import Foundation

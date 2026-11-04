@@ -14,7 +14,7 @@ set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
 runtime="$(cd "${1:?usage: $0 <runtime dir> [<steamclient dir>]}" && pwd)"
-valve="${2:-$HOME/Library/Application Support/hadron/bridge}"
+valve="${2:-$HOME/Library/Application Support/squark/bridge}"
 have_valve=1
 for dll in steamclient.dll steamclient64.dll; do
     [ -f "$valve/$dll" ] || have_valve=0

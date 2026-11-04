@@ -85,7 +85,7 @@ static void *hook_FindToolForTargetApp(void *self, uint32_t appid) {
 
     void *fallback = np_compat_registered_tool(self);
     if (fallback)
-        NP_DBG("hook_FindToolForTargetApp: appID %u is windows-only, defaulting to the Hadron tool",
+        NP_DBG("hook_FindToolForTargetApp: appID %u is windows-only, defaulting to the Squark tool",
                appid);
     return fallback;
 }

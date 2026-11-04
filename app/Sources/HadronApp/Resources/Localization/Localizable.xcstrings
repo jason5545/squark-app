@@ -377,30 +377,30 @@
         }
       }
     },
-    "%@ does not match the checksum Hadron expects, so it was not used." : {
+    "%@ does not match the checksum Squark expects, so it was not used." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ stimmt nicht mit der von Hadron erwarteten Prüfsumme überein und wurde daher nicht verwendet."
+            "value" : "%@ stimmt nicht mit der von Squark erwarteten Prüfsumme überein und wurde daher nicht verwendet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ ne correspond pas à la somme de contrôle attendue par Hadron et n'a donc pas été utilisé."
+            "value" : "%@ ne correspond pas à la somme de contrôle attendue par Squark et n'a donc pas été utilisé."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ non corrisponde al checksum atteso da Hadron, quindi non è stato usato."
+            "value" : "%@ non corrisponde al checksum atteso da Squark, quindi non è stato usato."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 与 Hadron 预期的校验和不符，因此未被使用。"
+            "value" : "%@ 与 Squark 预期的校验和不符，因此未被使用。"
           }
         }
       }
@@ -657,30 +657,30 @@
         }
       }
     },
-    "%@ is not a Hadron Wine runtime." : {
+    "%@ is not a Squark Wine runtime." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ ist keine Hadron-Wine-Runtime."
+            "value" : "%@ ist keine Squark-Wine-Runtime."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ n'est pas un runtime Wine Hadron."
+            "value" : "%@ n'est pas un runtime Wine Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ non è un runtime Wine di Hadron."
+            "value" : "%@ non è un runtime Wine di Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 不是 Hadron Wine 运行时。"
+            "value" : "%@ 不是 Squark Wine 运行时。"
           }
         }
       }
@@ -1150,114 +1150,114 @@
         }
       }
     },
-    "A Steam client update may break Hadron." : {
+    "A Steam client update may break Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Steam-Client-Update kann Hadron unbrauchbar machen."
+            "value" : "Ein Steam-Client-Update kann Squark unbrauchbar machen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une mise à jour du client Steam peut casser Hadron."
+            "value" : "Une mise à jour du client Steam peut casser Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un aggiornamento del client Steam potrebbe rendere Hadron inutilizzabile."
+            "value" : "Un aggiornamento del client Steam potrebbe rendere Squark inutilizzabile."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 客户端更新可能导致 Hadron 无法使用。"
+            "value" : "Steam 客户端更新可能导致 Squark 无法使用。"
           }
         }
       }
     },
-    "A game appears here once it has been started with a Hadron compatibility tool." : {
+    "A game appears here once it has been started with a Squark compatibility tool." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Spiel erscheint hier, sobald es mit einem Hadron-Kompatibilitätstool gestartet wurde."
+            "value" : "Ein Spiel erscheint hier, sobald es mit einem Squark-Kompatibilitätstool gestartet wurde."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un jeu apparaît ici dès qu'il a été lancé avec un outil de compatibilité Hadron."
+            "value" : "Un jeu apparaît ici dès qu'il a été lancé avec un outil de compatibilité Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un gioco compare qui dopo essere stato avviato con uno strumento di compatibilità di Hadron."
+            "value" : "Un gioco compare qui dopo essere stato avviato con uno strumento di compatibilità di Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用 Hadron 兼容性工具启动游戏后，游戏会显示在这里。"
+            "value" : "用 Squark 兼容性工具启动游戏后，游戏会显示在这里。"
           }
         }
       }
     },
-    "A game or Wine tool is running on build %@. Quit it before updating Hadron." : {
+    "A game or Wine tool is running on build %@. Quit it before updating Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Spiel oder Wine-Tool läuft mit Build %@. Beende es, bevor du Hadron aktualisierst."
+            "value" : "Ein Spiel oder Wine-Tool läuft mit Build %@. Beende es, bevor du Squark aktualisierst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un jeu ou un outil Wine tourne sur le build %@. Quittez-le avant de mettre à jour Hadron."
+            "value" : "Un jeu ou un outil Wine tourne sur le build %@. Quittez-le avant de mettre à jour Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un gioco o uno strumento di Wine è in esecuzione sulla build %@. Chiudilo prima di aggiornare Hadron."
+            "value" : "Un gioco o uno strumento di Wine è in esecuzione sulla build %@. Chiudilo prima di aggiornare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有游戏或 Wine 工具正在使用构建版本 %@。请先退出，再更新 Hadron。"
+            "value" : "有游戏或 Wine 工具正在使用构建版本 %@。请先退出，再更新 Squark。"
           }
         }
       }
     },
-    "A game or Wine tool is running. Quit it before updating Hadron." : {
+    "A game or Wine tool is running. Quit it before updating Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Spiel oder Wine-Tool läuft. Beende es, bevor du Hadron aktualisierst."
+            "value" : "Ein Spiel oder Wine-Tool läuft. Beende es, bevor du Squark aktualisierst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un jeu ou un outil Wine est en cours d'exécution. Quittez-le avant de mettre à jour Hadron."
+            "value" : "Un jeu ou un outil Wine est en cours d'exécution. Quittez-le avant de mettre à jour Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un gioco o uno strumento di Wine è in esecuzione. Chiudilo prima di aggiornare Hadron."
+            "value" : "Un gioco o uno strumento di Wine è in esecuzione. Chiudilo prima di aggiornare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有游戏或 Wine 工具正在运行。请先退出，再更新 Hadron。"
+            "value" : "有游戏或 Wine 工具正在运行。请先退出，再更新 Squark。"
           }
         }
       }
@@ -1290,30 +1290,30 @@
         }
       }
     },
-    "A newer Hadron build is installed. Use that build to update or repair the installed files." : {
+    "A newer Squark build is installed. Use that build to update or repair the installed files." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein neuerer Hadron-Build ist installiert. Verwende diesen Build, um die installierten Dateien zu aktualisieren oder zu reparieren."
+            "value" : "Ein neuerer Squark-Build ist installiert. Verwende diesen Build, um die installierten Dateien zu aktualisieren oder zu reparieren."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un build plus récent de Hadron est installé. Utilisez ce build pour mettre à jour ou réparer les fichiers installés."
+            "value" : "Un build plus récent de Squark est installé. Utilisez ce build pour mettre à jour ou réparer les fichiers installés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "È installata una build più recente di Hadron. Usa quella build per aggiornare o riparare i file installati."
+            "value" : "È installata una build più recente di Squark. Usa quella build per aggiornare o riparare i file installati."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已安装较新的 Hadron 版本。请使用该版本更新或修复已安装的文件。"
+            "value" : "已安装较新的 Squark 版本。请使用该版本更新或修复已安装的文件。"
           }
         }
       }
@@ -1346,30 +1346,30 @@
         }
       }
     },
-    "A prefix appears here once a Windows game has been launched through Hadron." : {
+    "A prefix appears here once a Windows game has been launched through Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Präfix erscheint hier, sobald ein Windows-Spiel über Hadron gestartet wurde."
+            "value" : "Ein Präfix erscheint hier, sobald ein Windows-Spiel über Squark gestartet wurde."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un préfixe apparaît ici dès qu'un jeu Windows a été lancé via Hadron."
+            "value" : "Un préfixe apparaît ici dès qu'un jeu Windows a été lancé via Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un prefisso compare qui dopo che un gioco Windows è stato avviato tramite Hadron."
+            "value" : "Un prefisso compare qui dopo che un gioco Windows è stato avviato tramite Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过 Hadron 启动 Windows 游戏后，对应的游戏容器就会显示在这里。"
+            "value" : "通过 Squark 启动 Windows 游戏后，对应的游戏容器就会显示在这里。"
           }
         }
       }
@@ -1514,30 +1514,30 @@
         }
       }
     },
-    "Add a Hadron Wine runtime from another folder." : {
+    "Add a Squark Wine runtime from another folder." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge eine Hadron-Wine-Runtime aus einem anderen Ordner hinzu."
+            "value" : "Füge eine Squark-Wine-Runtime aus einem anderen Ordner hinzu."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajoutez un runtime Wine Hadron depuis un autre dossier."
+            "value" : "Ajoutez un runtime Wine Squark depuis un autre dossier."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aggiungi un runtime Wine di Hadron da un'altra cartella."
+            "value" : "Aggiungi un runtime Wine di Squark da un'altra cartella."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从其他文件夹添加 Hadron Wine 运行时。"
+            "value" : "从其他文件夹添加 Squark Wine 运行时。"
           }
         }
       }
@@ -1738,30 +1738,30 @@
         }
       }
     },
-    "Another dylib is present. Repair your Steam install before installing Hadron." : {
+    "Another dylib is present. Repair your Steam install before installing Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine andere dylib ist vorhanden. Repariere deine Steam-Installation, bevor du Hadron installierst."
+            "value" : "Eine andere dylib ist vorhanden. Repariere deine Steam-Installation, bevor du Squark installierst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une autre dylib est présente. Réparez votre installation de Steam avant d'installer Hadron."
+            "value" : "Une autre dylib est présente. Réparez votre installation de Steam avant d'installer Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "È presente un'altra dylib. Ripara l'installazione di Steam prima di installare Hadron."
+            "value" : "È presente un'altra dylib. Ripara l'installazione di Steam prima di installare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检测到其他动态库。请先修复 Steam，再安装 Hadron。"
+            "value" : "检测到其他动态库。请先修复 Steam，再安装 Squark。"
           }
         }
       }
@@ -4009,58 +4009,58 @@
         }
       }
     },
-    "D3DMetal added. Pick it for a game in the game's Hadron settings." : {
+    "D3DMetal added. Pick it for a game in the game's Squark settings." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal wurde hinzugefügt. Wähle es für ein Spiel in dessen Hadron-Einstellungen aus."
+            "value" : "D3DMetal wurde hinzugefügt. Wähle es für ein Spiel in dessen Squark-Einstellungen aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal a été ajouté. Choisissez-le pour un jeu dans ses réglages Hadron."
+            "value" : "D3DMetal a été ajouté. Choisissez-le pour un jeu dans ses réglages Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal aggiunto. Sceglilo per un gioco nelle impostazioni Hadron del gioco."
+            "value" : "D3DMetal aggiunto. Sceglilo per un gioco nelle impostazioni Squark del gioco."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已添加 D3DMetal。可在游戏的 Hadron 设置中为该游戏选择它。"
+            "value" : "已添加 D3DMetal。可在游戏的 Squark 设置中为该游戏选择它。"
           }
         }
       }
     },
-    "D3DMetal runs DirectX 11 and 12 games through Metal. Hadron cannot ship it, so it takes it from CrossOver or the Game Porting Toolkit on this Mac." : {
+    "D3DMetal runs DirectX 11 and 12 games through Metal. Squark cannot ship it, so it takes it from CrossOver or the Game Porting Toolkit on this Mac." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal führt DirectX-11- und -12-Spiele über Metal aus. Hadron darf es nicht mitliefern und übernimmt es deshalb aus CrossOver oder dem Game Porting Toolkit auf diesem Mac."
+            "value" : "D3DMetal führt DirectX-11- und -12-Spiele über Metal aus. Squark darf es nicht mitliefern und übernimmt es deshalb aus CrossOver oder dem Game Porting Toolkit auf diesem Mac."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal exécute les jeux DirectX 11 et 12 via Metal. Hadron ne peut pas le fournir et le récupère donc depuis CrossOver ou le Game Porting Toolkit sur ce Mac."
+            "value" : "D3DMetal exécute les jeux DirectX 11 et 12 via Metal. Squark ne peut pas le fournir et le récupère donc depuis CrossOver ou le Game Porting Toolkit sur ce Mac."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal esegue i giochi DirectX 11 e 12 tramite Metal. Hadron non può distribuirlo, quindi lo prende da CrossOver o dal Game Porting Toolkit su questo Mac."
+            "value" : "D3DMetal esegue i giochi DirectX 11 e 12 tramite Metal. Squark non può distribuirlo, quindi lo prende da CrossOver o dal Game Porting Toolkit su questo Mac."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal 通过 Metal 运行 DirectX 11 和 12 游戏。Hadron 无法随附它，因此会从这台 Mac 上的 CrossOver 或 Game Porting Toolkit 获取。"
+            "value" : "D3DMetal 通过 Metal 运行 DirectX 11 和 12 游戏。Squark 无法随附它，因此会从这台 Mac 上的 CrossOver 或 Game Porting Toolkit 获取。"
           }
         }
       }
@@ -4289,30 +4289,30 @@
         }
       }
     },
-    "Delete Hadron's copy of this build." : {
+    "Delete Squark's copy of this build." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Hadron-Kopie dieses Builds löschen."
+            "value" : "Die Squark-Kopie dieses Builds löschen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer la copie de ce build faite par Hadron."
+            "value" : "Supprimer la copie de ce build faite par Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elimina la copia di Hadron di questa build."
+            "value" : "Elimina la copia di Squark di questa build."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "删除 Hadron 保存的此版本副本。"
+            "value" : "删除 Squark 保存的此版本副本。"
           }
         }
       }
@@ -5213,30 +5213,30 @@
         }
       }
     },
-    "Find Hadron's components" : {
+    "Find Squark's components" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron-Komponenten suchen"
+            "value" : "Squark-Komponenten suchen"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rechercher les composants de Hadron"
+            "value" : "Rechercher les composants de Squark"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ricerca dei componenti di Hadron"
+            "value" : "Ricerca dei componenti di Squark"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查找 Hadron 组件"
+            "value" : "查找 Squark 组件"
           }
         }
       }
@@ -5409,425 +5409,425 @@
         }
       }
     },
-    "Hadron" : {
+    "Squark" : {
       "shouldTranslate" : false
     },
-    "Hadron Components" : {
+    "Squark Components" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron-Komponenten"
+            "value" : "Squark-Komponenten"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Composants de Hadron"
+            "value" : "Composants de Squark"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Componenti di Hadron"
+            "value" : "Componenti di Squark"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 组件"
+            "value" : "Squark 组件"
           }
         }
       }
     },
-    "Hadron cannot use Steam from a folder with a colon in its name." : {
+    "Squark cannot use Steam from a folder with a colon in its name." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron kann Steam nicht aus einem Ordner verwenden, dessen Name einen Doppelpunkt enthält."
+            "value" : "Squark kann Steam nicht aus einem Ordner verwenden, dessen Name einen Doppelpunkt enthält."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron ne peut pas utiliser Steam depuis un dossier dont le nom contient deux-points."
+            "value" : "Squark ne peut pas utiliser Steam depuis un dossier dont le nom contient deux-points."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron non può usare Steam da una cartella con i due punti nel nome."
+            "value" : "Squark non può usare Steam da una cartella con i due punti nel nome."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 无法使用名称中含有冒号的文件夹中的 Steam。"
+            "value" : "Squark 无法使用名称中含有冒号的文件夹中的 Steam。"
           }
         }
       }
     },
-    "Hadron carries no components." : {
+    "Squark carries no components." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron enthält keine Komponenten."
+            "value" : "Squark enthält keine Komponenten."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron ne contient aucun composant."
+            "value" : "Squark ne contient aucun composant."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron non contiene componenti."
+            "value" : "Squark non contiene componenti."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 未包含任何组件。"
+            "value" : "Squark 未包含任何组件。"
           }
         }
       }
     },
-    "Hadron could not download the files it needs from %@. Please try again later." : {
+    "Squark could not download the files it needs from %@. Please try again later." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron konnte die benötigten Dateien nicht von %@ laden. Bitte versuche es später erneut."
+            "value" : "Squark konnte die benötigten Dateien nicht von %@ laden. Bitte versuche es später erneut."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron n'a pas pu télécharger les fichiers nécessaires depuis %@. Veuillez réessayer plus tard."
+            "value" : "Squark n'a pas pu télécharger les fichiers nécessaires depuis %@. Veuillez réessayer plus tard."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron non è riuscito a scaricare da %@ i file che gli servono. Riprova più tardi."
+            "value" : "Squark non è riuscito a scaricare da %@ i file che gli servono. Riprova più tardi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 无法从 %@ 下载所需文件。请稍后重试。"
+            "value" : "Squark 无法从 %@ 下载所需文件。请稍后重试。"
           }
         }
       }
     },
-    "Hadron could not reach %@'s servers. Please check your internet connection and try again." : {
+    "Squark could not reach %@'s servers. Please check your internet connection and try again." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron konnte die Server von %@ nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut."
+            "value" : "Squark konnte die Server von %@ nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron n'a pas pu joindre les serveurs de %@. Vérifiez votre connexion Internet et réessayez."
+            "value" : "Squark n'a pas pu joindre les serveurs de %@. Vérifiez votre connexion Internet et réessayez."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron non è riuscito a raggiungere i server di %@. Controlla la connessione a internet e riprova."
+            "value" : "Squark non è riuscito a raggiungere i server di %@. Controlla la connessione a internet e riprova."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 无法连接 %@ 服务器。请检查网络连接，然后重试。"
+            "value" : "Squark 无法连接 %@ 服务器。请检查网络连接，然后重试。"
           }
         }
       }
     },
-    "Hadron does not run %@ with Winetricks." : {
+    "Squark does not run %@ with Winetricks." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron führt %@ nicht mit Winetricks aus."
+            "value" : "Squark führt %@ nicht mit Winetricks aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron n'exécute pas %@ avec Winetricks."
+            "value" : "Squark n'exécute pas %@ avec Winetricks."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron non esegue %@ con Winetricks."
+            "value" : "Squark non esegue %@ con Winetricks."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 不会通过 Winetricks 运行 %@。"
+            "value" : "Squark 不会通过 Winetricks 运行 %@。"
           }
         }
       }
     },
-    "Hadron has been partially removed, because Steam at %@ cannot be found. Delete that copy of Steam and reinstall it to fully remove Hadron." : {
+    "Squark has been partially removed, because Steam at %@ cannot be found. Delete that copy of Steam and reinstall it to fully remove Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron wurde nur teilweise entfernt, weil Steam unter %@ nicht gefunden wurde. Lösche diese Steam-Kopie und installiere Steam neu, um Hadron vollständig zu entfernen."
+            "value" : "Squark wurde nur teilweise entfernt, weil Steam unter %@ nicht gefunden wurde. Lösche diese Steam-Kopie und installiere Steam neu, um Squark vollständig zu entfernen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron a été partiellement supprimé, car Steam est introuvable à %@. Supprimez cette copie de Steam et réinstallez-la pour supprimer complètement Hadron."
+            "value" : "Squark a été partiellement supprimé, car Steam est introuvable à %@. Supprimez cette copie de Steam et réinstallez-la pour supprimer complètement Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron è stato rimosso solo in parte, perché Steam in %@ non si trova. Elimina quella copia di Steam e reinstallala per rimuovere del tutto Hadron."
+            "value" : "Squark è stato rimosso solo in parte, perché Steam in %@ non si trova. Elimina quella copia di Steam e reinstallala per rimuovere del tutto Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 Hadron。"
+            "value" : "Squark 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 Squark。"
           }
         }
       }
     },
-    "Hadron has been removed." : {
+    "Squark has been removed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron wurde entfernt."
+            "value" : "Squark wurde entfernt."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron a été supprimé."
+            "value" : "Squark a été supprimé."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron è stato rimosso."
+            "value" : "Squark è stato rimosso."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 已移除。"
+            "value" : "Squark 已移除。"
           }
         }
       }
     },
-    "Hadron has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again." : {
+    "Squark has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron wurde entfernt. Steam konnte nicht wiederhergestellt werden. Installiere Steam von steampowered.com neu, bevor du es wieder verwendest."
+            "value" : "Squark wurde entfernt. Steam konnte nicht wiederhergestellt werden. Installiere Steam von steampowered.com neu, bevor du es wieder verwendest."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron a été supprimé. Steam n'a pas pu être restauré. Réinstallez Steam depuis steampowered.com avant de l'utiliser à nouveau."
+            "value" : "Squark a été supprimé. Steam n'a pas pu être restauré. Réinstallez Steam depuis steampowered.com avant de l'utiliser à nouveau."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron è stato rimosso. Non è stato possibile ripristinare Steam: reinstallalo da steampowered.com prima di usarlo di nuovo."
+            "value" : "Squark è stato rimosso. Non è stato possibile ripristinare Steam: reinstallalo da steampowered.com prima di usarlo di nuovo."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
+            "value" : "Squark 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
           }
         }
       }
     },
-    "Hadron is installed in %@. Use Repair Steam to remove it before choosing another copy of Steam." : {
+    "Squark is installed in %@. Use Repair Steam to remove it before choosing another copy of Steam." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron ist in %@ installiert. Entferne es mit „Steam reparieren“, bevor du eine andere Steam-Kopie wählst."
+            "value" : "Squark ist in %@ installiert. Entferne es mit „Steam reparieren“, bevor du eine andere Steam-Kopie wählst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron est installé dans %@. Utilisez « Réparer Steam » pour le supprimer avant de choisir une autre copie de Steam."
+            "value" : "Squark est installé dans %@. Utilisez « Réparer Steam » pour le supprimer avant de choisir une autre copie de Steam."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron è installato in %@. Usa Ripara Steam per rimuoverlo prima di scegliere un'altra copia di Steam."
+            "value" : "Squark è installato in %@. Usa Ripara Steam per rimuoverlo prima di scegliere un'altra copia di Steam."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
+            "value" : "Squark 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
           }
         }
       }
     },
-    "Hadron is rebuilding the prefix for %@." : {
+    "Squark is rebuilding the prefix for %@." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron erstellt das Präfix für %@ neu."
+            "value" : "Squark erstellt das Präfix für %@ neu."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron reconstruit le préfixe de %@."
+            "value" : "Squark reconstruit le préfixe de %@."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron sta ricostruendo il prefisso di %@."
+            "value" : "Squark sta ricostruendo il prefisso di %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Hadron is rebuilding the prefix for %@."
+            "value" : "Squark is rebuilding the prefix for %@."
           }
         }
       }
     },
-    "Hadron is rebuilding this game's prefix." : {
+    "Squark is rebuilding this game's prefix." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron erstellt das Präfix dieses Spiels neu."
+            "value" : "Squark erstellt das Präfix dieses Spiels neu."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron reconstruit le préfixe de ce jeu."
+            "value" : "Squark reconstruit le préfixe de ce jeu."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron sta ricostruendo il prefisso di questo gioco."
+            "value" : "Squark sta ricostruendo il prefisso di questo gioco."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Hadron is rebuilding this game's prefix."
+            "value" : "Squark is rebuilding this game's prefix."
           }
         }
       }
     },
-    "Hadron needs the App Management permission." : {
+    "Squark needs the App Management permission." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron benötigt die Berechtigung „App-Verwaltung“."
+            "value" : "Squark benötigt die Berechtigung „App-Verwaltung“."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron a besoin de l'autorisation « Gestion des apps »."
+            "value" : "Squark a besoin de l'autorisation « Gestion des apps »."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron ha bisogno del permesso Gestione app."
+            "value" : "Squark ha bisogno del permesso Gestione app."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 需要“App 管理”权限。"
+            "value" : "Squark 需要“App 管理”权限。"
           }
         }
       }
     },
-    "Hadron successfully installed." : {
+    "Squark successfully installed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron wurde erfolgreich installiert."
+            "value" : "Squark wurde erfolgreich installiert."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron a été installé avec succès."
+            "value" : "Squark a été installé avec succès."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron installato correttamente."
+            "value" : "Squark installato correttamente."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron 安装成功。"
+            "value" : "Squark 安装成功。"
           }
         }
       }
     },
-    "If Hadron is installed there, it will stay installed. Continue anyway?" : {
+    "If Squark is installed there, it will stay installed. Continue anyway?" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Falls Hadron dort installiert ist, bleibt es installiert. Trotzdem fortfahren?"
+            "value" : "Falls Squark dort installiert ist, bleibt es installiert. Trotzdem fortfahren?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Si Hadron y est installé, il le restera. Continuer quand même ?"
+            "value" : "Si Squark y est installé, il le restera. Continuer quand même ?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se Hadron è installato lì, resterà installato. Continuare comunque?"
+            "value" : "Se Squark è installato lì, resterà installato. Continuare comunque?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果 Hadron 安装在那里，它将保持安装状态。仍要继续吗？"
+            "value" : "如果 Squark 安装在那里，它将保持安装状态。仍要继续吗？"
           }
         }
       }
@@ -5888,86 +5888,86 @@
         }
       }
     },
-    "Install Hadron" : {
+    "Install Squark" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron installieren"
+            "value" : "Squark installieren"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installer Hadron"
+            "value" : "Installer Squark"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installazione di Hadron"
+            "value" : "Installazione di Squark"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装 Hadron"
+            "value" : "安装 Squark"
           }
         }
       }
     },
-    "Install Hadron into Steam." : {
+    "Install Squark into Steam." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron in Steam installieren."
+            "value" : "Squark in Steam installieren."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installer Hadron dans Steam."
+            "value" : "Installer Squark dans Steam."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installa Hadron in Steam."
+            "value" : "Installa Squark in Steam."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将 Hadron 安装到 Steam。"
+            "value" : "将 Squark 安装到 Steam。"
           }
         }
       }
     },
-    "Installation is blocked. Refresh Status and use the Hadron app that installed this build." : {
+    "Installation is blocked. Refresh Status and use the Squark app that installed this build." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Installation ist blockiert. Lade den Status neu und verwende die Hadron-App, die diesen Build installiert hat."
+            "value" : "Die Installation ist blockiert. Lade den Status neu und verwende die Squark-App, die diesen Build installiert hat."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'installation est bloquée. Actualisez l'état et utilisez l'app Hadron qui a installé ce build."
+            "value" : "L'installation est bloquée. Actualisez l'état et utilisez l'app Squark qui a installé ce build."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'installazione è bloccata. Aggiorna lo Stato e usa l'app Hadron che ha installato questa build."
+            "value" : "L'installazione è bloccata. Aggiorna lo Stato e usa l'app Squark che ha installato questa build."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装已被阻止。请刷新“状态”页面，并使用此前安装此版本的 Hadron 应用。"
+            "value" : "安装已被阻止。请刷新“状态”页面，并使用此前安装此版本的 Squark 应用。"
           }
         }
       }
@@ -7104,30 +7104,30 @@
         }
       }
     },
-    "No Hadron Wine runtime found." : {
+    "No Squark Wine runtime found." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Hadron-Wine-Runtime gefunden."
+            "value" : "Keine Squark-Wine-Runtime gefunden."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun runtime Wine Hadron trouvé."
+            "value" : "Aucun runtime Wine Squark trouvé."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nessun runtime Wine di Hadron trovato."
+            "value" : "Nessun runtime Wine di Squark trovato."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未找到 Hadron Wine 运行时。"
+            "value" : "未找到 Squark Wine 运行时。"
           }
         }
       }
@@ -7804,30 +7804,30 @@
         }
       }
     },
-    "Pick it per game in Steam, in the game's Hadron settings." : {
+    "Pick it per game in Steam, in the game's Squark settings." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle es pro Spiel in Steam in den Hadron-Einstellungen des Spiels aus."
+            "value" : "Wähle es pro Spiel in Steam in den Squark-Einstellungen des Spiels aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez-le pour chaque jeu dans Steam, dans ses réglages Hadron."
+            "value" : "Choisissez-le pour chaque jeu dans Steam, dans ses réglages Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sceglilo per ogni gioco in Steam, nelle impostazioni Hadron del gioco."
+            "value" : "Sceglilo per ogni gioco in Steam, nelle impostazioni Squark del gioco."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Steam 中按游戏选择它，位于游戏的 Hadron 设置中。"
+            "value" : "在 Steam 中按游戏选择它，位于游戏的 Squark 设置中。"
           }
         }
       }
@@ -8728,58 +8728,58 @@
         }
       }
     },
-    "Remove Hadron" : {
+    "Remove Squark" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron entfernen"
+            "value" : "Squark entfernen"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer Hadron"
+            "value" : "Supprimer Squark"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rimozione di Hadron"
+            "value" : "Rimozione di Squark"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "移除 Hadron"
+            "value" : "移除 Squark"
           }
         }
       }
     },
-    "Remove Hadron and restore Steam to its original state." : {
+    "Remove Squark and restore Steam to its original state." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hadron entfernen und Steam in den Originalzustand zurückversetzen."
+            "value" : "Squark entfernen und Steam in den Originalzustand zurückversetzen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer Hadron et restaurer Steam dans son état d'origine."
+            "value" : "Supprimer Squark et restaurer Steam dans son état d'origine."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rimuovi Hadron e riporta Steam allo stato originale."
+            "value" : "Rimuovi Squark e riporta Steam allo stato originale."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "移除 Hadron 并将 Steam 恢复原状。"
+            "value" : "移除 Squark 并将 Steam 恢复原状。"
           }
         }
       }
@@ -8812,30 +8812,30 @@
         }
       }
     },
-    "Remove everything Hadron has created?" : {
+    "Remove everything Squark has created?" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alles entfernen, was Hadron erstellt hat?"
+            "value" : "Alles entfernen, was Squark erstellt hat?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer tout ce que Hadron a créé ?"
+            "value" : "Supprimer tout ce que Squark a créé ?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rimuovere tutto ciò che Hadron ha creato?"
+            "value" : "Rimuovere tutto ciò che Squark ha creato?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "移除 Hadron 创建的所有内容？"
+            "value" : "移除 Squark 创建的所有内容？"
           }
         }
       }
@@ -9036,30 +9036,30 @@
         }
       }
     },
-    "Repair your Steam install before installing Hadron." : {
+    "Repair your Steam install before installing Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Repariere deine Steam-Installation, bevor du Hadron installierst."
+            "value" : "Repariere deine Steam-Installation, bevor du Squark installierst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réparez votre installation de Steam avant d'installer Hadron."
+            "value" : "Réparez votre installation de Steam avant d'installer Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ripara l'installazione di Steam prima di installare Hadron."
+            "value" : "Ripara l'installazione di Steam prima di installare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请先修复 Steam，再安装 Hadron。"
+            "value" : "请先修复 Steam，再安装 Squark。"
           }
         }
       }
@@ -9764,30 +9764,30 @@
         }
       }
     },
-    "Select a Hadron Wine runtime folder." : {
+    "Select a Squark Wine runtime folder." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle einen Hadron-Wine-Runtime-Ordner aus."
+            "value" : "Wähle einen Squark-Wine-Runtime-Ordner aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionnez un dossier de runtime Wine Hadron."
+            "value" : "Sélectionnez un dossier de runtime Wine Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seleziona una cartella di runtime Wine di Hadron."
+            "value" : "Seleziona una cartella di runtime Wine di Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请选择一个 Hadron Wine 运行时文件夹。"
+            "value" : "请选择一个 Squark Wine 运行时文件夹。"
           }
         }
       }
@@ -10212,30 +10212,30 @@
         }
       }
     },
-    "Something is wrong with the downloaded files. Please check for a Hadron update." : {
+    "Something is wrong with the downloaded files. Please check for a Squark update." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit den geladenen Dateien stimmt etwas nicht. Bitte suche nach einem Hadron-Update."
+            "value" : "Mit den geladenen Dateien stimmt etwas nicht. Bitte suche nach einem Squark-Update."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les fichiers téléchargés présentent un problème. Recherchez une mise à jour de Hadron."
+            "value" : "Les fichiers téléchargés présentent un problème. Recherchez une mise à jour de Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "C'è un problema con i file scaricati. Controlla se c'è un aggiornamento di Hadron."
+            "value" : "C'è un problema con i file scaricati. Controlla se c'è un aggiornamento di Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下载的文件存在问题。请检查是否有新版 Hadron。"
+            "value" : "下载的文件存在问题。请检查是否有新版 Squark。"
           }
         }
       }
@@ -10467,30 +10467,30 @@
     "Steam" : {
       "shouldTranslate" : false
     },
-    "Steam at %@ isn't connected, so Hadron can't be removed from it. All other Hadron data is removed, except for Windows Games and prefixes." : {
+    "Steam at %@ isn't connected, so Squark can't be removed from it. All other Squark data is removed, except for Windows Games and prefixes." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam unter %@ ist nicht verbunden, daher kann Hadron dort nicht entfernt werden. Alle anderen Hadron-Daten werden entfernt, außer Windows-Spielen und Präfixen."
+            "value" : "Steam unter %@ ist nicht verbunden, daher kann Squark dort nicht entfernt werden. Alle anderen Squark-Daten werden entfernt, außer Windows-Spielen und Präfixen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam à %@ n'est pas connecté, Hadron ne peut donc pas en être supprimé. Toutes les autres données de Hadron sont supprimées, sauf les jeux Windows et les préfixes."
+            "value" : "Steam à %@ n'est pas connecté, Squark ne peut donc pas en être supprimé. Toutes les autres données de Squark sont supprimées, sauf les jeux Windows et les préfixes."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam in %@ non è collegato, quindi Hadron non può esserne rimosso. Tutti gli altri dati di Hadron vengono rimossi, tranne i giochi Windows e i prefissi."
+            "value" : "Steam in %@ non è collegato, quindi Squark non può esserne rimosso. Tutti gli altri dati di Squark vengono rimossi, tranne i giochi Windows e i prefissi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 Hadron。其他所有 Hadron 数据都会被移除，但 Windows 游戏及游戏容器除外。"
+            "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 Squark。其他所有 Squark 数据都会被移除，但 Windows 游戏及游戏容器除外。"
           }
         }
       }
@@ -10579,58 +10579,58 @@
         }
       }
     },
-    "Steam client updates may break Hadron." : {
+    "Steam client updates may break Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam-Client-Updates können Hadron unbrauchbar machen."
+            "value" : "Steam-Client-Updates können Squark unbrauchbar machen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les mises à jour du client Steam peuvent casser Hadron."
+            "value" : "Les mises à jour du client Steam peuvent casser Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gli aggiornamenti del client Steam potrebbero rendere Hadron inutilizzabile."
+            "value" : "Gli aggiornamenti del client Steam potrebbero rendere Squark inutilizzabile."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 客户端更新可能导致 Hadron 无法使用。"
+            "value" : "Steam 客户端更新可能导致 Squark 无法使用。"
           }
         }
       }
     },
-    "Steam client updates may break Hadron. If you don't want to wait for Hadron to be updated to be compatible with future Steam versions at the cost of not getting updates to the Steam client, you can stop the Steam client from updating itself." : {
+    "Steam client updates may break Squark. If you don't want to wait for Squark to be updated to be compatible with future Steam versions at the cost of not getting updates to the Steam client, you can stop the Steam client from updating itself." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam-Client-Updates können Hadron unbrauchbar machen. Wenn du nicht warten willst, bis Hadron an künftige Steam-Versionen angepasst ist, kannst du verhindern, dass sich der Steam-Client selbst aktualisiert. Dafür erhältst du dann keine Updates mehr für den Steam-Client."
+            "value" : "Steam-Client-Updates können Squark unbrauchbar machen. Wenn du nicht warten willst, bis Squark an künftige Steam-Versionen angepasst ist, kannst du verhindern, dass sich der Steam-Client selbst aktualisiert. Dafür erhältst du dann keine Updates mehr für den Steam-Client."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les mises à jour du client Steam peuvent casser Hadron. Si vous ne voulez pas attendre que Hadron soit adapté aux futures versions de Steam, vous pouvez empêcher le client Steam de se mettre à jour, au prix de ne plus recevoir ses mises à jour."
+            "value" : "Les mises à jour du client Steam peuvent casser Squark. Si vous ne voulez pas attendre que Squark soit adapté aux futures versions de Steam, vous pouvez empêcher le client Steam de se mettre à jour, au prix de ne plus recevoir ses mises à jour."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gli aggiornamenti del client Steam potrebbero rendere Hadron inutilizzabile. Se non vuoi aspettare che Hadron venga aggiornato per le future versioni di Steam, puoi impedire al client Steam di aggiornarsi, rinunciando però ai suoi aggiornamenti."
+            "value" : "Gli aggiornamenti del client Steam potrebbero rendere Squark inutilizzabile. Se non vuoi aspettare che Squark venga aggiornato per le future versioni di Steam, puoi impedire al client Steam di aggiornarsi, rinunciando però ai suoi aggiornamenti."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 客户端更新可能导致 Hadron 无法使用。你可以阻止 Steam 自动更新，避免等待 Hadron 适配新版本，但这也意味着无法及时获得 Steam 客户端的功能改进和安全更新。"
+            "value" : "Steam 客户端更新可能导致 Squark 无法使用。你可以阻止 Steam 自动更新，避免等待 Squark 适配新版本，但这也意味着无法及时获得 Steam 客户端的功能改进和安全更新。"
           }
         }
       }
@@ -10663,58 +10663,58 @@
         }
       }
     },
-    "Steam has a different copy of Hadron, installed by another account on this Mac. Update Hadron from that account, then try again." : {
+    "Steam has a different copy of Squark, installed by another account on this Mac. Update Squark from that account, then try again." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam enthält eine andere Hadron-Kopie, die von einem anderen Benutzer auf diesem Mac installiert wurde. Aktualisiere Hadron über diesen Benutzer und versuche es dann erneut."
+            "value" : "Steam enthält eine andere Squark-Kopie, die von einem anderen Benutzer auf diesem Mac installiert wurde. Aktualisiere Squark über diesen Benutzer und versuche es dann erneut."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam contient une autre copie de Hadron, installée par un autre compte sur ce Mac. Mettez à jour Hadron depuis ce compte, puis réessayez."
+            "value" : "Steam contient une autre copie de Squark, installée par un autre compte sur ce Mac. Mettez à jour Squark depuis ce compte, puis réessayez."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam ha una copia diversa di Hadron, installata da un altro account su questo Mac. Aggiorna Hadron da quell'account, poi riprova."
+            "value" : "Steam ha una copia diversa di Squark, installata da un altro account su questo Mac. Aggiorna Squark da quell'account, poi riprova."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 中的另一份 Hadron 是由本机其他账户安装的。请使用该账户更新 Hadron，然后重试。"
+            "value" : "Steam 中的另一份 Squark 是由本机其他账户安装的。请使用该账户更新 Squark，然后重试。"
           }
         }
       }
     },
-    "Steam has not been set up for Hadron, and this account cannot change it. Install from the account that owns Steam." : {
+    "Steam has not been set up for Squark, and this account cannot change it. Install from the account that owns Steam." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam wurde nicht für Hadron eingerichtet, und dieser Benutzer kann das nicht ändern. Installiere über den Benutzer, dem Steam gehört."
+            "value" : "Steam wurde nicht für Squark eingerichtet, und dieser Benutzer kann das nicht ändern. Installiere über den Benutzer, dem Steam gehört."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam n'a pas été configuré pour Hadron et ce compte ne peut pas le modifier. Installez depuis le compte propriétaire de Steam."
+            "value" : "Steam n'a pas été configuré pour Squark et ce compte ne peut pas le modifier. Installez depuis le compte propriétaire de Steam."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam non è stato configurato per Hadron e questo account non può modificarlo. Installa dall'account a cui appartiene Steam."
+            "value" : "Steam non è stato configurato per Squark e questo account non può modificarlo. Installa dall'account a cui appartiene Steam."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 尚未配置 Hadron，当前账户无权修改。请使用安装 Steam 的账户执行安装。"
+            "value" : "Steam 尚未配置 Squark，当前账户无权修改。请使用安装 Steam 的账户执行安装。"
           }
         }
       }
@@ -10747,30 +10747,30 @@
         }
       }
     },
-    "Steam is restored to its unmodified state and Hadron is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
+    "Steam is restored to its unmodified state and Squark is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam wird in den unveränderten Zustand zurückversetzt und Hadron entfernt, einschließlich des Kompatibilitätstools im Steam-Ordner. Windows-Spiele und Steam Play-Präfixe werden nicht entfernt."
+            "value" : "Steam wird in den unveränderten Zustand zurückversetzt und Squark entfernt, einschließlich des Kompatibilitätstools im Steam-Ordner. Windows-Spiele und Steam Play-Präfixe werden nicht entfernt."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam est restauré dans son état non modifié et Hadron est supprimé, y compris l'outil de compatibilité situé dans le dossier Steam. Les jeux Windows et les préfixes Steam Play ne sont pas supprimés."
+            "value" : "Steam est restauré dans son état non modifié et Squark est supprimé, y compris l'outil de compatibilité situé dans le dossier Steam. Les jeux Windows et les préfixes Steam Play ne sont pas supprimés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam viene riportato allo stato originale e Hadron viene rimosso, compreso lo strumento di compatibilità nella cartella di Steam. I giochi Windows e i prefissi di Steam Play non vengono rimossi."
+            "value" : "Steam viene riportato allo stato originale e Squark viene rimosso, compreso lo strumento di compatibilità nella cartella di Steam. I giochi Windows e i prefissi di Steam Play non vengono rimossi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此操作会将 Steam 恢复为未修改的状态，并移除 Hadron（包括 Steam 文件夹内的兼容工具）。不会删除 Windows 游戏及 Steam Play 游戏容器。"
+            "value" : "此操作会将 Steam 恢复为未修改的状态，并移除 Squark（包括 Steam 文件夹内的兼容工具）。不会删除 Windows 游戏及 Steam Play 游戏容器。"
           }
         }
       }
@@ -10831,30 +10831,30 @@
         }
       }
     },
-    "Steam is set up to inject a different dylib. Please repair Steam before installing Hadron." : {
+    "Steam is set up to inject a different dylib. Please repair Steam before installing Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam ist so eingerichtet, dass eine andere dylib geladen wird. Bitte repariere Steam, bevor du Hadron installierst."
+            "value" : "Steam ist so eingerichtet, dass eine andere dylib geladen wird. Bitte repariere Steam, bevor du Squark installierst."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam est configuré pour injecter une autre dylib. Réparez Steam avant d'installer Hadron."
+            "value" : "Steam est configuré pour injecter une autre dylib. Réparez Steam avant d'installer Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam è configurato per caricare una dylib diversa. Ripara Steam prima di installare Hadron."
+            "value" : "Steam è configurato per caricare una dylib diversa. Ripara Steam prima di installare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 已配置为注入其他动态库。请先修复 Steam，再安装 Hadron。"
+            "value" : "Steam 已配置为注入其他动态库。请先修复 Steam，再安装 Squark。"
           }
         }
       }
@@ -10915,30 +10915,30 @@
         }
       }
     },
-    "Steam was installed by another account on this Mac. Only that account can modify it. Log in to macOS with that account to reinstall Hadron." : {
+    "Steam was installed by another account on this Mac. Only that account can modify it. Log in to macOS with that account to reinstall Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam wurde von einem anderen Benutzer auf diesem Mac installiert. Nur dieser Benutzer kann es ändern. Melde dich mit diesem Benutzer bei macOS an, um Hadron neu zu installieren."
+            "value" : "Steam wurde von einem anderen Benutzer auf diesem Mac installiert. Nur dieser Benutzer kann es ändern. Melde dich mit diesem Benutzer bei macOS an, um Squark neu zu installieren."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam a été installé par un autre compte sur ce Mac. Seul ce compte peut le modifier. Connectez-vous à macOS avec ce compte pour réinstaller Hadron."
+            "value" : "Steam a été installé par un autre compte sur ce Mac. Seul ce compte peut le modifier. Connectez-vous à macOS avec ce compte pour réinstaller Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam è stato installato da un altro account su questo Mac e solo quell'account può modificarlo. Accedi a macOS con quell'account per reinstallare Hadron."
+            "value" : "Steam è stato installato da un altro account su questo Mac e solo quell'account può modificarlo. Accedi a macOS con quell'account per reinstallare Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 由这台 Mac 上的其他账户安装，只有该账户可以修改。请登录该账户，重新安装 Hadron。"
+            "value" : "Steam 由这台 Mac 上的其他账户安装，只有该账户可以修改。请登录该账户，重新安装 Squark。"
           }
         }
       }
@@ -10971,30 +10971,30 @@
         }
       }
     },
-    "Steam's installed dylib does not match this account's build record. Finish or repair its installation with the Hadron app that last installed it." : {
+    "Steam's installed dylib does not match this account's build record. Finish or repair its installation with the Squark app that last installed it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die installierte dylib von Steam passt nicht zum Build-Eintrag dieses Benutzers. Schließe die Installation mit der Hadron-App ab, die sie zuletzt installiert hat, oder repariere sie damit."
+            "value" : "Die installierte dylib von Steam passt nicht zum Build-Eintrag dieses Benutzers. Schließe die Installation mit der Squark-App ab, die sie zuletzt installiert hat, oder repariere sie damit."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La dylib installée de Steam ne correspond pas à l'enregistrement de build de ce compte. Terminez ou réparez son installation avec l'app Hadron qui l'a installée en dernier."
+            "value" : "La dylib installée de Steam ne correspond pas à l'enregistrement de build de ce compte. Terminez ou réparez son installation avec l'app Squark qui l'a installée en dernier."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La dylib installata in Steam non corrisponde alla build registrata per questo account. Completa o ripara l'installazione con l'app Hadron che l'ha installata per ultima."
+            "value" : "La dylib installata in Steam non corrisponde alla build registrata per questo account. Completa o ripara l'installazione con l'app Squark che l'ha installata per ultima."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 中已安装的动态库与当前账户的版本记录不一致。请使用上次执行安装的 Hadron 应用完成或修复安装。"
+            "value" : "Steam 中已安装的动态库与当前账户的版本记录不一致。请使用上次执行安装的 Squark 应用完成或修复安装。"
           }
         }
       }
@@ -11251,30 +11251,30 @@
         }
       }
     },
-    "The bundled Hadron dylib is invalid." : {
+    "The bundled Squark dylib is invalid." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die mitgelieferte Hadron-dylib ist ungültig."
+            "value" : "Die mitgelieferte Squark-dylib ist ungültig."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La dylib Hadron fournie n'est pas valide."
+            "value" : "La dylib Squark fournie n'est pas valide."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il dylib di Hadron incluso non è valido."
+            "value" : "Il dylib di Squark incluso non è valido."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "随附的 Hadron 动态库无效。"
+            "value" : "随附的 Squark 动态库无效。"
           }
         }
       }
@@ -11587,30 +11587,30 @@
         }
       }
     },
-    "This build of Hadron carries no components at all." : {
+    "This build of Squark carries no components at all." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Hadron-Build enthält überhaupt keine Komponenten."
+            "value" : "Dieser Squark-Build enthält überhaupt keine Komponenten."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce build de Hadron ne contient aucun composant."
+            "value" : "Ce build de Squark ne contient aucun composant."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questa build di Hadron non contiene nessun componente."
+            "value" : "Questa build di Squark non contiene nessun componente."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此版本的 Hadron 未包含任何组件。"
+            "value" : "此版本的 Squark 未包含任何组件。"
           }
         }
       }
@@ -11643,58 +11643,58 @@
         }
       }
     },
-    "This copy of Hadron cannot repair Steam. Please reinstall Hadron." : {
+    "This copy of Squark cannot repair Steam. Please reinstall Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Hadron-Kopie kann Steam nicht reparieren. Bitte installiere Hadron neu."
+            "value" : "Diese Squark-Kopie kann Steam nicht reparieren. Bitte installiere Squark neu."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cette copie de Hadron ne peut pas réparer Steam. Réinstallez Hadron."
+            "value" : "Cette copie de Squark ne peut pas réparer Steam. Réinstallez Squark."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questa copia di Hadron non può riparare Steam. Reinstalla Hadron."
+            "value" : "Questa copia di Squark non può riparare Steam. Reinstalla Squark."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此 Hadron 副本无法修复 Steam。请重新安装 Hadron。"
+            "value" : "此 Squark 副本无法修复 Steam。请重新安装 Squark。"
           }
         }
       }
     },
-    "This package needs its files downloaded by hand, which Hadron cannot do." : {
+    "This package needs its files downloaded by hand, which Squark cannot do." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "This package needs its files downloaded by hand, which Hadron cannot do."
+            "value" : "This package needs its files downloaded by hand, which Squark cannot do."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "This package needs its files downloaded by hand, which Hadron cannot do."
+            "value" : "This package needs its files downloaded by hand, which Squark cannot do."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo pacchetto richiede file da scaricare a mano, cosa che Hadron non può fare."
+            "value" : "Questo pacchetto richiede file da scaricare a mano, cosa che Squark non può fare."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此软件包的文件需要手动下载，Hadron 无法代劳。"
+            "value" : "此软件包的文件需要手动下载，Squark 无法代劳。"
           }
         }
       }
@@ -11783,30 +11783,30 @@
         }
       }
     },
-    "This will restore Steam itself to its original state but does not remove the support components used by Hadron." : {
+    "This will restore Steam itself to its original state but does not remove the support components used by Squark." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch wird Steam selbst in den Originalzustand zurückversetzt, die von Hadron verwendeten Hilfskomponenten werden aber nicht entfernt."
+            "value" : "Dadurch wird Steam selbst in den Originalzustand zurückversetzt, die von Squark verwendeten Hilfskomponenten werden aber nicht entfernt."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam lui-même sera restauré dans son état d'origine, mais les composants de support utilisés par Hadron ne seront pas supprimés."
+            "value" : "Steam lui-même sera restauré dans son état d'origine, mais les composants de support utilisés par Squark ne seront pas supprimés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam verrà riportato allo stato originale, ma i componenti di supporto usati da Hadron non verranno rimossi."
+            "value" : "Steam verrà riportato allo stato originale, ma i componenti di supporto usati da Squark non verranno rimossi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此操作会将 Steam 恢复原状，但不会移除 Hadron 使用的支持组件。"
+            "value" : "此操作会将 Steam 恢复原状，但不会移除 Squark 使用的支持组件。"
           }
         }
       }
@@ -12091,30 +12091,30 @@
         }
       }
     },
-    "Use the newer Hadron app to update or repair the installed files." : {
+    "Use the newer Squark app to update or repair the installed files." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwende die neuere Hadron-App, um die installierten Dateien zu aktualisieren oder zu reparieren."
+            "value" : "Verwende die neuere Squark-App, um die installierten Dateien zu aktualisieren oder zu reparieren."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilisez l'app Hadron plus récente pour mettre à jour ou réparer les fichiers installés."
+            "value" : "Utilisez l'app Squark plus récente pour mettre à jour ou réparer les fichiers installés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usa l'app Hadron più recente per aggiornare o riparare i file installati."
+            "value" : "Usa l'app Squark più recente per aggiornare o riparare i file installati."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请使用较新版的 Hadron 更新或修复已安装的文件。"
+            "value" : "请使用较新版的 Squark 更新或修复已安装的文件。"
           }
         }
       }

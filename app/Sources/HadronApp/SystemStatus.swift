@@ -294,7 +294,7 @@ final class SystemStatus {
                 }
                 AppLog.note("d3dmetal added to \(build.id) from \(source.path(percentEncoded: false))")
             }.value
-            return String(localized: "D3DMetal added. Pick it for a game in the game's Hadron settings.")
+            return String(localized: "D3DMetal added. Pick it for a game in the game's Squark settings.")
         }
     }
 
@@ -304,7 +304,7 @@ final class SystemStatus {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = String(localized: "Add")
-        panel.message = String(localized: "Select a Hadron Wine runtime folder.")
+        panel.message = String(localized: "Select a Squark Wine runtime folder.")
 
         guard panel.runModal() == .OK, let picked = panel.url else { return }
 
@@ -312,7 +312,7 @@ final class SystemStatus {
         outcome = nil
 
         guard RuntimeSource.looksLikeRuntime(picked) else {
-            setFailure(String(localized: "\(picked.lastPathComponent) is not a Hadron Wine runtime."))
+            setFailure(String(localized: "\(picked.lastPathComponent) is not a Squark Wine runtime."))
             AppLog.note("runtime choice refused: \(picked.path(percentEncoded: false))")
             return
         }
@@ -352,7 +352,7 @@ final class SystemStatus {
         if SupportPaths.Steam.isUnreachable(current) {
             let alert = NSAlert()
             alert.messageText = String(localized: "Steam at \(current.path(percentEncoded: false)) isn't connected.")
-            alert.informativeText = String(localized: "If Hadron is installed there, it will stay installed. Continue anyway?")
+            alert.informativeText = String(localized: "If Squark is installed there, it will stay installed. Continue anyway?")
             alert.addButton(withTitle: String(localized: "Continue Anyway"))
             alert.addButton(withTitle: String(localized: "Cancel"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -386,11 +386,11 @@ final class SystemStatus {
             return String(localized: "\(picked.lastPathComponent) is not Steam.")
         }
         guard !picked.path(percentEncoded: false).contains(":") else {
-            return String(localized: "Hadron cannot use Steam from a folder with a colon in its name.")
+            return String(localized: "Squark cannot use Steam from a folder with a colon in its name.")
         }
         let deployed = SupportPaths.Steam.deployedDylib(inBundle: current).path(percentEncoded: false)
         if let insert, insert.split(separator: ":").contains(Substring(deployed)) {
-            return String(localized: "Hadron is installed in \(current.path(percentEncoded: false)). Use Repair Steam to remove it before choosing another copy of Steam.")
+            return String(localized: "Squark is installed in \(current.path(percentEncoded: false)). Use Repair Steam to remove it before choosing another copy of Steam.")
         }
         return nil
     }
@@ -452,7 +452,7 @@ final class SystemStatus {
 
     private func setUpRunner(from install: RuntimeInstall?, replacingExisting: Bool = false) async {
         guard let install else {
-            setFailure(String(localized: "No Hadron Wine runtime found."))
+            setFailure(String(localized: "No Squark Wine runtime found."))
             AppLog.note("run refused: no supported runtime")
             outcome = nil
             return
@@ -495,7 +495,7 @@ final class SystemStatus {
             }
         }.value
         guard !running else {
-            throw StepFailure(step: SteamInstaller.step, detail: String(localized: "A game or Wine tool is running. Quit it before updating Hadron."))
+            throw StepFailure(step: SteamInstaller.step, detail: String(localized: "A game or Wine tool is running. Quit it before updating Squark."))
         }
     }
 
@@ -507,7 +507,7 @@ final class SystemStatus {
         snapshot?.installContent = content
         guard !content.blocksInstallation else {
             throw StepFailure(step: SteamInstaller.step,
-                              detail: String(localized: "Installation is blocked. Refresh Status and use the Hadron app that installed this build."))
+                              detail: String(localized: "Installation is blocked. Refresh Status and use the Squark app that installed this build."))
         }
     }
 
@@ -519,7 +519,7 @@ final class SystemStatus {
                 try SteamInstaller.run(holdingInstallationLock: true, report: { progress($0.label) })
             }.value
 
-            var parts = [String(localized: "Hadron successfully installed.")]
+            var parts = [String(localized: "Squark successfully installed.")]
             if result.stoppedClient { parts.append(Self.restartHint) }
             let runner = await Task.detached(priority: .userInitiated) { RunnerStore.state() }.value
             if let install = usableRuntime, runner == .none {
@@ -594,8 +594,8 @@ final class SystemStatus {
 
             if let partial = result.partialRemoval { return partial }
             return result.steamNeedsRedownload
-                ? String(localized: "Hadron has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again.")
-                : String(localized: "Hadron has been removed.")
+                ? String(localized: "Squark has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again.")
+                : String(localized: "Squark has been removed.")
         }
     }
 

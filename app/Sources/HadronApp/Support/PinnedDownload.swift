@@ -97,11 +97,11 @@ enum PinnedDownload {
 
     private static func reason(_ kinds: Set<Refusal>, from source: String) -> String {
         if kinds == [.mismatch] {
-            return String(localized: "Something is wrong with the downloaded files. Please check for a Hadron update.")
+            return String(localized: "Something is wrong with the downloaded files. Please check for a Squark update.")
         }
         if kinds == [.unreachable] {
-            return String(localized: "Hadron could not reach \(source)'s servers. Please check your internet connection and try again.")
+            return String(localized: "Squark could not reach \(source)'s servers. Please check your internet connection and try again.")
         }
-        return String(localized: "Hadron could not download the files it needs from \(source). Please try again later.")
+        return String(localized: "Squark could not download the files it needs from \(source). Please try again later.")
     }
 }

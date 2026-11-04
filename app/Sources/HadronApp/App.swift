@@ -12,10 +12,11 @@ struct HadronApp: App {
 
     init() {
         AppLog.start()
+        SupportMigration.logPending()
     }
 
     var body: some Scene {
-        Window("Hadron", id: "main") {
+        Window("Squark", id: "main") {
             RootView(pane: $pane)
                 .environment(status)
                 .environment(prefixes)

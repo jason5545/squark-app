@@ -3,6 +3,7 @@ import Foundation
 @main
 enum Launch {
     static func main() {
+        SupportMigration.run()
         if CommandLine.arguments.dropFirst().first == RebuildPrefixCommand.flag {
             // Out of the launching process group, so stopping the game in Steam cannot take
             // the rebuild with it.
@@ -53,7 +54,7 @@ enum RebuildPrefixCommand {
         else { throw refused("The game prefix could not be found under steamapps/compatdata.") }
         guard let tool = tools.first(where: {
             $0.name == arguments[1] && $0.build == arguments[2] && $0.tool.flavor.rawValue == arguments[3]
-        }) else { throw refused("The selected compatibility tool is unavailable. Set it up in Hadron first.") }
+        }) else { throw refused("The selected compatibility tool is unavailable. Set it up in Squark first.") }
         let library = SteamLibrary(root: steamapps.deletingLastPathComponent())
         return Request(
             prefix: WinePrefix(appID: appID, name: PrefixStore.appName(appID: appID, in: library),
@@ -136,11 +137,11 @@ enum RebuildPrefixCommand {
         // recorded from there would still run.
         let readOnly = (try? executable.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly == true
         if readOnly || executable.pathComponents.contains("AppTranslocation") {
-            AppLog.note("install: Hadron runs from \(executable.path), so Steam cannot start rebuilds")
+            AppLog.note("install: Squark runs from \(executable.path), so Steam cannot start rebuilds")
             try? FileManager.default.removeItem(at: support.appending(path: executableRecord))
             return
         }
         try atomicReplace(support.appending(path: executableRecord),
-                          with: Data(executable.path(percentEncoded: false).utf8), step: "Record Hadron app")
+                          with: Data(executable.path(percentEncoded: false).utf8), step: "Record Squark app")
     }
 }

@@ -89,7 +89,7 @@ struct CompatToolOrderTests {
     func contents() throws {
         let tools = SupportedRunners.tools(for: [shippedRuntime])
         #expect(CompatToolList.contents(tools)
-            == "hadron-proton-\(shippedRuntimeID)\t\(shippedRuntimeID)\trosetta\tHadron Wine 11.15\n")
+            == "hadron-proton-\(shippedRuntimeID)\t\(shippedRuntimeID)\trosetta\tSquark Wine 11.15\n")
     }
 }
 
@@ -130,20 +130,20 @@ struct SupportPathTests {
     @Test("Paths match what the dylib and the run script use")
     func pathsAreStable() {
         let support = SupportPaths.support.path(percentEncoded: false)
-        #expect(support.hasSuffix("/Library/Application Support/hadron"))
+        #expect(support.hasSuffix("/Library/Application Support/squark"))
 
         #expect(SupportPaths.signatures.path(percentEncoded: false)
-            .hasSuffix("/hadron/signatures/macos.arm64"))
+            .hasSuffix("/squark/signatures/macos.arm64"))
         #expect(SupportPaths.overlayShim.path(percentEncoded: false)
-            .hasSuffix("/hadron/overlay-shim.dylib"))
+            .hasSuffix("/squark/overlay-shim.dylib"))
         #expect(SupportPaths.toolList.path(percentEncoded: false)
-            .hasSuffix("/hadron/tools"))
+            .hasSuffix("/squark/tools"))
         #expect(SupportPaths.Steam.deployedDylib.path(percentEncoded: false)
-            == "/Applications/Steam.app/Contents/MacOS/hadron.dylib")
+            == "/Applications/Steam.app/Contents/MacOS/squark.dylib")
         #expect(SupportPaths.Steam.infoPlist.path(percentEncoded: false)
             == "/Applications/Steam.app/Contents/Info.plist")
         #expect(SupportPaths.runnerRoot(forBuild: shippedRuntimeID).path(percentEncoded: false)
-            .hasSuffix("/hadron/runners/\(shippedRuntimeID)"))
+            .hasSuffix("/squark/runners/\(shippedRuntimeID)"))
     }
 
     @Test("The run script finds an installed runtime where setup copies it")

@@ -61,7 +61,7 @@ struct RuntimeRowTests {
         #expect(made[0].install == nil)
         #expect(made[0].copy == .ready)
         #expect(!made[0].canSetUp)
-        #expect(made[0].title == "Hadron \(shippedRuntime.displayVersion)")
+        #expect(made[0].title == "Squark \(shippedRuntime.displayVersion)")
         #expect(made[0].id == shippedRuntimeID)
     }
 
@@ -83,7 +83,7 @@ struct RuntimeRowTests {
         #expect(!alone[0].canSetUp)
     }
 
-    @Test("A copy of a build Hadron no longer serves is unsupported, on its own row")
+    @Test("A copy of a build Squark no longer serves is unsupported, on its own row")
     func orphanedCopy() {
         let made = rows([install("wine")], installed: [shippedRuntime], orphaned: ["wine-0.1"])
 
@@ -91,7 +91,7 @@ struct RuntimeRowTests {
         #expect(made[1].buildID == "wine-0.1")
         #expect(made[1].install == nil)
         #expect(made[1].build == nil)
-        #expect(made[1].title == "Hadron wine-0.1")
+        #expect(made[1].title == "Squark wine-0.1")
         #expect(!made[1].canSetUp)
     }
 
@@ -116,7 +116,7 @@ struct RuntimeRowTests {
         #expect(made.map(\.install?.id) == [first.id])
     }
 
-    @Test("A runtime Hadron doesn't support is listed with its version and nothing to set up")
+    @Test("A runtime Squark doesn't support is listed with its version and nothing to set up")
     func unsupportedRuntime() {
         let old = install("old", .unsupportedBuild("wine-0.1"))
 
@@ -126,7 +126,7 @@ struct RuntimeRowTests {
         #expect(made[0].unsupportedVersion == "wine-0.1")
         #expect(made[0].copy == .none)
         #expect(!made[0].canSetUp)
-        #expect(made[0].title == "Hadron wine-0.1")
+        #expect(made[0].title == "Squark wine-0.1")
     }
 
     @Test("A manually added runtime says so on its row")

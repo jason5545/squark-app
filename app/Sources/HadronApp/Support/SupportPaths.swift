@@ -4,8 +4,18 @@ import Foundation
 
 enum SupportPaths {
 
-    static let supportDirName = "hadron"
-    static let dylibName = "hadron.dylib"
+    static let supportDirName = "squark"
+    static let dylibName = "squark.dylib"
+
+    // steamac: the names Hadron used before this fork became Squark. SupportMigration moves
+    // the folders, and a Steam that still injects the old dylib counts as ours, so Install
+    // replaces it instead of calling it foreign.
+    static let legacySupportDirName = "hadron"
+    static let legacyDylibNames: Set<String> = ["hadron.dylib"]
+
+    static func isOwnDylib(_ name: String) -> Bool {
+        name == dylibName || legacyDylibNames.contains(name)
+    }
 
     static var home: URL {
         URL(filePath: NSHomeDirectory())
@@ -15,7 +25,7 @@ enum SupportPaths {
         home.appending(path: "Library/Application Support")
     }
 
-    // ~/Library/Application Support/hadron
+    // ~/Library/Application Support/squark
     static var support: URL {
         applicationSupport.appending(path: supportDirName)
     }

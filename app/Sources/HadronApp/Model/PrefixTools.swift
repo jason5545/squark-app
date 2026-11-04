@@ -33,8 +33,8 @@ enum PrefixLog: CaseIterable, Sendable {
 
     func url(for prefix: WinePrefix, launchers: URL = SupportPaths.launchers) -> URL {
         switch self {
-        case .launch: prefix.root.appending(path: "hadron-run.log")
-        case .wine: launchers.appending(path: prefix.appID).appending(path: "hadron-wine.log")
+        case .launch: prefix.root.appending(path: "squark-run.log")
+        case .wine: launchers.appending(path: prefix.appID).appending(path: "squark-wine.log")
         }
     }
 }
@@ -294,7 +294,7 @@ enum PrefixTools {
         // another prefix, and options like --self-update change winetricks itself.
         let damaging: Set<String> = ["annihilate", "isolate_home", "sandbox"]
         if let refused = verbs.first(where: { damaging.contains($0) || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }) {
-            throw StepFailure(step: step, detail: String(localized: "Hadron does not run \(refused) with Winetricks."))
+            throw StepFailure(step: step, detail: String(localized: "Squark does not run \(refused) with Winetricks."))
         }
         guard let claim = PrefixStore.claim(prefix) else {
             throw StepFailure(step: step, detail: String(localized: "\(prefix.title) is running. Quit the game first."))

@@ -4,8 +4,10 @@ struct SteamModifications: Sendable {
     let file: URL
     let legacyRecord: URL
 
+    static let fileName = "squark-steam-bundles.json"
+
     static var shared: Self {
-        Self(file: SupportPaths.applicationSupport.appending(path: "hadron-steam-bundles.json"),
+        Self(file: SupportPaths.applicationSupport.appending(path: fileName),
              legacyRecord: DeploymentContent.record(beside: SupportPaths.deployedVersion))
     }
 
@@ -66,11 +68,14 @@ struct SteamModifications: Sendable {
         let environment = dictionary[SteamBundle.environmentKey] as? [String: Any] ?? [:]
         let insert = environment[SteamBundle.insertKey] as? String ?? ""
         let injected = insert.split(separator: ":").contains {
-            URL(filePath: String($0)).lastPathComponent == SupportPaths.dylibName
+            SupportPaths.isOwnDylib(URL(filePath: String($0)).lastPathComponent)
         }
-        let dylib = SupportPaths.Steam.deployedDylib(inBundle: app)
+        let dylibs = [SupportPaths.dylibName] + SupportPaths.legacyDylibNames.sorted()
+        let carriesDylib = dylibs.contains {
+            files.fileExists(atPath: app.appending(path: "Contents/MacOS/\($0)").path(percentEncoded: false))
+        }
         if injected || environment[SteamBundle.controllerBlockKey] as? String == SteamBundle.controllerBlockValue
-            || files.fileExists(atPath: dylib.path(percentEncoded: false)) {
+            || carriesDylib {
             return .modified
         }
         let signature = try Shell.run("/usr/bin/codesign", ["--verify", "--strict", app.path(percentEncoded: false)])

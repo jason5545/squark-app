@@ -3,7 +3,7 @@
 import Foundation
 
 enum InstallPayload {
-    static let step = String(localized: "Find Hadron's components")
+    static let step = String(localized: "Find Squark's components")
 
     struct Located: Sendable {
         let dylib: URL
@@ -22,7 +22,7 @@ enum InstallPayload {
         guard let url = bundle.url(forResource: "payload", withExtension: nil) else {
             throw StepFailure(
                 step: step,
-                detail: String(localized: "This build of Hadron carries no components at all.")
+                detail: String(localized: "This build of Squark carries no components at all.")
             )
         }
         return url

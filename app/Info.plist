@@ -19,11 +19,13 @@
 	<key>CFBundleIconName</key>
 	<string>Hadron</string>
 	<key>CFBundleIdentifier</key>
-	<string>nl.nhsd.hadron</string>
+	<string>io.github.jason5545.squark</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Hadron</string>
+	<string>Squark</string>
+	<key>CFBundleDisplayName</key>
+	<string>Squark</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

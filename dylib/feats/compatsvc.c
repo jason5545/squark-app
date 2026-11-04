@@ -327,7 +327,7 @@ static int read_state(uint32_t appid, np_prefix_state_t *st) {
     }
     char steam[PATH_MAX], support[PATH_MAX], server[PATH_MAX];
     snprintf(steam, sizeof steam, "%s/Library/Application Support/Steam", home);
-    snprintf(support, sizeof support, "%s/Library/Application Support/hadron", home);
+    snprintf(support, sizeof support, "%s/Library/Application Support/squark", home);
     snprintf(server, sizeof server, "/tmp/.wine-%u", (unsigned)getuid());
     np_prefix_roots_t roots = { steam, support, server };
     np_prefix_state(appid, tool_name(np_compat_tool_for_app(mgr, appid)), &roots, st);
@@ -427,7 +427,7 @@ static int start_rebuild(uintptr_t request, uintptr_t response, int keep_backup)
             return answer_json(response, appid, "{\"error\":\"busy\"}");
         }
         snprintf(status, sizeof status, "%s/hadron-rebuild", st.compatdata);
-        snprintf(log, sizeof log, "%s/hadron-run.log", st.compatdata);
+        snprintf(log, sizeof log, "%s/squark-run.log", st.compatdata);
         int fd = open(status, O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC, 0600);
         struct stat info;
         int recorded = fd >= 0 && fstat(fd, &info) == 0 && S_ISREG(info.st_mode)
@@ -469,7 +469,7 @@ static int open_prefix_log(uintptr_t request, uintptr_t response) {
     np_prefix_state_t st;
     if (!read_state(appid, &st) || !st.compatdata[0]) return RESULT_FAIL;
     char log[PATH_MAX];
-    snprintf(log, sizeof log, "%s/hadron-run.log", st.compatdata);
+    snprintf(log, sizeof log, "%s/squark-run.log", st.compatdata);
     // open waits on LaunchServices, which is not something Steam's WebUI thread should do.
     char *argv[] = { "/bin/sh", "-c", "/usr/bin/open -t \"$0\" &", log, NULL };
     struct stat info;
@@ -494,7 +494,7 @@ static int tool_build(const char *tool, size_t n, char *build, size_t size, uint
         *runner = info.fex ? NP_DEFAULTS_FEX : NP_DEFAULTS_ROSETTA;
         return 1;
     }
-    NP_ERR("compatsvc: %.*s is not an installed Hadron tool", (int)(n > 128 ? 128 : n), tool);
+    NP_ERR("compatsvc: %.*s is not an installed Squark tool", (int)(n > 128 ? 128 : n), tool);
     return 0;
 }
 

@@ -830,7 +830,7 @@ static void announce_through_wrapper(const struct interpose_pair *pairs, unsigne
 		return;
 	}
 
-	((run_in_mode)replacement)(CFSTR("nl.nhsd.hadron.overlay.announce"), 0.0, true);
+	((run_in_mode)replacement)(CFSTR("io.github.jason5545.squark.overlay.announce"), 0.0, true);
 	shim_log("overlay_shim announce_through_wrapper: announced\n");
 }
 

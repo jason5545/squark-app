@@ -22,7 +22,7 @@ struct RuntimeRow: Identifiable, Equatable {
 
     var title: String {
         if let install { return install.name }
-        return "Hadron \(SupportedRunners.displayVersion(forID: buildID))"
+        return "Squark \(SupportedRunners.displayVersion(forID: buildID))"
     }
 
     var canSetUp: Bool { install != nil && unsupportedVersion == nil }

@@ -117,7 +117,7 @@ struct SteamRepairTests {
         #expect(throws: Never.self) { try SteamRepair.verifyValveSignature(copy) }
 
         // The injection this whole project performs, which is what repair exists to undo.
-        try Data("not a dylib".utf8).write(to: copy.appending(path: "Contents/MacOS/hadron.dylib"))
+        try Data("not a dylib".utf8).write(to: copy.appending(path: "Contents/MacOS/squark.dylib"))
 
         #expect(throws: StepFailure.self) { try SteamRepair.verifyValveSignature(copy) }
     }
@@ -169,7 +169,7 @@ struct SteamRepairTests {
 
     // MARK: - The inner plist
 
-    @Test("Clearing the insert removes the keys Hadron added and nothing else")
+    @Test("Clearing the insert removes the keys Squark added and nothing else")
     func clearsOnlyTheInsert() throws {
         let work = try scratchDirectory("repair")
         defer { try? FileManager.default.removeItem(at: work) }
@@ -182,7 +182,7 @@ struct SteamRepairTests {
         var tampered = stock
         tampered[SteamBundle.environmentKey] = [
             "LC_ALL": "en_US.UTF-8",
-            SteamBundle.insertKey: "/Applications/Steam.app/Contents/MacOS/hadron.dylib",
+            SteamBundle.insertKey: "/Applications/Steam.app/Contents/MacOS/squark.dylib",
             SteamBundle.controllerBlockKey: SteamBundle.controllerBlockValue,
         ]
         try SteamBundle.writeInfoPlist(tampered, at: plist)
@@ -257,7 +257,7 @@ struct SteamRepairTests {
         try FileManager.default.createDirectory(
             at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true
         )
-        try Data("stale".utf8).write(to: destination.appending(path: "Contents/MacOS/hadron.dylib"))
+        try Data("stale".utf8).write(to: destination.appending(path: "Contents/MacOS/squark.dylib"))
 
         try SteamRepair.replace(destination, with: staged)
 
@@ -266,7 +266,7 @@ struct SteamRepairTests {
         #expect(SteamBundle.currentInsert(at: destination.appending(path: "Contents/Info.plist")) == nil)
         #expect(
             !FileManager.default.fileExists(
-                atPath: destination.appending(path: "Contents/MacOS/hadron.dylib").path(percentEncoded: false)
+                atPath: destination.appending(path: "Contents/MacOS/squark.dylib").path(percentEncoded: false)
             ),
             "the injected dylib survived the replacement"
         )

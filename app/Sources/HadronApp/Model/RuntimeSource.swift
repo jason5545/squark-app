@@ -19,8 +19,8 @@ struct RuntimeInstall: Sendable, Identifiable {
 
     var name: String {
         switch support {
-        case .supported(let build): "Hadron \(build.releaseVersion)"
-        case .unsupportedBuild(let id): "Hadron \(id)"
+        case .supported(let build): "Squark \(build.releaseVersion)"
+        case .unsupportedBuild(let id): "Squark \(id)"
         }
     }
 

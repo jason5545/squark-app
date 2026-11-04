@@ -151,7 +151,7 @@ struct FailureRemedyTests {
 
     @Test("A refusal inside a bundle offers the settings pane")
     func insideABundleOffersThePane() throws {
-        let target = try bundle().appending(path: "Contents/MacOS/hadron.dylib")
+        let target = try bundle().appending(path: "Contents/MacOS/squark.dylib")
         let status = SystemStatus()
 
         status.setFailure(WriteRefused(path: target.path(percentEncoded: false)))
@@ -191,7 +191,7 @@ struct FailureRemedyTests {
         let status = SystemStatus()
         status.setFailure(WriteRefused(path: try bundle().path(percentEncoded: false)))
 
-        status.setFailure("No Hadron Wine runtime found.")
+        status.setFailure("No Squark Wine runtime found.")
 
         #expect(
             status.failureRemedy == nil,
@@ -343,7 +343,7 @@ struct NoRuntimeTests {
 
         await status.requestCompatibilityTool()
 
-        #expect(status.failure == "No Hadron Wine runtime found.")
+        #expect(status.failure == "No Squark Wine runtime found.")
         #expect(status.pendingConfirmation == nil)
         #expect(status.outcome == nil)
         #expect(!status.isBusy)
@@ -357,7 +357,7 @@ struct NoRuntimeTests {
 
         await status.requestCompatibilityTool()
 
-        #expect(status.failure == "No Hadron Wine runtime found.")
+        #expect(status.failure == "No Squark Wine runtime found.")
         #expect(status.pendingConfirmation == nil)
     }
 
@@ -512,7 +512,7 @@ struct SteamChoiceTests {
         #expect(SystemStatus.steamChoiceRefusal(picked, current: SupportPaths.Steam.defaultApp, insert: nil) != nil)
     }
 
-    @Test("Switching is refused while Hadron is installed in the current copy")
+    @Test("Switching is refused while Squark is installed in the current copy")
     func refusesWhilePatched() throws {
         let root = try scratchDirectory("steam-choice")
         defer { try? FileManager.default.removeItem(at: root) }

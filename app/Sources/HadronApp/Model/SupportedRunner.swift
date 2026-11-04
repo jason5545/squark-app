@@ -69,14 +69,14 @@ enum SupportedRunners {
     // "proton", so every tool is hadron-proton-<id>.
     private static func rosetta(id: String, name: String) -> RunnerBuild {
         RunnerBuild(id: id, releaseVersion: name, tools: [
-            CompatTool(name: "hadron-proton-\(id)", flavor: .rosetta, display: "Hadron \(name)"),
+            CompatTool(name: "hadron-proton-\(id)", flavor: .rosetta, display: "Squark \(name)"),
         ])
     }
 
     // A native arm64 Wine that runs x86 code with FEX.
     private static func fex(id: String, name: String) -> RunnerBuild {
         RunnerBuild(id: id, releaseVersion: name, tools: [
-            CompatTool(name: "hadron-proton-\(id)", flavor: .fex, display: "Hadron \(name)"),
+            CompatTool(name: "hadron-proton-\(id)", flavor: .fex, display: "Squark \(name)"),
         ])
     }
 

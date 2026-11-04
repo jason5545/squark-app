@@ -226,7 +226,7 @@ struct SteamInstallerTests {
         try Shell.check("/usr/bin/xattr", [
             "-wx", "com.apple.FinderInfo", "0000000000000000040000000000000000000000000000000000000000000000", app,
         ])
-        try Shell.check("/usr/bin/xattr", ["-w", "nl.nhsd.hadron.keep", "1", app])
+        try Shell.check("/usr/bin/xattr", ["-w", "io.github.jason5545.squark.keep", "1", app])
         #expect(!(try Shell.run("/usr/bin/codesign", ["-f", "-s", "-", app])).succeeded)
 
         _ = try install(fixture)
@@ -236,7 +236,7 @@ struct SteamInstallerTests {
         let left = try Shell.run("/usr/bin/xattr", ["-lr", app]).stdout
         #expect(!left.contains("com.apple.FinderInfo"))
         #expect(!left.contains("com.apple.ResourceFork"))
-        #expect(left.contains("nl.nhsd.hadron.keep"))
+        #expect(left.contains("io.github.jason5545.squark.keep"))
     }
 
     @Test("Our own dylib at a bundle's old location does not stop the install")
@@ -244,13 +244,13 @@ struct SteamInstallerTests {
         let work = try scratchDirectory("moved")
         defer { try? FileManager.default.removeItem(at: work) }
         let plist = work.appending(path: "Info.plist")
-        let old = "/Applications/Steam.app/Contents/MacOS/hadron.dylib"
+        let old = "/Applications/Steam.app/Contents/MacOS/squark.dylib"
         let data = try PropertyListSerialization.data(
             fromPropertyList: [SteamBundle.environmentKey: [SteamBundle.insertKey: old]], format: .xml, options: 0)
         try data.write(to: plist)
 
         try SteamInstaller.assertInsertIsDeployedOrAbsent(
-            at: plist, dylib: URL(filePath: "/Volumes/Games/Steam.app/Contents/MacOS/hadron.dylib"))
+            at: plist, dylib: URL(filePath: "/Volumes/Games/Steam.app/Contents/MacOS/squark.dylib"))
     }
 
     @Test("An insert belonging to something else stops the install and is left alone")
@@ -565,7 +565,7 @@ struct SteamInstallerTests {
 
         let error = try #require(throws: StepFailure.self) { try install(fixture, calls: calls, stopped: true) }
 
-        #expect(error.detail.contains("newer Hadron"))
+        #expect(error.detail.contains("newer Squark"))
         #expect(try Data(contentsOf: fixture.deployedDylib) == before)
         #expect(try DeploymentContent.readBuild(at: record) == newer)
         #expect(calls.registrations.isEmpty)

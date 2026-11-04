@@ -31,21 +31,21 @@ struct UninstallOutcome: Sendable {
     var partialRemoval: String? {
         guard !unreachableSteam.isEmpty else { return nil }
         return unreachableSteam.map {
-            String(localized: "Hadron has been partially removed, because Steam at \($0.path(percentEncoded: false)) cannot be found. Delete that copy of Steam and reinstall it to fully remove Hadron.")
+            String(localized: "Squark has been partially removed, because Steam at \($0.path(percentEncoded: false)) cannot be found. Delete that copy of Steam and reinstall it to fully remove Squark.")
         }.joined(separator: "\n\n")
     }
 }
 
 enum Uninstall {
-    static let step = String(localized: "Remove Hadron")
+    static let step = String(localized: "Remove Squark")
 
     static func confirmation(modifications: SteamModifications = .shared) -> String {
         let missing = ((try? modifications.paths()) ?? []).filter { SupportPaths.Steam.isUnreachable($0) }
         guard !missing.isEmpty else {
-            return String(localized: "Steam is restored to its unmodified state and Hadron is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed.")
+            return String(localized: "Steam is restored to its unmodified state and Squark is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed.")
         }
         return missing.map {
-            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so Hadron can't be removed from it. All other Hadron data is removed, except for Windows Games and prefixes.")
+            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so Squark can't be removed from it. All other Squark data is removed, except for Windows Games and prefixes.")
         }.joined(separator: "\n\n")
     }
 
@@ -171,8 +171,9 @@ enum Uninstall {
         let cleared = try SteamRepair.clearInsert(at: plist)
         var droppedDylib = false
         do {
-            if files.fileExists(atPath: dylib.path(percentEncoded: false)) {
-                try files.removeItem(at: dylib)
+            let legacy = SupportPaths.legacyDylibNames.sorted().map { app.appending(path: "Contents/MacOS/\($0)") }
+            for file in [dylib] + legacy where files.fileExists(atPath: file.path(percentEncoded: false)) {
+                try files.removeItem(at: file)
                 droppedDylib = true
             }
 

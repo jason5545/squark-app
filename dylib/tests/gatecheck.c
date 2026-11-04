@@ -130,8 +130,8 @@ static void check_defaults(void) {
     np_webpatch_set_defaults("", "");
 
     const np_webpatch_build_t builds[] = {
-        { "hadron-26.1-fex", "26.1", "Hadron Wine 26.1 (FEX)", 1, "HADRON_RETINA=0\nBAD\"=1" },
-        { "hadron-26.1", "26.1", "Hadron Wine 26.1 (Preview)", 0, NULL },
+        { "hadron-26.1-fex", "26.1", "Squark Wine 26.1 (FEX)", 1, "HADRON_RETINA=0\nBAD\"=1" },
+        { "hadron-26.1", "26.1", "Squark Wine 26.1 (Preview)", 0, NULL },
         { "hadron-25.0", "25.0", "CrossOver 25", 0, "" },
         { "hadron-evil", "26.2", "Evil\"});alert(1);({", 0, NULL },
         { "hadron-slash", "26.2", "Back\\slash", 0, NULL },
@@ -145,9 +145,9 @@ static void check_defaults(void) {
     np_log_level = -1;
     np_webpatch_set_builds(builds, sizeof builds / sizeof builds[0]);
     const char *want =
-        "[{id:\"hadron-26.1-fex\",build:\"26.1\",runner:\"fex\",label:\"Hadron Wine 26.1 (FEX)\","
+        "[{id:\"hadron-26.1-fex\",build:\"26.1\",runner:\"fex\",label:\"Squark Wine 26.1 (FEX)\","
         "override:{\"HADRON_RETINA\":\"0\"}},"
-        "{id:\"hadron-26.1\",build:\"26.1\",runner:\"rosetta\",label:\"Hadron Wine 26.1 (Preview)\",override:null},"
+        "{id:\"hadron-26.1\",build:\"26.1\",runner:\"rosetta\",label:\"Squark Wine 26.1 (Preview)\",override:null},"
         "{id:\"hadron-25.0\",build:\"25.0\",runner:\"rosetta\",label:\"CrossOver 25\",override:{}}]";
     if (strcmp(marker_text(NP_BUILDS[0]), want) != 0)
         wrong("the builds are %s", marker_text(NP_BUILDS[0]));

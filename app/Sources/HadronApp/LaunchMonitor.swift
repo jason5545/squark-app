@@ -157,7 +157,7 @@ final class LaunchMonitor {
 
     func saveDiagnostics(_ record: LaunchRecord) {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "Hadron \(record.title) \(Self.stamp.string(from: now)).txt"
+        panel.nameFieldStringValue = "Squark \(record.title) \(Self.stamp.string(from: now)).txt"
         panel.allowedContentTypes = [.plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let watch = watch(record.appID)
@@ -178,7 +178,7 @@ final class LaunchMonitor {
 enum Diagnostics {
 
     static func report(_ record: LaunchRecord, watch: LaunchMonitor.Watch) -> String {
-        var out = "Hadron launch diagnostics, \(Date())\n\n"
+        var out = "Squark launch diagnostics, \(Date())\n\n"
         out += "game: \(record.title) (\(record.appID))\n"
         out += "runtime: \(record.display ?? record.build) (\(record.build))\n"
         out += "state: \(record.state.rawValue), step: \(record.step), status: \(record.status.map(String.init) ?? "-")\n"

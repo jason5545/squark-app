@@ -55,10 +55,10 @@ function connect(g, h, reply = () => OK) {
 }
 
 const BUILDS = [
-  { id: 'hadron-26.1', build: '26.1', runner: 'rosetta', label: 'Hadron Wine 26.1', override: null },
-  { id: 'hadron-26.1-fex', build: '26.1', runner: 'fex', label: 'Hadron Wine 26.1 (FEX)',
+  { id: 'hadron-26.1', build: '26.1', runner: 'rosetta', label: 'Squark Wine 26.1', override: null },
+  { id: 'hadron-26.1-fex', build: '26.1', runner: 'fex', label: 'Squark Wine 26.1 (FEX)',
     override: { HADRON_RAW_CONTROLLERS: '0' } },
-  { id: 'hadron-25.0', build: '25.0', runner: 'rosetta', label: 'Hadron Wine 25', override: null },
+  { id: 'hadron-25.0', build: '25.0', runner: 'rosetta', label: 'Squark Wine 25', override: null },
 ];
 
 const settingsRow = (ns, re) => ns.find(x => x.type === 'Field' && re.test(x.props.label) &&
@@ -85,12 +85,12 @@ function oneKindCases(form) {
   const label = ns => (ns.find(x => x.type === 'Field' && /^Apply as defaults/.test(x.props.label)) || {}).props;
 
   let { r } = openPage(form, BUILDS.filter(x => x.runner === 'rosetta'));
-  t.ok(label(r()).label === 'Apply as defaults for all Hadron Compatibility Tools',
-       `only Rosetta installed says Hadron (${label(r()).label})`);
+  t.ok(label(r()).label === 'Apply as defaults for all Squark Compatibility Tools',
+       `only Rosetta installed says Squark (${label(r()).label})`);
 
   ({ r } = openPage(form, BUILDS.filter(x => x.runner === 'fex')));
   t.ok(row(r(), X87), 'only FEX installed opens on FEX');
-  t.ok(label(r()).label === 'Apply as defaults for all Hadron Compatibility Tools', 'and says Hadron');
+  t.ok(label(r()).label === 'Apply as defaults for all Squark Compatibility Tools', 'and says Squark');
 
   ({ r } = openPage(form, BUILDS));
   t.ok(label(r()).label === 'Apply as defaults for all Rosetta Compatibility Tools', 'both kinds name the runner');
@@ -109,7 +109,7 @@ function defaultToolCases(form) {
   o = openPage(form, BUILDS, { tool: 'hadron-26.1-fex' });
   t.ok(ver(o.r()) === 'hadron-26.1-fex' && kind(o.r()) === 1, 'a FEX default tool opens on FEX');
   o = openPage(form, BUILDS, { tool: 'proton_9' });
-  t.ok(ver(o.r()) === 'hadron-26.1', 'a default that is not a Hadron tool opens on the first version');
+  t.ok(ver(o.r()) === 'hadron-26.1', 'a default that is not a Squark tool opens on the first version');
   o = openPage(form, BUILDS);
   t.ok(ver(o.r()) === 'hadron-26.1', 'so does no default at all');
 
@@ -118,7 +118,7 @@ function defaultToolCases(form) {
   told(o.g, 'hadron-26.1-fex');
   t.ok(ver(o.r()) === 'hadron-26.1-fex' && kind(o.r()) === 1, 'changing the default tool above follows along');
   told(o.g, 'proton_9');
-  t.ok(ver(o.r()) === 'hadron-26.1-fex', 'and a tool that is not a Hadron tool leaves it where it is');
+  t.ok(ver(o.r()) === 'hadron-26.1-fex', 'and a tool that is not a Squark tool leaves it where it is');
   o.h.unmount();
   told(o.g, 'hadron-25.0');
   t.ok(ver(o.r()) === 'hadron-26.1-fex', 'a page that has gone stops listening');
@@ -134,12 +134,12 @@ async function italianCases(form) {
   t.ok(field(r(), 'Strumento di compatibilit\u00e0'), 'so is the version menu');
   const applyRow = () => settingsRow(r(), /^Applica come predefinite/);
   t.ok(applyRow() && applyRow().props.label ===
-       'Applica come predefinite a tutti gli strumenti di compatibilit\u00e0 Hadron' &&
+       'Applica come predefinite a tutti gli strumenti di compatibilit\u00e0 Squark' &&
        applyRow().props.children.props.children === 'Applica', 'and the apply row');
   applyRow().props.children.props.onClick();
   await settle(); await settle();
   t.ok(applyRow().props.description ===
-       'Applicate. Ora tutti gli strumenti di compatibilit\u00e0 Hadron usano queste impostazioni.',
+       'Applicate. Ora tutti gli strumenti di compatibilit\u00e0 Squark usano queste impostazioni.',
        `and the note after applying (${applyRow().props.description})`);
   return t.failed;
 }
@@ -445,7 +445,7 @@ for (const form of Object.keys(FORMS)) {
     t.ok(JSON.stringify(g.NPHadronDefaultsData) === before, 'a failed save changes nothing');
     t.ok(/not saved, result 2/.test(logged), `a failed save is logged (${logged})`);
 
-    g.NPHadronBuilds = [{ id: 'hadron-fex', build: '26.1', runner: 'fex', label: 'Hadron Wine 26.1 (FEX)', override: null }];
+    g.NPHadronBuilds = [{ id: 'hadron-fex', build: '26.1', runner: 'fex', label: 'Squark Wine 26.1 (FEX)', override: null }];
     field(h.render(page), 'Compatibility tool').props.onChange({ data: 'hadron-fex' });
     p = h.render(page);
     t.ok(row(p, X87) && !row(p, AVX), 'FEX shows the FEX rows');

@@ -23,7 +23,7 @@ struct LaunchesView: View {
                         ContentUnavailableView(
                             String(localized: "No Launches"),
                             systemImage: "gamecontroller",
-                            description: Text(String(localized: "A game appears here once it has been started with a Hadron compatibility tool."))
+                            description: Text(String(localized: "A game appears here once it has been started with a Squark compatibility tool."))
                         )
                     }
                 }

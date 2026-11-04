@@ -17,7 +17,7 @@ case "$verb" in
     ;;
 esac
 
-np_support="$HOME/Library/Application Support/hadron"
+np_support="$HOME/Library/Application Support/squark"
 iconmaker="$np_support/iconmaker"
 
 find_client_root() {
@@ -249,14 +249,14 @@ export WINEDLLPATH="$wine_pe64:$wine_unix${WINEDLLPATH:+:$WINEDLLPATH}"
 export PATH="$np_root/bin:$PATH"
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
-  log="$STEAM_COMPAT_DATA_PATH/hadron-run.log"
+  log="$STEAM_COMPAT_DATA_PATH/squark-run.log"
 else
   log=/dev/null
 fi
 [ "$(stat -f %z "$log" 2>/dev/null || echo 0)" -gt 262144 ] \
   && : > "$log" || true
 {
-  echo "=== hadron run $(date) ==="
+  echo "=== squark run $(date) ==="
   echo "verb=$verb"
   echo "args:"; for a in "$@"; do printf '  [%s]\n' "$a"; done
   echo "cwd=$(pwd)"
@@ -267,7 +267,7 @@ fi
   env | grep -iE '^(Steam|SDL_)' | sort
   [ -z "$np_defaulted" ] || echo "from ${np_defaults_file##*/}: $np_defaulted"
   [ -z "$np_dropped" ] || echo "ignored on arm64 Wine: $np_dropped"
-  [ -z "$np_legacy" ] || echo "NotProton launch options taken as Hadron's: $np_legacy"
+  [ -z "$np_legacy" ] || echo "NotProton launch options taken as Squark's: $np_legacy"
 } >> "$log" 2>&1 || true
 
 # Hadron's launch window follows a game's start through this record, one per game.
@@ -362,7 +362,7 @@ if [ "$verb" = waitforexitandrun ] && [ "$app_id" != 0 ] && [ -z "$HADRON_MAC_BA
   launch_record="$np_support/launches/$app_id"
   note_launch
   if [ ! -e "$np_support/launch-window-off" ] && ! pgrep -qx HadronApp 2>/dev/null; then
-    open -g -b nl.nhsd.hadron --args --launch-window >> "$log" 2>&1 || true
+    open -g -b io.github.jason5545.squark --args --launch-window >> "$log" 2>&1 || true
   fi
 fi
 # Steam gives every non-Steam shortcut a game ID ending in 0x02000000.
@@ -431,7 +431,7 @@ show_rebuild_failure() {
   exec 8>&- 9>&-
   answer=$(osascript - "$log" <<'APPLESCRIPT'
 on run argv
-  set answer to display alert "Prefix rebuild failed!" message ("Check hadron-run.log at " & (item 1 of argv) & ".") as critical buttons {"Open Log", "OK"} default button "OK"
+  set answer to display alert "Prefix rebuild failed!" message ("Check squark-run.log at " & (item 1 of argv) & ".") as critical buttons {"Open Log", "OK"} default button "OK"
   return button returned of answer
 end run
 APPLESCRIPT
@@ -507,7 +507,7 @@ APPLESCRIPT
   esac
   executable=$(cat "$np_support/app-executable" 2>/dev/null) || executable=""
   if [ ! -x "$executable" ]; then
-    show_alert "Couldn't find the Hadron app" "The prefix wasn't rebuilt and the game wasn't launched, because the Hadron app was moved or deleted since it was installed, or was installed from a disk image or Downloads. Move Hadron to Applications, open it and click Install again, then launch the game."
+    show_alert "Couldn't find the Squark app" "The prefix wasn't rebuilt and the game wasn't launched, because the Squark app was moved or deleted since it was installed, or was installed from a disk image or Downloads. Move Squark to Applications, open it and click Install again, then launch the game."
     exit 1
   fi
   if ! run_rebuild "$executable" "$backup"; then
@@ -1143,8 +1143,8 @@ import_prefix_settings() {
 
 set_stage "runner check"
 if [ -z "$np_build" ] || [ ! -d "$np_root/lib/wine" ]; then
-  echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in Hadron ===" >> "$log" 2>&1 || true
-  show_alert "The Wine runtime is not set up" "The Wine runtime behind $(alert_safe "$np_display") is not set up. Set it up in Hadron, or pick another compatibility tool for this game."
+  echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in Squark ===" >> "$log" 2>&1 || true
+  show_alert "The Wine runtime is not set up" "The Wine runtime behind $(alert_safe "$np_display") is not set up. Set it up in Squark, or pick another compatibility tool for this game."
   exit 1
 fi
 echo "runner: build $np_build ($np_display) at $np_root" >> "$log" 2>&1 || true
@@ -1247,11 +1247,13 @@ esac
 # recipe for it sets (highball-engine fex/README.md, patches 0020 and 0023): its copy protection
 # rewrites code beside the game's own all the time. HB_FEX_SMC_INLINE is left out: it is faster
 # still, but a thread looping in a block another thread patches can miss the change for good.
-# Launch options win.
+# SQUARK_FEX_ABI_FLAGS (FEX patch 0037) covers only the WebAssembly modules the game compiles for
+# aircraft and gauges (WASM\MSFS2024\<package>\*.dll, LLVM output that never passes flags across
+# a call). The game itself rewrites its code and is left out. Launch options win.
 np_recipe=""
 if [ "${wine_unix##*/}" = aarch64-unix ] && [ "${STEAM_COMPAT_APP_ID:-}" = 2537590 ]; then
   for np_recipe_var in HB_FEX_SMC_RETIRE=1 HB_FEX_SMC_SKIP_SAME=1 HB_FEX_SMC_HOT_MAXINST=64 \
-      HB_FEX_VM_FASTPATH=1 HB_FEX_SMC_DEFER_CALLRET=1; do
+      HB_FEX_VM_FASTPATH=1 HB_FEX_SMC_DEFER_CALLRET=1 'SQUARK_FEX_ABI_FLAGS=\wasm\msfs2024\'; do
     eval "[ -z \"\${${np_recipe_var%%=*}+x}\" ]" || continue
     export "${np_recipe_var?}"
     np_recipe="$np_recipe${np_recipe:+ }$np_recipe_var"
@@ -1562,7 +1564,7 @@ prepare_prefix_directory() {
   for interrupted in "$STEAM_COMPAT_DATA_PATH"/pfx.replaced.*; do
     [ -e "$interrupted" ] || [ -L "$interrupted" ] || continue
     echo "=== interrupted prefix replacement needs recovery: $interrupted ===" >> "$log" 2>&1 || true
-    show_alert "Prefix recovery required" "An interrupted prefix replacement may hold saved games. Do not delete this prefix. Check its hadron-run.log for the recovery folder."
+    show_alert "Prefix recovery required" "An interrupted prefix replacement may hold saved games. Do not delete this prefix. Check its squark-run.log for the recovery folder."
     exit 1
   done
   mkdir -p "$WINEPREFIX"
@@ -1713,7 +1715,7 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   seed_prefix_from_template
   set_stage "profile layout"
   if ! lay_out_proton_profile; then
-    show_alert "Saved-game folders need attention" "Hadron left the conflicting files in place. Open this prefix's hadron-run.log for details before trying again."
+    show_alert "Saved-game folders need attention" "Squark left the conflicting files in place. Open this prefix's squark-run.log for details before trying again."
     exit 1
   fi
   [ "$verb" != waitforexitandrun ] || echo "video: RetinaMode=${HADRON_RETINA:-0}" >> "$log" 2>&1 || true
@@ -1737,7 +1739,7 @@ verify_runner() {
       *) name="lsteamclient.dll" ;;
     esac
     [ -f "$np_root/lib/wine/$arch/$name" ] && continue
-    echo "=== runner is missing $arch/$name, set up the runner in Hadron ===" >> "$log" 2>&1 || true
+    echo "=== runner is missing $arch/$name, set up the runner in Squark ===" >> "$log" 2>&1 || true
   done
 }
 install_lsteamclient_trigger() {
@@ -1868,7 +1870,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
       fi
     done
     if [ "$unstaged" -eq 1 ]; then
-      show_alert "Steam files could not be copied" "Hadron could not copy a file into this game's prefix. Open this prefix's hadron-run.log for details."
+      show_alert "Steam files could not be copied" "Squark could not copy a file into this game's prefix. Open this prefix's squark-run.log for details."
       exit 1
     fi
   fi
@@ -1884,7 +1886,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
   mkdir -p "$WINEPREFIX/drive_c/windows/system32/config" 2>/dev/null || true
   verify_runner
   if ! install_lsteamclient_trigger; then
-    show_alert "Steam files could not be copied" "Hadron could not copy a file into this game's prefix. Open this prefix's hadron-run.log for details."
+    show_alert "Steam files could not be copied" "Squark could not copy a file into this game's prefix. Open this prefix's squark-run.log for details."
     exit 1
   fi
   install_legacy_steam_dll
@@ -1955,7 +1957,7 @@ bundle_name=$(printf '%s' "$game_name" | tr -d '/:"`$\\')
 bundle_name=${bundle_name#"${bundle_name%%[!.]*}"}
 [ -n "$bundle_name" ] || bundle_name="Steam Game"
 game_name_xml=$(printf '%s' "$game_name" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-loader_root="$HOME/Library/Application Support/hadron/launchers/$app_id"
+loader_root="$HOME/Library/Application Support/squark/launchers/$app_id"
 mkdir -p "$loader_root"
 loader_app="$loader_root/$bundle_name.app"
 find "$loader_root" -maxdepth 1 -name '.build.*' -mmin +60 -exec rm -rf {} + 2>/dev/null || true
@@ -1978,6 +1980,8 @@ if [ "${HADRON_HIDE_LAUNCHER_TILE:-0}" = "1" ]; then
   uielement_arg="  <key>LSUIElement</key><true/>"
   echo "launcher tile hidden by HADRON_HIDE_LAUNCHER_TILE" >> "$log" 2>&1 || true
 fi
+# steamac: the launcher keeps the id Hadron gave it. macOS keys the game's microphone, camera and
+# local network permissions to it, and a new id would ask for them again.
 cat > "$loader_contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -2025,9 +2029,9 @@ fi
 cat > "$loader_macos/launcher" <<LAUNCHER
 #!/bin/sh
 export WINELOADER="$WINELOADER"
-wine_log="$loader_root/hadron-wine.log"
+wine_log="$loader_root/squark-wine.log"
 exec > "\$wine_log" 2>&1
-shim="$HOME/Library/Application Support/hadron/overlay-shim.dylib"
+shim="$HOME/Library/Application Support/squark/overlay-shim.dylib"
 if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
   if [ -f "\$shim" ]; then
     export DYLD_INSERT_LIBRARIES="\$shim:\$STEAM_DYLD_INSERT_LIBRARIES"
@@ -2371,7 +2375,7 @@ while IFS= read -r np_feat_env; do
 done <<NP_FEAT_ENVS
 $np_feat_envs
 NP_FEAT_ENVS
-for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|HB_|MTL_|ROSETTA_|VKD3D_|GST_|MESA_)[A-Z0-9_]*)=.*/\1/p'); do
+for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|HB_|MTL_|ROSETTA_|SQUARK_FEX_|VKD3D_|GST_|MESA_)[A-Z0-9_]*)=.*/\1/p'); do
   eval "value=\$$name"
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"
@@ -2437,6 +2441,6 @@ note_launch
 echo "=== game exited status=$status, killing wine prefix ===" >> "$log" 2>&1 || true
 kill_wine_prefix
 [ -z "$STEAM_COMPAT_DATA_PATH" ] \
-  || record_session "$loader_root/hadron-wine.log" "$(($(date +%s) - np_started))" "$np_terminated"
+  || record_session "$loader_root/squark-wine.log" "$(($(date +%s) - np_started))" "$np_terminated"
 echo "=== wine prefix killed, session ending ===" >> "$log" 2>&1 || true
 exit $status

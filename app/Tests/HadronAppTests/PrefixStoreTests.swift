@@ -399,7 +399,7 @@ struct PrefixStoreTests {
         let fm = FileManager.default
 
         let entry = library.compatdata.appending(path: "1574480")
-        for folder in ["pfx", "pfx.rebuild", "hadron-run.log",
+        for folder in ["pfx", "pfx.rebuild", "squark-run.log",
                        "pfx.previous-20260101-120000", "pfx.previous-20260102-133000"] {
             try fm.createDirectory(
                 at: entry.appending(path: folder), withIntermediateDirectories: true)

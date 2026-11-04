@@ -103,7 +103,7 @@ struct RuntimeInspectionTests {
         #expect(install.isUsable)
         #expect(!install.isManual)
         #expect(install.root == root)
-        #expect(install.name == "Hadron \(shippedRuntime.releaseVersion)")
+        #expect(install.name == "Squark \(shippedRuntime.releaseVersion)")
         #expect(RuntimeSource.inspect(root: root, isManual: true).isManual)
     }
 
@@ -116,7 +116,7 @@ struct RuntimeInspectionTests {
         let install = RuntimeSource.inspect(root: root)
         #expect(install.support == .unsupportedBuild("wine-0.1"))
         #expect(!install.isUsable)
-        #expect(install.name == "Hadron wine-0.1")
+        #expect(install.name == "Squark wine-0.1")
     }
 
     @Test("A folder with no marker is named after itself and unsupported")

@@ -15,7 +15,7 @@ enum AppLog {
     static func start() {
         queue.async {
             isOn = true
-            append("--- Hadron \(AppVersion.bundled) started ---\n")
+            append("--- Squark \(AppVersion.bundled) started ---\n")
         }
     }
 

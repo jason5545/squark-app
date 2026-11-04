@@ -168,7 +168,7 @@ struct PrefixesModelTests {
 
         // The shipped tool, and an arm64 one of the same build, so each prefix's arch decides.
         let build = shippedRuntime
-        let fex = CompatTool(name: "hadron-proton-wine-fex", flavor: .fex, display: "Hadron Wine 11.15 (FEX)")
+        let fex = CompatTool(name: "hadron-proton-wine-fex", flavor: .fex, display: "Squark Wine 11.15 (FEX)")
         let tools = (build.tools + [fex]).map { InstalledTool(tool: $0, build: build.id) }
         let named = [
             ("1574480", "An older name (FEX)", UInt16(0xAA64)),

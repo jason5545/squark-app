@@ -11,7 +11,7 @@
 #
 # Needs the "Developer ID Application" identity, notarytool credentials stored as
 # "hadron" (xcrun notarytool store-credentials hadron) and the Sparkle key for account
-# nl.nhsd.hadron (generate_keys --account nl.nhsd.hadron).
+# io.github.jason5545.squark (generate_keys --account io.github.jason5545.squark).
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -27,7 +27,7 @@ case "${1:-}" in
 esac
 
 github=nheisterkamp/Hadron
-account=nl.nhsd.hadron
+account=io.github.jason5545.squark
 profile=hadron
 feed_branch=updates
 sparkle="$here/.build/artifacts/sparkle/Sparkle/bin"
@@ -53,7 +53,7 @@ fi
 
 echo "==> building Hadron $version"
 make -C "$repo" app >/dev/null
-app="$repo/out/Hadron.app"
+app="$repo/out/Squark.app"
 out="$repo/out/release/$tag"
 rm -rf "${out:?}"
 mkdir -p "$out"
@@ -80,7 +80,7 @@ codesign --verify --deep --strict "$app"
 echo "==> signed and verified"
 [ "$mode" = sign ] && exit 0
 
-zip="$out/Hadron-$version.zip"
+zip="$out/Squark-$version.zip"
 ditto -c -k --keepParent "$app" "$zip"
 echo "==> notarizing"
 xcrun notarytool submit "$zip" --keychain-profile "$profile" --wait
@@ -107,7 +107,7 @@ if [ ! -d "$feed/.git" ]; then
 fi
 git -C "$feed" pull --quiet --ff-only origin "$feed_branch" 2>/dev/null || true
 python3 - "$feed/appcast.xml" "$version" "$build" "$minimum" \
-    "https://github.com/$github/releases/download/$tag/Hadron-$version.zip" "$signature" "$notes" <<'PY'
+    "https://github.com/$github/releases/download/$tag/Squark-$version.zip" "$signature" "$notes" <<'PY'
 import sys, os, re, html, email.utils
 path, version, build, minimum, url, signature, notes = sys.argv[1:]
 

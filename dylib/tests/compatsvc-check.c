@@ -440,7 +440,7 @@ static uint8_t response_buf[64];
 static void offered_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -468,7 +468,7 @@ static void offered_cases(void) {
 static void hidden_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, COMPAT_TOOL_GATE_HIDDEN, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, COMPAT_TOOL_GATE_HIDDEN, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -491,7 +491,7 @@ static void hidden_cases(void) {
 static void is_a_tool_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 730 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 730 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -509,7 +509,7 @@ static void is_a_tool_cases(void) {
 static void none_entry_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -589,7 +589,7 @@ static void priority_cases(void) {
 static void selected_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -620,7 +620,7 @@ static void selected_cases(void) {
 static void fallback_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -663,7 +663,7 @@ static void fallback_cases(void) {
 static void active_flag_cases(void) {
     reset();
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
         { "proton",    "Proton",    COMPAT_PLATFORM_WINDOWS, 200, 0, 0 },
     };
     build_tools(tools, 2);
@@ -780,7 +780,7 @@ static void no_manager_cases(void) {
     reset();
     parse_into_ok = 0;
     tool_spec_t tools[] = {
-        { "hadron-proton-wine", "Hadron Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+        { "hadron-proton-wine", "Squark Wine 11.15", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
     };
     build_tools(tools, 1);
     stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
@@ -876,7 +876,7 @@ static void ready_to_rebuild(void) {
     snprintf(stub_state.compatdata, sizeof stub_state.compatdata, "%s", scratch);
     snprintf(stub_state.tool_build, sizeof stub_state.tool_build, "27.0.0.41073-fex");
     snprintf(stub_state.tool_flavor, sizeof stub_state.tool_flavor, "fex");
-    snprintf(stub_state.app, sizeof stub_state.app, "/Applications/Hadron.app/Contents/MacOS/HadronApp");
+    snprintf(stub_state.app, sizeof stub_state.app, "/Applications/Squark.app/Contents/MacOS/HadronApp");
     stub_tool_for_app_name = "hadron-fex-41073";
     char status[PATH_MAX];
     snprintf(status, sizeof status, "%s/hadron-rebuild", scratch);
@@ -910,7 +910,7 @@ static void rebuild_route_cases(void) {
     int rc = backup_and_rebuild_prefix(build_request(REQ_HAS_APPID, 480), (uintptr_t)response_buf);
     check(rc == RESULT_OK && strcmp(answer(), "{\"started\":true}") == 0, "a rebuild starts");
     char log[PATH_MAX];
-    snprintf(log, sizeof log, "%s/hadron-run.log", scratch);
+    snprintf(log, sizeof log, "%s/squark-run.log", scratch);
     const char *want[] = { "/bin/sh", "-c", REBUILD_SCRIPT, stub_state.app, log, scratch,
                            "hadron-fex-41073", "27.0.0.41073-fex", "fex", "keep-backup" };
     int same = spawned_count == 10;
@@ -957,7 +957,7 @@ static void rebuild_route_cases(void) {
     open_prefix_log(build_request(REQ_HAS_APPID, 480), (uintptr_t)response_buf);
     check(strcmp(answer(), "{\"error\":\"log\"}") == 0 && spawned_count == 0,
           "a missing log is not opened");
-    put("hadron-run.log", "x\n");
+    put("squark-run.log", "x\n");
     open_prefix_log(build_request(REQ_HAS_APPID, 480), (uintptr_t)response_buf);
     check(strcmp(answer(), "{\"opened\":true}") == 0 && spawned_count == 4
           && strcmp(spawned[0], "/bin/sh") == 0 && strcmp(spawned[3], log) == 0

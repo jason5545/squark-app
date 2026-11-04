@@ -32,7 +32,7 @@ struct LaunchRecord: Sendable, Equatable, Identifiable {
 
     var title: String { name ?? String(localized: "App \(appID)") }
     var prefix: URL { compatdata.appending(path: "pfx") }
-    var wineLog: URL { SupportPaths.launchers.appending(path: appID).appending(path: "hadron-wine.log") }
+    var wineLog: URL { SupportPaths.launchers.appending(path: appID).appending(path: "squark-wine.log") }
 
     // True while the run script that wrote the record is still there. A record that says
     // starting or running after its script died describes a launch that was cut off.
@@ -61,7 +61,7 @@ struct LaunchRecord: Sendable, Equatable, Identifiable {
         self.display = field("display")
         self.compatdata = URL(filePath: compatdata)
         self.install = field("install").map { URL(filePath: $0) }
-        self.log = field("log").map { URL(filePath: $0) } ?? URL(filePath: compatdata).appending(path: "hadron-run.log")
+        self.log = field("log").map { URL(filePath: $0) } ?? URL(filePath: compatdata).appending(path: "squark-run.log")
         self.pid = fields["pid"].flatMap(Int32.init) ?? 0
         self.started = Date(timeIntervalSince1970: started)
         self.updated = date("updated") ?? self.started

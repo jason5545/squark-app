@@ -117,7 +117,7 @@ enum RuntimeDownloader {
         report(.verifying)
         guard Digest.sha256IfPresent(archive) == download.sha256 else {
             try? files.removeItem(at: archive)
-            throw StepFailure(step: step, detail: String(localized: "\(download.file) does not match the checksum Hadron expects, so it was not used."))
+            throw StepFailure(step: step, detail: String(localized: "\(download.file) does not match the checksum Squark expects, so it was not used."))
         }
 
         report(.unpacking)

@@ -83,7 +83,7 @@ int main(void) {
     survives(plain, NULL, "an environment without the insert is not copied");
 
     char *with[] = { (char *)"PATH=/bin",
-                     (char *)"DYLD_INSERT_LIBRARIES=/Applications/Steam.app/Contents/MacOS/hadron.dylib",
+                     (char *)"DYLD_INSERT_LIBRARIES=/Applications/Steam.app/Contents/MacOS/squark.dylib",
                      (char *)"HOME=/Users/x", NULL };
     const char *without[] = { "PATH=/bin", "HOME=/Users/x", NULL };
     survives(with, without, "the insert is taken out and the rest kept in order");

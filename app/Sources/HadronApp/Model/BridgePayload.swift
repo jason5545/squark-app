@@ -42,7 +42,7 @@ enum BridgePayload {
             guard let payloadRoot = try? InstallPayload.root() else {
                 throw StepFailure(
                     step: step,
-                    detail: String(localized: "Hadron carries no components.")
+                    detail: String(localized: "Squark carries no components.")
                 )
             }
             base = payloadRoot.appending(path: "bridge")

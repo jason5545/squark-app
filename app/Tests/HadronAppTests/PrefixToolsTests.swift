@@ -30,16 +30,16 @@ struct PrefixToolsTests {
     @Test("Log paths match where compat_run.sh writes them")
     func logPathsMatchRunScript() throws {
         let source = try Self.compatSource()
-        #expect(source.contains(#"log="$STEAM_COMPAT_DATA_PATH/hadron-run.log""#))
-        #expect(source.contains(#"loader_root="$HOME/Library/Application Support/hadron/launchers/$app_id""#))
-        #expect(source.contains(#"wine_log="$loader_root/hadron-wine.log""#))
+        #expect(source.contains(#"log="$STEAM_COMPAT_DATA_PATH/squark-run.log""#))
+        #expect(source.contains(#"loader_root="$HOME/Library/Application Support/squark/launchers/$app_id""#))
+        #expect(source.contains(#"wine_log="$loader_root/squark-wine.log""#))
 
         let prefix = samplePrefix()
         let launchers = URL(filePath: "/tmp/launchers")
-        #expect(PrefixLog.launch.url(for: prefix, launchers: launchers) == prefix.root.appending(path: "hadron-run.log"))
+        #expect(PrefixLog.launch.url(for: prefix, launchers: launchers) == prefix.root.appending(path: "squark-run.log"))
         #expect(PrefixLog.wine.url(for: prefix, launchers: launchers).path(percentEncoded: false)
-            == "/tmp/launchers/1574480/hadron-wine.log")
-        #expect(SupportPaths.launchers.path(percentEncoded: false).hasSuffix("Application Support/hadron/launchers"))
+            == "/tmp/launchers/1574480/squark-wine.log")
+        #expect(SupportPaths.launchers.path(percentEncoded: false).hasSuffix("Application Support/squark/launchers"))
     }
 
     @Test("The runner variables are the ones RUN_SCRIPT exports")
@@ -481,7 +481,7 @@ struct PrefixToolsTests {
     func translocatedRebuildAppIsNotRecorded() throws {
         let dir = FileManager.default.temporaryDirectory.appending(path: "np-helper-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: dir) }
-        let source = dir.appending(path: "AppTranslocation/id/d/Hadron.app/Contents/MacOS/HadronApp")
+        let source = dir.appending(path: "AppTranslocation/id/d/Squark.app/Contents/MacOS/HadronApp")
         let support = dir.appending(path: "support")
         try FileManager.default.createDirectory(at: source.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
@@ -588,7 +588,7 @@ struct PrefixToolsTests {
         try Data("stale system".utf8).write(to: pfx.appending(path: "system.reg"))
         try fm.createSymbolicLink(
             at: pfx.appending(path: "drive_c/users/steamuser/Documents"), withDestinationURL: home)
-        try Data("log".utf8).write(to: library.compatdata.appending(path: "1574480/hadron-run.log"))
+        try Data("log".utf8).write(to: library.compatdata.appending(path: "1574480/squark-run.log"))
         return try #require(PrefixStore.all(libraries: [library]).first)
     }
 
@@ -654,7 +654,7 @@ struct PrefixToolsTests {
 
         #expect(!fm.fileExists(
             atPath: prefix.root.appending(path: "pfx.rebuild").path(percentEncoded: false)))
-        #expect(fm.fileExists(atPath: prefix.root.appending(path: "hadron-run.log").path(percentEncoded: false)))
+        #expect(fm.fileExists(atPath: prefix.root.appending(path: "squark-run.log").path(percentEncoded: false)))
 
         let kept = try #require(PrefixStore.backups(of: prefix).first)
         #expect(PrefixStore.backups(of: prefix).count == 1)
@@ -1244,7 +1244,7 @@ struct PrefixToolsTests {
         let entry = library.compatdata.appending(path: "1574480")
         try FileManager.default.createDirectory(
             at: entry.appending(path: "pfx/drive_c"), withIntermediateDirectories: true)
-        try Data("log".utf8).write(to: entry.appending(path: "hadron-run.log"))
+        try Data("log".utf8).write(to: entry.appending(path: "squark-run.log"))
 
         let prefix = try #require(PrefixStore.all(libraries: [library]).first)
         try PrefixTools.delete(prefix)
@@ -1666,9 +1666,9 @@ struct PrefixLastBuildTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         try updated(prefix, "1787334674\n")
-        try record(prefix, "\(Self.older)\nHadron Wine 0.1\n")
+        try record(prefix, "\(Self.older)\nSquark Wine 0.1\n")
         #expect(PrefixTools.lastBuild(of: prefix, runners: runners)
-            == PrefixBuildRecord(build: Self.older, display: "Hadron Wine 0.1"))
+            == PrefixBuildRecord(build: Self.older, display: "Squark Wine 0.1"))
     }
 
     @Test("Setting a prefix up records the tool that built it")
@@ -1698,7 +1698,7 @@ struct PrefixLastBuildTests {
         try record(prefix, "\(Self.current)\nHadron Wine 11.15 (FEX)\n")
 
         let fexOnly = [InstalledTool(
-            tool: CompatTool(name: "hadron-proton-wine-fex", flavor: .fex, display: "Hadron Wine 11.15 (FEX)"),
+            tool: CompatTool(name: "hadron-proton-wine-fex", flavor: .fex, display: "Squark Wine 11.15 (FEX)"),
             build: Self.current)]
         #expect(PrefixTools.tool(for: prefix, among: fexOnly, runners: runners) == nil)
 
