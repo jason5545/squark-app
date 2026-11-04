@@ -1,0 +1,303 @@
+JIT: entry points stop storing the block header; the cold paths find the block from the host PC
+
+Every entry point of a block (a function's entry, the block a call returns to, an indirect branch target) ran
+"adr; str" to record its JITCodeHeader in CPUState::InlineJITBlockHeader, only for the paths that rebuild RIP or patch
+the block: exceptions and suspends (RestoreRIPFromHostPC), REP MOVS/STOS progress, inline self-modifying code checks
+(IsAddressInCurrentBlock, IsCurrentBlockSingleInst, GetGuestBlockEntry) and the unaligned atomic handler. All of them
+run with the host PC at hand. On Apple cores the store is the expensive part of call-dense code: the call/return path
+is bound by stores (and the memory-ordering flushes around them), not by instruction count.
+
+Now each CodeBuffer keeps the start offsets of the blocks compiled into it (registered in Arm64JITCore::CompileCode
+and LoadCachedCode, before the block can be reached), CPUBackend::FindBlockHeader returns the block a host PC lies in
+(checked against the block's tail size), and ContextImpl::SyncCurrentBlock sets InlineJITBlockHeader from it. The
+users call it first (RestoreRIPFromHostPC and RestoreStringOpProgressFromHostPC do it themselves; the ARM64EC, WOW64
+and Linux self-modifying-code paths and HandleUnalignedAccess call it with the faulting PC). Outside translated code
+the field keeps its last value, which those users check against the PC as before. SQUARK_FEX_ENTRY_HEADER=1 brings
+the store back.
+
+TFDi MD-11 WebAssembly replay (squark md11-bench, wasm2c x64 build without the per-call depth count), per frame:
+40.34M -> 37.78M instructions, 9.96M -> 9.37M cycles (median of 3, alternated), frame median 1.94 -> 1.82 ms, module
+state hash unchanged. FBW A380X benchmark: 481k/478k -> 472k/472k cycles per tick. Faults at entry blocks, return
+blocks, three calls deep and in hot loops report the exact RIP (squark tools/fault-test); without the lookup the first
+one goes to a wrong RIP.
+diff --git a/FEXCore/Source/Interface/Context/Context.h b/FEXCore/Source/Interface/Context/Context.h
+--- a/FEXCore/Source/Interface/Context/Context.h
++++ b/FEXCore/Source/Interface/Context/Context.h
+@@ -154,6 +154,7 @@ public:
+ 
+   bool IsAddressInCurrentBlock(FEXCore::Core::InternalThreadState* Thread, uint64_t Address, uint64_t Size) override;
+   bool IsCurrentBlockSingleInst(FEXCore::Core::InternalThreadState* Thread) override;
++  void SyncCurrentBlock(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC) override;
+   uint64_t GetGuestBlockEntry(FEXCore::Core::InternalThreadState* Thread) override;
+ 
+   uint64_t RestoreRIPFromHostPC(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC) override;
+diff --git a/FEXCore/Source/Interface/Core/CPUBackend.cpp b/FEXCore/Source/Interface/Core/CPUBackend.cpp
+--- a/FEXCore/Source/Interface/Core/CPUBackend.cpp
++++ b/FEXCore/Source/Interface/Core/CPUBackend.cpp
+@@ -359,5 +359,27 @@ namespace CPU {
+     return false;
+   }
+ 
++  uint64_t CPUBackend::FindBlockHeader(uintptr_t HostPC) const {
++    const auto Check = [HostPC](CodeBuffer& Buffer) -> uint64_t {
++      const auto Begin = Buffer.FindBlock(HostPC);
++      if (!Begin) {
++        return 0;
++      }
++      const auto Header = reinterpret_cast<const JITCodeHeader*>(Begin);
++      const auto Tail = reinterpret_cast<const JITCodeTail*>(Begin + Header->OffsetToBlockTail);
++      return HostPC < reinterpret_cast<uintptr_t>(Begin) + Tail->Size ? reinterpret_cast<uint64_t>(Begin) : 0;
++    };
++
++    if (const auto Header = Check(*CurrentCodeBuffer)) {
++      return Header;
++    }
++    for (const auto& Buffer : SignalHandlerCodeBuffers) {
++      if (const auto Header = Check(*Buffer)) {
++        return Header;
++      }
++    }
++    return 0;
++  }
++
+ } // namespace CPU
+ } // namespace FEXCore
+diff --git a/FEXCore/Source/Interface/Core/CPUBackend.h b/FEXCore/Source/Interface/Core/CPUBackend.h
+--- a/FEXCore/Source/Interface/Core/CPUBackend.h
++++ b/FEXCore/Source/Interface/Core/CPUBackend.h
+@@ -133,6 +133,10 @@ namespace CPU {
+ 
+     bool IsAddressInCodeBuffer(uintptr_t Address) const;
+ 
++    // The start of the block (its JITCodeHeader) that HostPC lies in, from the code buffers' block indexes, or 0.
++
++    uint64_t FindBlockHeader(uintptr_t HostPC) const;
++
+     // Updates the CodeBuffer if needed and returns a reference to the old one.
+     // The returned reference should be kept alive carefully to avoid early deletion of resources.
+     [[nodiscard]]
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -183,7 +183,16 @@ uint64_t ContextImpl::GetGuestBlockEntry(FEXCore::Core::InternalThreadState* Thr
+   return InlineTail ? InlineTail->RIP : 0;
+ }
+ 
++void ContextImpl::SyncCurrentBlock(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC) {
++  // The JIT's entry points don't store InlineJITBlockHeader (JIT.cpp, EmitEntryPoint): set it from the block HostPC
++  // lies in, if any. Outside translated code it keeps its last value, which the users below check against HostPC.
++  if (const auto Header = Thread->CPUBackend->FindBlockHeader(HostPC)) {
++    Thread->CurrentFrame->State.InlineJITBlockHeader = Header;
++  }
++}
++
+ uint64_t ContextImpl::RestoreRIPFromHostPC(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC) {
++  SyncCurrentBlock(Thread, HostPC);
+   const auto Frame = Thread->CurrentFrame;
+   const uint64_t BlockBegin = Frame->State.InlineJITBlockHeader;
+   auto [InlineHeader, InlineTail] = GetFrameBlockInfo(Thread->CurrentFrame);
+@@ -222,6 +231,7 @@ uint64_t ContextImpl::RestoreRIPFromHostPC(FEXCore::Core::InternalThreadState* T
+ }
+ 
+ bool ContextImpl::RestoreStringOpProgressFromHostPC(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC, const uint64_t* HostGPRs) {
++  SyncCurrentBlock(Thread, HostPC);
+   // REP MOVS/STOS run as one loop over copies of RCX/RSI/RDI, which only change once it ends, so a fault part way
+   // through finds them at the first iteration. x86 reports the iteration that faulted and continues from there; a
+   // restart from the first one would redo an overlapping copy (memmove) from source bytes it already overwrote. The
+diff --git a/FEXCore/Source/Interface/Core/JIT/JIT.cpp b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/JIT.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+@@ -878,11 +878,25 @@ void Arm64JITCore::EmitSuspendInterruptCheck() {
+ #endif
+ }
+ 
++// squark: the entry points no longer store the block's JITCodeHeader into CPUState::InlineJITBlockHeader; the paths
++// that read it find the block from the host PC (CodeBuffer::FindBlock, ContextImpl::SyncCurrentBlock). A store at every
++// entry and every call return cost about 5% of the cycles of call-dense code (2.5M stores a frame in a WebAssembly
++// aircraft). SQUARK_FEX_ENTRY_HEADER=1 brings the store back.
++static bool EntryHeaderStore() {
++  static const bool On = [] {
++    const char* Setting = getenv("SQUARK_FEX_ENTRY_HEADER");
++    return Setting && Setting[0] == '1';
++  }();
++  return On;
++}
++
+ void Arm64JITCore::EmitEntryPoint(ARMEmitter::BackwardLabel& HeaderLabel, bool CheckTF, bool SuspendCheck) {
+-  // Get the address of the JITCodeHeader and store in to the core state.
+-  // Two instruction cost, each 1 cycle.
+-  adr_OrRestart(TMP1, &HeaderLabel);
+-  str(TMP1, STATE, offsetof(FEXCore::Core::CPUState, InlineJITBlockHeader));
++  if (EntryHeaderStore()) {
++    // Get the address of the JITCodeHeader and store in to the core state.
++    // Two instruction cost, each 1 cycle.
++    adr_OrRestart(TMP1, &HeaderLabel);
++    str(TMP1, STATE, offsetof(FEXCore::Core::CPUState, InlineJITBlockHeader));
++  }
+ 
+   if (CheckTF) {
+     EmitTFCheck();
+@@ -1240,6 +1254,9 @@ CPUBackend::CompiledCode Arm64JITCore::CompileCode(uint64_t Entry, uint64_t Size
+     FEXCore::Context::HbJitWrite(true);
+     memcpy(AllocatedInfo.BufferAllocationOffset, TempCodeBuffer, CodeData.Size);
+     FEXCore::Context::HbJitWrite(false);
++
++    // Before the block can be reached: a fault in it looks it up by host PC
++    CurrentCodeBuffer->RegisterBlock(CodeData.BlockBegin);
+   }
+ 
+   TempCodeBufferAllocator.DelayedDisownBuffer();
+@@ -1288,6 +1305,7 @@ CPUBackend::CompiledCode Arm64JITCore::LoadCachedCode(std::span<const uint8_t> H
+   memcpy(Dest, HostBytes.data(), HostBytes.size());
+   FEXCore::Context::HbJitWrite(false);
+   ClearICache(Dest, HostBytes.size());
++  CurrentCodeBuffer->RegisterBlock(Dest);
+ 
+   CPUBackend::CompiledCode Result;
+   Result.BlockBegin = Dest;
+diff --git a/FEXCore/Source/Interface/Core/SharedCodeBufferManager.cpp b/FEXCore/Source/Interface/Core/SharedCodeBufferManager.cpp
+--- a/FEXCore/Source/Interface/Core/SharedCodeBufferManager.cpp
++++ b/FEXCore/Source/Interface/Core/SharedCodeBufferManager.cpp
+@@ -48,6 +48,38 @@ CodeBuffer::~CodeBuffer() {
+   FEXCore::Allocator::VirtualFree(Ptr, AllocatedSize);
+ }
+ 
++void CodeBuffer::RegisterBlock(const uint8_t* BlockBegin) {
++  const auto Offset = static_cast<uint32_t>(BlockBegin - Ptr);
++  while (BlockStartsLock.test_and_set(std::memory_order_acquire)) {
++  }
++  // Blocks are allocated in ascending order, but a concurrent compile can register out of order
++  auto It = BlockStarts.end();
++  while (It != BlockStarts.begin() && *(It - 1) > Offset) {
++    --It;
++  }
++  if (It == BlockStarts.begin() || *(It - 1) != Offset) {
++    BlockStarts.insert(It, Offset);
++  }
++  BlockStartsLock.clear(std::memory_order_release);
++}
++
++const uint8_t* CodeBuffer::FindBlock(uintptr_t Address) {
++  const auto Base = reinterpret_cast<uintptr_t>(Ptr);
++  if (Address < Base || Address >= Base + UsableSize()) {
++    return nullptr;
++  }
++  const auto Offset = Address - Base;
++  const uint8_t* Result = nullptr;
++  while (BlockStartsLock.test_and_set(std::memory_order_acquire)) {
++  }
++  auto It = std::upper_bound(BlockStarts.begin(), BlockStarts.end(), Offset);
++  if (It != BlockStarts.begin()) {
++    Result = Ptr + *(It - 1);
++  }
++  BlockStartsLock.clear(std::memory_order_release);
++  return Result;
++}
++
+ SharedCodeBufferManager::SharedCodeBufferManager() {
+   FEX_CONFIG_OPT(GlobalJITNaming, GLOBALJITNAMING);
+   FEX_CONFIG_OPT(LibraryJITNaming, LIBRARYJITNAMING);
+diff --git a/FEXCore/Source/Interface/Core/SharedCodeBufferManager.h b/FEXCore/Source/Interface/Core/SharedCodeBufferManager.h
+--- a/FEXCore/Source/Interface/Core/SharedCodeBufferManager.h
++++ b/FEXCore/Source/Interface/Core/SharedCodeBufferManager.h
+@@ -11,6 +11,9 @@ $end_info$
+ #include <FEXCore/Utils/MathUtils.h>
+ #include <FEXCore/Utils/SignalScopeGuards.h>
+ #include <FEXCore/Utils/TypeDefines.h>
++#include <FEXCore/fextl/vector.h>
++
++#include <atomic>
+ 
+ #include <cstddef>
+ #include <cstdint>
+@@ -84,8 +87,19 @@ struct CodeBuffer {
+   // Trivially reset the allocator.
+   void Reset() {
+     CodeBufferOffset = Ptr;
++    while (BlockStartsLock.test_and_set(std::memory_order_acquire)) {
++    }
++    BlockStarts.clear();
++    BlockStartsLock.clear(std::memory_order_release);
+   }
+ 
++  // The JIT stores no block header pointer at its entry points (CPUState::InlineJITBlockHeader): the paths that need
++  // the block a host PC lies in (fault handling, RIP reconstruction) find it here. Every block compiled into this
++  // buffer registers its start; FindBlock returns the last start at or below Address, or nullptr. The caller checks
++  // that Address lies within that block.
++  void RegisterBlock(const uint8_t* BlockBegin);
++  const uint8_t* FindBlock(uintptr_t Address);
++
+   // Returns the base of the buffer.
+   uint8_t* GetBufferBase() const {
+     return Ptr;
+@@ -98,6 +112,10 @@ private:
+ 
+   // Code buffer allocation information.
+   std::atomic<uint8_t*> CodeBufferOffset {};
++
++  // Block starts as offsets from Ptr, ascending. Spin lock: held only for a vector insert or a binary search.
++  std::atomic_flag BlockStartsLock = ATOMIC_FLAG_INIT;
++  fextl::vector<uint32_t> BlockStarts;
+ };
+ 
+ /**
+diff --git a/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp b/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
+--- a/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
++++ b/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
+@@ -2046,6 +2046,10 @@ std::optional<int32_t> HandleUnalignedAccess(FEXCore::Core::InternalThreadState*
+   }
+ 
+   const auto Frame = Thread->CurrentFrame;
++  // The JIT doesn't record the current block at its entry points: find it from the faulting PC
++  if (const auto Header = Thread->CPUBackend->FindBlockHeader(ProgramCounter)) {
++    Frame->State.InlineJITBlockHeader = Header;
++  }
+   const uint64_t BlockBegin = Frame->State.InlineJITBlockHeader;
+   auto InlineHeader = reinterpret_cast<const CPU::CPUBackend::JITCodeHeader*>(BlockBegin);
+   auto InlineTail = reinterpret_cast<CPU::CPUBackend::JITCodeTail*>(Frame->State.InlineJITBlockHeader + InlineHeader->OffsetToBlockTail);
+diff --git a/FEXCore/include/FEXCore/Core/Context.h b/FEXCore/include/FEXCore/Core/Context.h
+--- a/FEXCore/include/FEXCore/Core/Context.h
++++ b/FEXCore/include/FEXCore/Core/Context.h
+@@ -96,6 +96,9 @@ public:
+ 
+   FEX_DEFAULT_VISIBILITY virtual bool IsAddressInCurrentBlock(FEXCore::Core::InternalThreadState* Thread, uint64_t Address, uint64_t Size) = 0;
+   FEX_DEFAULT_VISIBILITY virtual bool IsCurrentBlockSingleInst(FEXCore::Core::InternalThreadState* Thread) = 0;
++  // squark: makes IsAddressInCurrentBlock, IsCurrentBlockSingleInst and GetGuestBlockEntry describe the block HostPC lies
++  // in (the JIT no longer records the current block at its entry points). RestoreRIPFromHostPC does this itself.
++  FEX_DEFAULT_VISIBILITY virtual void SyncCurrentBlock(FEXCore::Core::InternalThreadState* Thread, uint64_t HostPC) = 0;
+   FEX_DEFAULT_VISIBILITY virtual uint64_t GetGuestBlockEntry(FEXCore::Core::InternalThreadState* Thread) = 0;
+ 
+   ///< State reconstruction helpers
+diff --git a/Source/Tools/LinuxEmulation/LinuxSyscalls/SyscallsSMCTracking.cpp b/Source/Tools/LinuxEmulation/LinuxSyscalls/SyscallsSMCTracking.cpp
+--- a/Source/Tools/LinuxEmulation/LinuxSyscalls/SyscallsSMCTracking.cpp
++++ b/Source/Tools/LinuxEmulation/LinuxSyscalls/SyscallsSMCTracking.cpp
+@@ -117,6 +117,7 @@ bool SyscallHandler::HandleSegfault(FEXCore::Core::InternalThreadState* Thread,
+     FEXCORE_PROFILE_INSTANT_INCREMENT(Thread, AccumulatedSMCCount, 1);
+ 
+     auto CTX = Thread->CTX;
++    CTX->SyncCurrentBlock(Thread, ArchHelpers::Context::GetPc(ucontext));
+     if (CTX->IsAddressInCodeBuffer(Thread, ArchHelpers::Context::GetPc(ucontext)) && !CTX->IsCurrentBlockSingleInst(Thread) &&
+         CTX->IsAddressInCurrentBlock(Thread, FaultAddress & FEXCore::Utils::FEX_PAGE_MASK, FEXCore::Utils::FEX_PAGE_SIZE)) {
+       // If we are not in a single-instruction block, and the SMC write address could intersect with the current block,
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -1260,6 +1260,7 @@ bool ResetToConsistentStateImpl(const ThreadCPUArea CPUArea, EXCEPTION_RECORD* E
+     }
+     if (InvalidationTracker && InvalidationTracker->HandleRWXAccessViolation(Thread, NativeContext->Pc, FaultAddress)) {
+       FEXCORE_PROFILE_INSTANT_INCREMENT(Thread, AccumulatedSMCCount, 1);
++      CTX->SyncCurrentBlock(Thread, NativeContext->Pc);
+       if (CTX->IsAddressInCodeBuffer(Thread, NativeContext->Pc) && !CTX->IsCurrentBlockSingleInst(CPUArea.ThreadState()) &&
+           CTX->IsAddressInCurrentBlock(Thread, FaultAddress & FEXCore::Utils::FEX_PAGE_MASK, FEXCore::Utils::FEX_PAGE_SIZE)) {
+         // If we are not patching ourself (single inst block case) and potentially patching the current block, this is inline SMC. Reconstruct the current context (before the SMC write) then single step the write to reduce it to regular SMC.
+diff --git a/Source/Windows/WOW64/Module.cpp b/Source/Windows/WOW64/Module.cpp
+--- a/Source/Windows/WOW64/Module.cpp
++++ b/Source/Windows/WOW64/Module.cpp
+@@ -845,6 +845,7 @@ bool BTCpuResetToConsistentStateImpl(EXCEPTION_POINTERS* Ptrs) {
+       std::scoped_lock Lock(ThreadCreationMutex);
+       FEXCORE_PROFILE_INSTANT_INCREMENT(Thread, AccumulatedSMCCount, 1);
+       if (InvalidationTracker->HandleRWXAccessViolation(Thread, Context->Pc, FaultAddress)) {
++        CTX->SyncCurrentBlock(Thread, Context->Pc);
+         if (CTX->IsAddressInCodeBuffer(Thread, Context->Pc) && !CTX->IsCurrentBlockSingleInst(Thread) &&
+             CTX->IsAddressInCurrentBlock(Thread, FaultAddress & FEXCore::Utils::FEX_PAGE_MASK, FEXCore::Utils::FEX_PAGE_SIZE)) {
+           Context::ReconstructThreadState(Context);

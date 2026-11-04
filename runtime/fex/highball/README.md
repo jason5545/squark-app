@@ -29,6 +29,14 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   listed modules (compiler output only, never a protected executable). Off without the variable.
   -3.6% instructions with the benchmark listed.
 - `0038`: LEA with a 32-bit destination uses 32-bit adds. -2% instructions.
+- `0039`: entry points no longer store the block header (`CPUState::InlineJITBlockHeader`); each code buffer keeps
+  its block starts and the fault, suspend and self-modifying-code paths find the block from the host PC. On the TFDi
+  MD-11 WebAssembly replay (squark `md11-bench`, x64 build without wasm2c's per-call depth count) -6% cycles per
+  frame (9.96M -> 9.37M), A380X -1.7%. `SQUARK_FEX_ENTRY_HEADER=1` brings the store back. squark's
+  `tools/fault-test` checks the RIP of faults in entry, return and loop blocks.
+
+Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
+flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
 
 Wine loads FEX from the prefix's `C:\windows\system32\xtajit64.dll`, not from the runtime's
 `lib/wine/aarch64-windows`: a prefix made with an older runtime keeps its old FEX until that copy is
