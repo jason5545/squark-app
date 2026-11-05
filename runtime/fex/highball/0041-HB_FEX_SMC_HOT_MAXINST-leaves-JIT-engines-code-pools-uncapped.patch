@@ -1,0 +1,177 @@
+HB_FEX_SMC_HOT_MAXINST leaves JIT engines' code pools uncapped
+
+Highball's HB_FEX_SMC_HOT_MAXINST (64 in the Microsoft Flight Simulator 2024 recipe) caps a compile unit that starts
+on a writable page a write fault invalidated in the last 5 s, and ends such units at calls: for a copy protection
+that keeps rewriting its code, small units are cheaper to translate again. JavaScriptCore's JIT writes a page of its
+code pool now and then too (a new function, an inline cache, a jump repatched), so under the recipe nearly all of its
+code ran as small units that end at every call: in churn.js, 79,646 of 82,357 compiles were capped. Microsoft Flight
+Simulator's Coherent GT gauges run the same engine.
+
+A JIT engine's pool is a private executable reservation of 256 MB or more (JavaScriptCore reserves one of 1 GB, at
+0x7fff0000 in both Bun and the game); a copy protection's code sits in images and hook code in small allocations.
+Units that start in such a pool are no longer capped. The ARM64EC frontend finds pools with NtQueryVirtualMemory the
+first time a capped unit would start in one, lists them in a lock-free table (writers under their own mutex, as this
+runs while compiling) and drops one when its reservation is released (MEM_RELEASE; decommits keep it).
+SQUARK_FEX_HOT_JITPOOLS=1 caps them again. Without HB_FEX_SMC_HOT_MAXINST nothing changes.
+
+Bun 1.4.4 for Windows x64, the FBW A380X gauges in squark's Coherent stand-in, MSFS's FEX switches, alternated
+against 0040: PFD (Index=2) per frame 18.3-18.6M -> 16.7-16.8M instructions, 3.9-4.3M -> 3.5-3.6M cycles (the same as
+HB_FEX_SMC_HOT_MAXINST=0; SQUARK_FEX_HOT_JITPOOLS=1 gives 0040's); the 24 HTML gauges 4.31/4.31/4.38 -> 3.93/3.94/4.17
+ms per frame, text hashes unchanged; avionics.js 0.22-0.26 -> 0.18-0.19 ms; churn.js 760-791 -> 693-746 ms, checksums
+as the Mac native run. Unchanged: the A380X WebAssembly hashes, the TFDi MD-11 replay (39.05M instructions,
+9.41-9.56M against 9.48-9.74M cycles per frame), FBW A380X 2.644M instructions and 481k/481k against 479k/483k cycles
+per tick, Highball's smcmsfs/smcdata/smcretire (6.09-6.66/3.38-3.56/2.91-3.07 s against 6.37-6.90/3.60-3.76/2.90-3.28
+s), squark's regression suite, leatest, fault-test, smc-subpage (no stale value) and JSC stress (low tier-up
+thresholds, 0/40).
+diff --git a/FEXCore/include/FEXCore/Core/Context.h b/FEXCore/include/FEXCore/Core/Context.h
+index 313960b..3d5b349 100644
+--- a/FEXCore/include/FEXCore/Core/Context.h
++++ b/FEXCore/include/FEXCore/Core/Context.h
+@@ -50,6 +50,10 @@ inline void HbJitWrite(bool Enable) {
+ // compute flags for them. Only for modules known to be that: hand-written or protected code can pass flags that way.
+ FEX_DEFAULT_VISIBILITY extern bool (*SqABILocalFlagsFn)(uint64_t RIP);
+ 
++// squark: set by the Windows frontend. True for guest code in a JIT engine's code pool (a private executable reservation
++// of 256 MB or more, such as JavaScriptCore's), which HB_FEX_SMC_HOT_MAXINST leaves uncapped.
++FEX_DEFAULT_VISIBILITY extern bool (*SqJitPoolFn)(uint64_t RIP);
++
+ enum OperatingMode {
+   MODE_32BIT,
+   MODE_64BIT,
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+index afa2231..db6fee5 100644
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -101,6 +101,7 @@ static bool IsWaitingX87Instruction(const FEXCore::X86Tables::X86InstInfo* Info)
+ namespace FEXCore::Context {
+ void (*HbJitWriteFn)(bool Enable) = nullptr;
+ bool (*SqABILocalFlagsFn)(uint64_t RIP) = nullptr;
++bool (*SqJitPoolFn)(uint64_t RIP) = nullptr;
+ 
+ #ifdef ARCHITECTURE_arm64ec
+ // Private profiling data, separate from the versioned shared statistics layout.
+diff --git a/FEXCore/Source/Interface/Core/Frontend.cpp b/FEXCore/Source/Interface/Core/Frontend.cpp
+index a82b00f..3d178d2 100644
+--- a/FEXCore/Source/Interface/Core/Frontend.cpp
++++ b/FEXCore/Source/Interface/Core/Frontend.cpp
+@@ -1832,6 +1832,12 @@ void Decoder::SetupDecodeInstructionsAtEntry(FEXCore::Core::InternalThreadState*
+     return FEXCore::Utils::SpinWaitLock::CycleCounterFrequency * (Seconds ? Seconds : 1);
+   }();
+   EntryHot = HotMaxInst && EntryWritable && CTX->HbIsHotSMCPage(PC, HotWindow);
++  // squark: not in a JIT engine's code pool. The cap is for a copy protection that keeps rewriting its code; a JIT
++  // rewrites a page of its pool now and then (a new function, an inline cache), and capped units there (small, ending
++  // at calls) made JavaScriptCore's code 15-20% slower for 5 s after each such write, which is most of the time
++  if (EntryHot && FEXCore::Context::SqJitPoolFn && FEXCore::Context::SqJitPoolFn(PC)) {
++    EntryHot = false;
++  }
+   if (EntryHot && MaxInst > HotMaxInst) {
+     MaxInst = HotMaxInst;
+   }
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+index 99d56a7..f06008e 100644
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -636,6 +636,84 @@ void RemoveABILocalFlagsModule(uint64_t Address, uint64_t Size) {
+   }
+ }
+ 
++// squark: JIT engines' code pools, for FEXCore::Context::SqJitPoolFn. A pool is a private executable reservation of at
++// least 256 MB: JavaScriptCore reserves one of 1 GB (Microsoft Flight Simulator's Coherent GT, Bun), while a copy
++// protection's or a hook's code sits in images or small allocations. A pool is listed the first time a hot unit starts
++// in it and dropped when the reservation is released. Readers take no lock; JitPoolMutex orders the writers (taken
++// while compiling, so never ThreadCreationMutex there). SQUARK_FEX_HOT_JITPOOLS=1 caps units in pools again.
++struct JitPoolRange {
++  std::atomic<uint64_t> Start;
++  std::atomic<uint64_t> End;
++};
++JitPoolRange JitPools[64];
++std::atomic<uint32_t> JitPoolCount;
++std::mutex JitPoolMutex;
++constexpr uint64_t JitPoolMinSize = 256ULL << 20;
++
++bool IsJitPoolCode(uint64_t RIP) {
++  const uint32_t Count = JitPoolCount.load(std::memory_order_acquire);
++  for (uint32_t i = 0; i < Count; i++) {
++    const uint64_t Start = JitPools[i].Start.load(std::memory_order_acquire);
++    if (RIP >= Start && RIP < JitPools[i].End.load(std::memory_order_acquire)) {
++      return true;
++    }
++  }
++
++  MEMORY_BASIC_INFORMATION Info;
++  if (NtQueryVirtualMemory(NtCurrentProcess(), reinterpret_cast<void*>(RIP), MemoryBasicInformation, &Info, sizeof(Info), nullptr) ||
++      Info.Type != MEM_PRIVATE || Info.State != MEM_COMMIT) {
++    return false;
++  }
++  // The reservation's extent: its regions, committed or not, up to the first of another allocation
++  const auto Base = reinterpret_cast<uint64_t>(Info.AllocationBase);
++  uint64_t End = Base;
++  for (uint32_t i = 0; i < 65536; i++) {
++    if (NtQueryVirtualMemory(NtCurrentProcess(), reinterpret_cast<void*>(End), MemoryBasicInformation, &Info, sizeof(Info), nullptr) ||
++        Info.State == MEM_FREE || reinterpret_cast<uint64_t>(Info.AllocationBase) != Base) {
++      break;
++    }
++    End = reinterpret_cast<uint64_t>(Info.BaseAddress) + Info.RegionSize;
++  }
++  if (End - Base < JitPoolMinSize || RIP >= End) {
++    return false;
++  }
++
++  std::scoped_lock Lock(JitPoolMutex);
++  const uint32_t Index = JitPoolCount.load(std::memory_order_relaxed);
++  for (uint32_t i = 0; i < Index; i++) {
++    if (JitPools[i].Start.load(std::memory_order_relaxed) == Base) {
++      return true;
++    }
++  }
++  if (Index == std::size(JitPools)) {
++    return true;
++  }
++  JitPools[Index].End.store(End, std::memory_order_relaxed);
++  JitPools[Index].Start.store(Base, std::memory_order_relaxed);
++  JitPoolCount.store(Index + 1, std::memory_order_release);
++  LogMan::Msg::IFmt("FEX: JIT pool {:x}-{:x}", Base, End);
++  return true;
++}
++
++void RemoveJitPools(uint64_t Address, uint64_t Size) {
++  std::scoped_lock Lock(JitPoolMutex);
++  const uint32_t Count = JitPoolCount.load(std::memory_order_relaxed);
++  for (uint32_t i = 0; i < Count; i++) {
++    const uint64_t Start = JitPools[i].Start.load(std::memory_order_relaxed);
++    if (Start && Start - Address < Size) {
++      JitPools[i].Start.store(0, std::memory_order_release);
++      JitPools[i].End.store(0, std::memory_order_release);
++    }
++  }
++}
++
++void InitJitPools() {
++  const char* Setting = std::getenv("SQUARK_FEX_HOT_JITPOOLS");
++  if (!Setting || strcmp(Setting, "1")) {
++    FEXCore::Context::SqJitPoolFn = IsJitPoolCode;
++  }
++}
++
+ void HandleImageMap(uint64_t Address, bool MainImage = false) {
+   fextl::string ModulePath = FEX::Windows::GetSectionFilePath(Address);
+   fextl::string ModuleName = fextl::string {FEX::Windows::BaseName(ModulePath)};
+@@ -1142,6 +1220,7 @@ NTSTATUS ProcessInit() {
+   }
+ 
+   InitABILocalFlags();
++  InitJitPools();
+   CTX->SetSignalDelegator(SignalDelegator.get());
+   CTX->SetSyscallHandler(SyscallHandler.get());
+   CTX->InitCore();
+@@ -1421,6 +1500,10 @@ void NotifyMemoryFree(void* Address, SIZE_T Size, ULONG FreeType, BOOL After, NT
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
++  if (After && !Status && (FreeType & MEM_RELEASE)) {
++    // A released reservation is no longer a JIT pool (a decommit keeps it one)
++    RemoveJitPools(reinterpret_cast<uint64_t>(Address), Size ? Size : 1);
++  }
+ 
+   if (!After) {
+     bool CanSkip = false;

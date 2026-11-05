@@ -41,6 +41,12 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   the guest rewrote it: JavaScriptCore's JIT asserted in about one run in twenty (Bun 1.4.4 x64), and squark's
   `tools/smc-subpage` S9 (a callee rewrites the instruction its call returns to, another thread writes the page) got
   the old value in a third of the calls; both none with it. `SQUARK_FEX_STALE_EXIT=0` turns it off.
+- `0041`: `HB_FEX_SMC_HOT_MAXINST` (Highball's cap for units on pages a write fault invalidated, 64 in the MSFS recipe)
+  no longer caps units in a JIT engine's code pool, a private executable reservation of 256 MB or more such as
+  JavaScriptCore's 1 GB one (Coherent GT's gauges, Bun). The pool's pages are written now and then, so nearly all of
+  JavaScriptCore's code ran as small units ending at every call. Bun 1.4.4 with the A380X gauges: PFD -9% instructions,
+  -15% cycles per frame, the 24 gauges 4.31 -> 3.94 ms per frame (median of three); WebAssembly benchmarks and
+  Highball's SMC tests unchanged. `SQUARK_FEX_HOT_JITPOOLS=1` caps pools again.
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
