@@ -1,0 +1,372 @@
+JIT: an erased block's entry points exit to the dispatcher instead of running the old translation
+
+JavaScriptCore's JIT (Bun 1.4.4 for Windows x64; the Coherent GT gauges of Microsoft Flight Simulator 2024 run the
+same engine) rewrites code it already ran: its compiler threads write new code on a page while the main thread
+repatches jumps there from C++ called by that code (FTL lazy slow paths, OSR exits, tier-up). Under FEX about one run
+in twenty asserted in JSC (LazySlowPath::generate's RELEASE_ASSERT(!m_stub), OSRExitStream::at,
+operationTriggerTierUpNow) and ended with 0xC0000409: the main thread was running a translation made before the
+rewrite. Highball's FEX without squark's patches does it too; the Windows ARM64 build of the same Bun under the same
+Wine does not, and with JSC's concurrent JIT off it stops.
+
+A write fault on a code page erases the page's blocks from the map and makes the page writable, so later writes there
+do not fault. Host code can still lead into an erased block: a call-return stack prediction, an L1 slot another
+thread had already read, a link being severed while it runs. When the guest has rewritten the block's bytes by then,
+that path runs the old code.
+
+Each entry point now starts with a nop, and the unit gets one exit stub per entry point after its code: store the
+entry's RIP, clear the thread's L1 slot if it still holds that RIP, jump to the dispatcher loop. GuestToHostMap::Erase
+turns the nop into "b <exit>"; AddBlockMapping turns it back when Highball's smc-retire reinstates the block (ARM
+allows a B/NOP swap while other cores execute it). SQUARK_FEX_STALE_EXIT=0 turns this off, 2 limits it to units
+compiled from writable memory.
+
+The dispatcher's compile call (CompileBlockEnter) enters a unit it has just compiled or reinstated past the nop. That
+unit was checked against the guest's bytes under CodeInvalidationMutex; a write that invalidates it right after waits
+for that lock and lands after the invalidation, so running it this once is the same as having fetched it before the
+write, as FEX always did. Through the nop, a thread calling a function while another thread kept storing data beside
+it on the page lost that race nearly every time and translated the function again about a hundred times per call
+(Highball's smcretire, its data-writing round: 1.0 s -> 89 s).
+
+squark tools/smc-subpage S9 (a function calls C, which rewrites the instruction the call returns to, while another
+thread stores data on the page), 10,000 calls: 3,064-3,813 return the old value with Highball's FEX, 0038, 0039 or
+SQUARK_FEX_STALE_EXIT=0, none with this (1.5 s -> 1.8-1.9 s). JSC stress (Bun 1.4.4 x64, FBW A380X ND gauge, low
+tier-up thresholds, same DLL): 8/40 runs crash with it off, 0/40 on. smcretire's data-writing round 0.96 s, as 0039.
+Alternated against 0039: TFDi MD-11 WebAssembly replay +3.4% instructions, cycles per frame 9.38/9.64/9.55M against
+9.39/9.66/9.64M, state hash unchanged; FBW A380X 2.61M -> 2.64M instructions, 480k/479k against 472k/480k cycles per
+tick; the A380X's 24 HTML gauges in Bun with JIT on, text hashes unchanged, frame total 4.30-4.61 ms against
+4.25-4.56 ms.
+diff --git a/FEXCore/Source/Interface/Context/Context.h b/FEXCore/Source/Interface/Context/Context.h
+--- a/FEXCore/Source/Interface/Context/Context.h
++++ b/FEXCore/Source/Interface/Context/Context.h
+@@ -612,6 +612,7 @@
+   [[nodiscard]]
+   CompileCodeResult CompileCode(FEXCore::Core::InternalThreadState* Thread, uint64_t GuestRIP, uint64_t MaxInst = 0);
+   uintptr_t CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_t GuestRIP, uint64_t MaxInst = 0);
++  uintptr_t CompileBlockEnter(FEXCore::Core::CpuStateFrame* Frame, uint64_t GuestRIP, uint64_t MaxInst);
+   uintptr_t CompileSingleStep(FEXCore::Core::CpuStateFrame* Frame, uint64_t GuestRIP);
+   // Highball smc-retire
+   static uint64_t HashCodeRanges(std::span<const std::pair<uint64_t, uint64_t>> Ranges);
+diff --git a/FEXCore/Source/Interface/Core/CPUBackend.h b/FEXCore/Source/Interface/Core/CPUBackend.h
+--- a/FEXCore/Source/Interface/Core/CPUBackend.h
++++ b/FEXCore/Source/Interface/Core/CPUBackend.h
+@@ -55,6 +55,9 @@
+       // Where this code block begins.
+       uint8_t* BlockBegin;
+       fextl::map<uint64_t, uint8_t*> EntryPoints;
++      // squark: per entry point, the exit stub its first instruction (a nop) is patched to branch to once the block is
++      // erased (GuestToHostMap::Erase); empty when the unit has none
++      fextl::map<uint64_t, uint8_t*> StaleExits;
+       // The total size of the codeblock from [BlockBegin, BlockBegin+Size).
+       size_t Size;
+       // Offset of BlockBegin from the start of the CodeBuffer it lives in
+@@ -152,6 +155,8 @@
+     }
+     // Highball HB_FEX_PRIVATE_CHURN: blocks this thread compiled whose entry lies in writable code memory
+     uint64_t HbWritableCompiles {};
++    // squark: the entry point CompileBlock compiled or reinstated last, under CodeInvalidationMutex (see CompileBlockEnter)
++    uintptr_t SquarkFreshEntry {};
+ 
+   protected:
+     // Max spill slot size in bytes. We need at most 32 bytes
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -1572,9 +1572,14 @@
+ 
+   // Insert to lookup cache
+   for (auto [GuestAddr, HostAddr] : CompiledCode.EntryPoints) {
+-    Thread->LookupCache->AddBlockMapping(Thread, GuestAddr, CodePages, HostAddr, CodeRanges, CodeHash);
++    const auto StaleExit = CompiledCode.StaleExits.find(GuestAddr);
++    Thread->LookupCache->AddBlockMapping(Thread, GuestAddr, CodePages, HostAddr, CodeRanges, CodeHash,
++                                         StaleExit != CompiledCode.StaleExits.end() ? reinterpret_cast<uint64_t>(StaleExit->second) : 0);
+     // Highball (diagnosis v13): same = entry points inserted
+     FEXCORE_PROFILE_INSTANT_INCREMENT(Thread, AccumulatedSMCStoresUnchanged, 1);
++  }
++  if (CompiledCode.StaleExits.contains(GuestRIP)) {
++    Thread->CPUBackend->SquarkFreshEntry = reinterpret_cast<uintptr_t>(CodePtr);
+   }
+ 
+   // Clear any relocations that might have been generated
+@@ -1588,6 +1593,21 @@
+   return (uintptr_t)CodePtr;
+ }
+ 
++// squark: the dispatcher's compile call. A unit compiled or reinstated by CompileBlock was checked against the guest's
++// bytes under CodeInvalidationMutex. A write fault that invalidates it right after (another thread storing data beside
++// it on the page) takes that lock only once this compile is done, and the store lands after the invalidation, so
++// running the unit this once is the same as having fetched it before the store, as FEX did before the stale exits. The
++// dispatcher enters it past its stale-exit slot: through the slot, the thread kept finding it turned into a branch by
++// then and translated the unit again, about a hundred times per call (smcretire's data-writing thread, 1.0 s -> 89 s).
++uintptr_t ContextImpl::CompileBlockEnter(FEXCore::Core::CpuStateFrame* Frame, uint64_t GuestRIP, uint64_t MaxInst) {
++  auto& Fresh = Frame->Thread->CPUBackend->SquarkFreshEntry;
++  Fresh = 0;
++  const uintptr_t HostCode = CompileBlock(Frame, GuestRIP, MaxInst);
++  const bool PastSlot = HostCode && HostCode == Fresh;
++  Fresh = 0;
++  return PastSlot ? HostCode + 4 : HostCode;
++}
++
+ uintptr_t ContextImpl::CompileSingleStep(FEXCore::Core::CpuStateFrame* Frame, uint64_t GuestRIP) {
+   FEXCORE_PROFILE_SCOPED("CompileSingleStep");
+   auto Thread = Frame->Thread;
+@@ -1797,6 +1817,9 @@
+       return 0;
+     }
+     FEXCORE_PROFILE_INSTANT_INCREMENT(Thread, AccumulatedSMCBlocksReinstated, 1);
++    if (R.StaleExit) {
++      Thread->CPUBackend->SquarkFreshEntry = R.HostCode;
++    }
+     return R.HostCode;
+   }
+   return 0;
+diff --git a/FEXCore/Source/Interface/Core/Dispatcher/Dispatcher.cpp b/FEXCore/Source/Interface/Core/Dispatcher/Dispatcher.cpp
+--- a/FEXCore/Source/Interface/Core/Dispatcher/Dispatcher.cpp
++++ b/FEXCore/Source/Interface/Core/Dispatcher/Dispatcher.cpp
+@@ -720,7 +720,7 @@
+   (void)Bind(&l_Sleep);
+   dc64(reinterpret_cast<uint64_t>(SleepThread));
+   (void)Bind(&l_CompileBlock);
+-  FEXCore::Utils::MemberFunctionToPointerCast PMFCompileBlock(&FEXCore::Context::ContextImpl::CompileBlock);
++  FEXCore::Utils::MemberFunctionToPointerCast PMFCompileBlock(&FEXCore::Context::ContextImpl::CompileBlockEnter);
+   dc64(PMFCompileBlock.GetConvertedPointer());
+   (void)Bind(&l_CompileSingleStep);
+ 
+diff --git a/FEXCore/Source/Interface/Core/JIT/JIT.cpp b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/JIT.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+@@ -13,6 +13,7 @@
+ 
+ #include "Interface/Context/Context.h"
+ #include "Interface/Core/LookupCache.h"
++#include "Interface/Core/Frontend.h"
+ #include "Interface/Core/Dispatcher/Dispatcher.h"
+ #include "Interface/Core/Interpreter/InterpreterOps.h"
+ #include "Interface/Core/JIT/DebugData.h"
+@@ -918,6 +919,15 @@
+   }
+ }
+ 
++// squark: entry points that a block erase redirects to the dispatcher (see EmitStaleExits). SQUARK_FEX_STALE_EXIT=0 turns
++// it off, 2 limits it to units compiled from writable memory (JIT-generated code); the default is every unit.
++bool Arm64JITCore::StaleEntryExits(FEXCore::Core::InternalThreadState* Thread) {
++  static const int Mode = [] {
++    const char* Setting = getenv("SQUARK_FEX_STALE_EXIT");
++    return Setting ? atoi(Setting) : 1;
++  }();
++  return Mode == 1 || (Mode == 2 && Thread->FrontendDecoder->IsEntryWritable());
++}
+ 
+ CodeBuffer::CodeBufferAllocation Arm64JITCore::AllocateCodeBufferInSharedCache(size_t Size) {
+   CodeBuffer::CodeBufferAllocation AllocatedInfo {};
+@@ -981,6 +991,8 @@
+   Relocations.resize(PrevNumAllocations, FEXCore::CPU::Relocation::Default()); // Discard any relocations generated from a previous attempt
+ 
+   CodeData.EntryPoints.clear();
++  CodeData.StaleExits.clear();
++  EmitStaleExits = StaleEntryExits(ThreadState);
+ 
+   // Fairly excessive buffer range to make sure we don't overflow
+   // One page baseline, plus SSANodeMultipler bytes, plus another page for guard page.
+@@ -1086,6 +1098,10 @@
+         BindOrRestart(&IsReturnTarget->second);
+         CodeData.EntryPoints.emplace(BlockStartRIP, GetCursorAddress<uint8_t*>());
+         DebugData->GuestOpcodes.push_back({BlockIROp->GuestEntryOffset, GetCursorAddress<uint8_t*>() - CodeData.BlockBegin});
++        if (EmitStaleExits) {
++          // Patched to "b <stale exit>" when this entry is erased (GuestToHostMap::Erase)
++          nop();
++        }
+ 
+         EmitEntryPoint(JITCodeHeaderLabel, CheckTF, !CallReturnSites.contains(Node));
+       }
+@@ -1126,6 +1142,30 @@
+   }
+   PendingTargetLabel = nullptr;
+ 
++  if (EmitStaleExits) {
++    // One exit per entry point, for when the block is erased: host code that still leads here (a call-ret stack
++    // prediction, a stale L1 entry, a link being severed) goes back to the dispatcher with this entry's RIP instead of
++    // running code for guest bytes that may have changed. The L1 slot for the RIP is cleared if it still points here, so
++    // the dispatcher's lookup cannot come straight back. Entry points have the canonical guest state (static registers,
++    // NZCV) and free temporaries; nothing here sets flags.
++    for (auto [EntryRIP, EntryHost] : CodeData.EntryPoints) {
++      ARMEmitter::ForwardLabel l_KeepL1;
++      CodeData.StaleExits.emplace(EntryRIP, GetCursorAddress<uint8_t*>());
++      InsertGuestRIPMove(TMP1, EntryRIP);
++      str(TMP1, STATE, offsetof(FEXCore::Core::CpuStateFrame, State.rip));
++      ldp<ARMEmitter::IndexType::OFFSET>(TMP2, TMP3, STATE, offsetof(FEXCore::Core::CpuStateFrame, State.L1Pointer));
++      and_(ARMEmitter::Size::i64Bit, TMP3, TMP3, TMP1, ARMEmitter::ShiftType::LSL, FEXCore::ilog2(sizeof(LookupCache::LookupCacheEntry)));
++      add(ARMEmitter::Size::i64Bit, TMP2, TMP2, TMP3);
++      ldr(TMP3, TMP2, offsetof(LookupCache::LookupCacheEntry, GuestCode));
++      sub(ARMEmitter::Size::i64Bit, TMP3, TMP3, TMP1);
++      (void)cbnz(ARMEmitter::Size::i64Bit, TMP3, &l_KeepL1);
++      str(ARMEmitter::XReg::zr, TMP2, offsetof(LookupCache::LookupCacheEntry, GuestCode));
++      (void)Bind(&l_KeepL1);
++      ldr(TMP2, STATE, offsetof(FEXCore::Core::CpuStateFrame, Pointers.DispatcherLoopTop));
++      br(TMP2);
++    }
++  }
++
+   ARMEmitter::ForwardLabel l_ExitLink;
+   for (auto& PendingJumpThunk : PendingJumpThunks) {
+     // Align as 64-bit atomics are used on the HostCode field.
+@@ -1247,6 +1287,9 @@
+     for (auto& EntryPoint : CodeData.EntryPoints) {
+       EntryPoint.second += Delta;
+     }
++    for (auto& StaleExit : CodeData.StaleExits) {
++      StaleExit.second += Delta;
++    }
+     CodeBegin += Delta;
+     CodeData.HostCodeOffset = CodeData.BlockBegin - CurrentCodeBuffer->GetBufferBase();
+ 
+diff --git a/FEXCore/Source/Interface/Core/JIT/JITClass.h b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+--- a/FEXCore/Source/Interface/Core/JIT/JITClass.h
++++ b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+@@ -144,6 +144,9 @@
+     uint8_t PatchSiteSize = 0;
+   };
+   fextl::vector<PendingJumpThunk> PendingJumpThunks;
++  // squark: whether this unit's entry points get a patchable nop and an exit stub (JIT.cpp, StaleEntryExits)
++  bool EmitStaleExits {};
++  static bool StaleEntryExits(FEXCore::Core::InternalThreadState* Thread);
+ 
+   Utils::PoolBufferWithTimedRetirement<uint8_t*, 5000, 500> TempCodeBufferAllocator;
+ 
+diff --git a/FEXCore/Source/Interface/Core/LookupCache.cpp b/FEXCore/Source/Interface/Core/LookupCache.cpp
+--- a/FEXCore/Source/Interface/Core/LookupCache.cpp
++++ b/FEXCore/Source/Interface/Core/LookupCache.cpp
+@@ -10,12 +10,33 @@
+ #include <FEXCore/Utils/LogManager.h>
+ #include <FEXCore/HLE/SyscallHandler.h>
+ 
++#include <atomic>
+ #include <cstdlib>
+ 
+ #include "Interface/Context/Context.h"
+ #include "Interface/Core/LookupCache.h"
+ 
+ namespace FEXCore {
++void SetStaleEntry(uint64_t HostCode, uint64_t StaleExit, bool Stale) {
++  constexpr uint32_t Nop = 0xD503201FU;
++  const int64_t Words = (static_cast<int64_t>(StaleExit) - static_cast<int64_t>(HostCode)) / 4;
++  if (Words <= 0 || Words >= (1 << 25)) {
++    return;
++  }
++  const uint32_t Branch = 0x14000000U | static_cast<uint32_t>(Words);
++  auto Inst = std::atomic_ref<uint32_t>(*reinterpret_cast<uint32_t*>(HostCode));
++  const uint32_t From = Stale ? Nop : Branch;
++  if (Inst.load(std::memory_order_relaxed) != From) {
++    return;
++  }
++  FEXCore::Context::HbJitWrite(true);
++  Inst.store(Stale ? Branch : Nop, std::memory_order_relaxed);
++  FEXCore::Context::HbJitWrite(false);
++  // One instruction: clean and invalidate its cache line directly. __builtin___clear_cache is FlushInstructionCache on
++  // Windows targets, a system call per entry (twice as slow on code another thread keeps writing next to).
++  asm volatile("dc cvau, %0\n\tdsb ish\n\tic ivau, %0\n\tdsb ish\n\tisb" : : "r"(HostCode) : "memory");
++}
++
+ GuestToHostMap::GuestToHostMap()
+   : BlockLinks_mbr {"FEXMem_BlockLinks"} {
+   BlockLinks_pma = fextl::make_unique<std::pmr::polymorphic_allocator<std::byte>>(&BlockLinks_mbr);
+diff --git a/FEXCore/Source/Interface/Core/LookupCache.h b/FEXCore/Source/Interface/Core/LookupCache.h
+--- a/FEXCore/Source/Interface/Core/LookupCache.h
++++ b/FEXCore/Source/Interface/Core/LookupCache.h
+@@ -47,6 +47,10 @@
+   std::shared_lock<FEXCore::Utils::WritePriorityMutex::Mutex> Lock;
+ };
+ 
++// squark: flips the first instruction of a block entry between its nop and "b StaleExit" (the entry's exit to the
++// dispatcher, JIT.cpp EmitStaleExits). Only ever swaps those two: any other instruction there is left alone.
++void SetStaleEntry(uint64_t HostCode, uint64_t StaleExit, bool Stale);
++
+ struct GuestToHostMap {
+   FEXCore::Utils::WritePriorityMutex::Mutex Lock {};
+ 
+@@ -88,6 +92,9 @@
+ 
+   struct BlockEntry {
+     uint64_t HostCode;
++    // squark: the exit stub the entry's first instruction is patched to branch to when this entry is erased, 0 for none
++    // (SetStaleEntry, JIT.cpp EmitStaleExits)
++    uint64_t StaleExit {};
+     fextl::vector<uint64_t> CodePages;
+     // Highball smc-precise: the guest instruction bytes the block was decoded from, as [first, first + second); empty
+     // when unknown (a block from the disk cache), which the store replay treats as touching any store on its pages
+@@ -105,6 +112,7 @@
+   struct RetiredBlock {
+     uint64_t Address {}; // guest entry point, 0 when the slot is free
+     uint64_t HostCode {};
++    uint64_t StaleExit {}; // squark: BlockEntry::StaleExit
+     uint64_t CodeHash {};
+     uint64_t Stamp {};     // RetireClock when retired
+     uint64_t FirstPage {}; // CodePages' lowest and highest page numbers, for wide purges
+@@ -149,15 +157,19 @@
+   // Adds to Guest -> Host code mapping
+   const BlockEntry& AddBlockMapping(uint64_t Address, std::span<const uint64_t> CodePages, void* HostCode,
+                                     fextl::vector<std::pair<uint64_t, uint64_t>> Ranges, uint64_t CodeHash,
+-                                    const LookupCacheWriteLockToken&) {
++                                    const LookupCacheWriteLockToken&, uint64_t StaleExit = 0) {
++    if (StaleExit) {
++      // A reinstated block's entry was redirected when it was erased: live again, it runs its own code
++      SetStaleEntry(reinterpret_cast<uint64_t>(HostCode), StaleExit, false);
++    }
+     // This may replace an existing mapping
+     // NOTE: Generally no previous entry should exist, however there is one exception:
+     //       If the backend updates the active thread's CodeBuffer, the new associated LookupCache
+     //       may already contain the block address. Since is comparatively rare, we'll just leak
+     //       one of the two blocks in this case.
+     return BlockList
+-      .insert_or_assign(Address, BlockEntry {(uintptr_t)HostCode, fextl::vector<uint64_t>(CodePages.begin(), CodePages.end()),
+-                                             std::move(Ranges), CodeHash})
++      .insert_or_assign(Address, BlockEntry {(uintptr_t)HostCode, StaleExit,
++                                             fextl::vector<uint64_t>(CodePages.begin(), CodePages.end()), std::move(Ranges), CodeHash})
+       .first->second;
+   }
+ 
+@@ -184,6 +196,12 @@
+       it->second(it->first.HostLink);
+     }
+ 
++    // squark: whatever host code still leads to this entry (a call-ret stack prediction, an L1 slot another thread
++    // reads, a link being severed while it runs) exits to the dispatcher from now on
++    if (auto It = BlockList.find(Address); It != BlockList.end() && It->second.StaleExit) {
++      SetStaleEntry(It->second.HostCode, It->second.StaleExit, true);
++    }
++
+     // Remove from BlockList
+     const bool Removed = BlockList.erase(Address) != 0;
+     if (Removed) {
+@@ -249,6 +267,7 @@
+     }
+     Slot->Address = Address;
+     Slot->HostCode = Entry.HostCode;
++    Slot->StaleExit = Entry.StaleExit;
+     Slot->CodeHash = Entry.CodeHash;
+     Slot->Stamp = ++RetireClock;
+     Slot->FirstPage = *std::min_element(Entry.CodePages.begin(), Entry.CodePages.end()) >> 12;
+@@ -513,13 +532,13 @@
+ 
+   // Adds to Guest -> Host code mapping
+   void AddBlockMapping(FEXCore::Core::InternalThreadState* Thread, uint64_t Address, std::span<const uint64_t> CodePages, void* HostCode,
+-                       fextl::vector<std::pair<uint64_t, uint64_t>> Ranges = {}, uint64_t CodeHash = 0) {
++                       fextl::vector<std::pair<uint64_t, uint64_t>> Ranges = {}, uint64_t CodeHash = 0, uint64_t StaleExit = 0) {
+     std::optional<FEXCore::SHMStats::AccumulationBlock<uint64_t>> LockTime(
+       Thread->ThreadStats ? &Thread->ThreadStats->AccumulatedCacheWriteLockTime : nullptr);
+     auto lk = Shared->AcquireWriteLock();
+     LockTime.reset();
+ 
+-    const auto& Entry = Shared->AddBlockMapping(Address, CodePages, HostCode, std::move(Ranges), CodeHash, lk);
++    const auto& Entry = Shared->AddBlockMapping(Address, CodePages, HostCode, std::move(Ranges), CodeHash, lk, StaleExit);
+ 
+     // There is no need to update L1 or L2, they will get updated on first lookup
+     // However, adding to L1 here increases performance
+@@ -533,7 +552,8 @@
+     if (Shared->ClearGeneration != Generation) {
+       return false;
+     }
+-    const auto& Entry = Shared->AddBlockMapping(R.Address, R.CodePages, reinterpret_cast<void*>(R.HostCode), R.Ranges, R.CodeHash, lk);
++    const auto& Entry =
++      Shared->AddBlockMapping(R.Address, R.CodePages, reinterpret_cast<void*>(R.HostCode), R.Ranges, R.CodeHash, lk, R.StaleExit);
+     Shared->DropRetired(R.Address, R.CodeHash, lk);
+     CacheBlockMapping(R.Address, Entry, true, lk);
+     return true;

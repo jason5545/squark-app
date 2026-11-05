@@ -34,6 +34,13 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   MD-11 WebAssembly replay (squark `md11-bench`, x64 build without wasm2c's per-call depth count) -6% cycles per
   frame (9.96M -> 9.37M), A380X -1.7%. `SQUARK_FEX_ENTRY_HEADER=1` brings the store back. squark's
   `tools/fault-test` checks the RIP of faults in entry, return and loop blocks.
+- `0040`: an erased block's entry points exit to the dispatcher. Each entry point starts with a nop that
+  `GuestToHostMap::Erase` turns into a branch to an exit stub at the end of the unit (store RIP, clear the L1 slot,
+  dispatcher), and reinstatement turns back; the dispatcher enters a unit it has just compiled past the nop. Host
+  code that still led into an erased block (call-return predictions, L1 slots, links) ran the old translation after
+  the guest rewrote it: JavaScriptCore's JIT asserted in about one run in twenty (Bun 1.4.4 x64), and squark's
+  `tools/smc-subpage` S9 (a callee rewrites the instruction its call returns to, another thread writes the page) got
+  the old value in a third of the calls; both none with it. `SQUARK_FEX_STALE_EXIT=0` turns it off.
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
