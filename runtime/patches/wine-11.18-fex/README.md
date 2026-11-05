@@ -53,3 +53,28 @@ WineHQ Wine 11.18.
   `macdrv_update_opengl_context` then called `OnMainThread`, which queued the block and waited for the main
   thread itself: the process hung. Found with the TFDi MD-11 Install Manager (WPF, d3d9 through wined3d's
   OpenGL), which froze when a tooltip popup closed. Wine master still has the same code.
+- `0061-ntdll-wait-recorder.patch`: a wait recorder that is switched on while the program runs. Off unless
+  the folder `$WINEPREFIX/squark-waitlog` (or `$SQUARK_WAITLOG_DIR`) exists when a process starts; then
+  `dlls/ntdll/unix/waitlog.c` starts a thread that sleeps in kqueue on that folder. Writing a file `ctl` there
+  (atomically: write `ctl.tmp`, rename) starts one window in each process whose image name matches:
+
+  ```
+  id=<new name each time>   exe=FlightSimulator2024.exe (or *)   seconds=10   warmup=0.5
+  events=2000000            yieldgap_us=100                      out=<unix folder, default the control folder>
+  ```
+
+  The events go to a buffer allocated before the window (40 bytes each) and are written after it by that
+  thread: `<out>/waitlog-<id>-<exe>-<pid>.events` and `.json` (written last: Windows thread ids with Mach port
+  names, Mach thread ids and CPU times at both ends of the window, thread names, object types). Recorded:
+  server waits (NtWaitForSingleObject, NtWaitForMultipleObjects including win32u's message waits,
+  NtSignalAndWaitForSingleObject, keyed events, I/O completion, alertable sleeps) with the thread whose
+  wineserver request woke them, which the wineserver now puts in the unused `__pad` of `wake_up_reply`
+  (bit 31 set; bits 21-30 request code + 1, 0 for a timeout, timer or fd; bits 0-20 thread id / 4);
+  NtSetEvent, NtPulseEvent, NtReleaseSemaphore, NtReleaseMutant; NtWaitForAlertByThreadId (critical
+  sections, SRW locks, condition variables, barriers, WaitOnAddress) with the thread that alerted it —
+  RtlWaitOnAddress passes the address with what it waits for in the top byte (1 WaitOnAddress, 2 critical
+  section, 3/4 SRW exclusive/shared, 5 condition variable, 6 barrier); Sleep; runs of yields. While off, each
+  of these costs one load and a branch, no system call. Not recorded: waits begun before the window's
+  recording started (the warmup keeps them out of the window), waits outside ntdll (Vulkan driver, Cocoa).
+  squark's `tools/waitlog/waitlog.py` turns a recording into tables; `tools/waitlog-test/` has the test
+  program with known answers.

@@ -1,0 +1,1661 @@
+ntdll: A wait recorder that can be switched on in a running process (Squark).
+
+Which thread waits, how long, on what, and which thread ended the wait, for a few seconds of a running
+program, without restarting it. Off unless the folder $WINEPREFIX/squark-waitlog (or $SQUARK_WAITLOG_DIR)
+exists when a process starts; then a thread of unix/waitlog.c sleeps in kqueue on that folder, and a new
+"ctl" file there (id=, exe=, seconds=, warmup=, events=, out=) starts one window in each process whose
+image name matches. Events go to a buffer allocated before the window and are written out after it, by
+that thread: <out>/waitlog-<id>-<exe>-<pid>.events (40-byte records) and .json (thread ids, Mach thread
+ids and CPU times at both ends of the window, thread names, object types).
+
+Recorded on macOS, where ntsync does not exist:
+- server waits: NtWaitForSingleObject, NtWaitForMultipleObjects (win32u's message waits too),
+  NtSignalAndWaitForSingleObject, keyed events, NtRemoveIoCompletion(Ex), alertable NtDelayExecution;
+  NtSetEvent, NtPulseEvent, NtReleaseSemaphore, NtReleaseMutant with their round trip.
+  The wineserver puts the waking thread's id and request code into the unused __pad of the
+  wake_up_reply it writes to the waiting thread's pipe (0x80000000 alone: a timeout, timer or fd); a
+  wait satisfied by the select request itself is marked as such. The protocol does not change: an older
+  client ignores the field, an older server leaves it 0.
+- NtWaitForAlertByThreadId (critical sections, SRW locks, condition variables, barriers, WaitOnAddress,
+  all through RtlWaitOnAddress) with the thread that called NtAlertThreadByThreadId. RtlWaitOnAddress
+  now passes the address to NtWaitForAlertByThreadId, as Windows does, with what ntdll waited for in
+  the top byte on 64-bit (1 WaitOnAddress, 2 critical section, 3/4 SRW exclusive/shared, 5 condition
+  variable, 6 barrier); nothing else reads it.
+- non-alertable NtDelayExecution (Sleep), and NtYieldExecution / Sleep(0), whose runs closer than
+  yieldgap_us (default 100) become one event.
+
+While off, an instrumented call costs one load of waitlog_state and a not-taken branch; no system
+call. Waits that began before a window started are not recorded; the window starts warmup seconds
+(default 0.5) after recording does. Waits still in progress at its end are written as open.
+Waits outside ntdll (a Vulkan driver's, Cocoa's) are not recorded: the CPU times show them as time
+neither on the CPU nor in a recorded wait. squark's tools/waitlog/waitlog.py reads the files.
+
+diff --git a/dlls/ntdll/Makefile.in b/dlls/ntdll/Makefile.in
+index 9a15bc3..1cb2263 100644
+--- a/dlls/ntdll/Makefile.in
++++ b/dlls/ntdll/Makefile.in
+@@ -72,6 +72,7 @@ SOURCES = \
+ 	unix/tape.c \
+ 	unix/thread.c \
+ 	unix/virtual.c \
++	unix/waitlog.c \
+ 	unwind.c \
+ 	version.c \
+ 	wcstring.c
+diff --git a/dlls/ntdll/sync.c b/dlls/ntdll/sync.c
+index ca6dd4a..92d1242 100644
+--- a/dlls/ntdll/sync.c
++++ b/dlls/ntdll/sync.c
+@@ -45,6 +45,21 @@ static const char *debugstr_timeout( const LARGE_INTEGER *timeout )
+     return wine_dbgstr_longlong( timeout->QuadPart );
+ }
+ 
++/* What ntdll waits for, in the top byte of the address NtWaitForAlertByThreadId gets (on 64-bit).
++ * The kernel side only shows it in Squark's wait recorder (unix/waitlog.c). */
++enum wait_hint
++{
++    WAIT_HINT_ADDRESS = 1,      /* RtlWaitOnAddress called from outside this file */
++    WAIT_HINT_CRITSEC,
++    WAIT_HINT_SRW_EXCLUSIVE,
++    WAIT_HINT_SRW_SHARED,
++    WAIT_HINT_CONDVAR,
++    WAIT_HINT_BARRIER,
++};
++
++static NTSTATUS wait_on_address( const void *addr, const void *cmp, SIZE_T size,
++                                 const LARGE_INTEGER *timeout, ULONG_PTR hint );
++
+ /******************************************************************
+  *              RtlRunOnceInitialize (NTDLL.@)
+  */
+@@ -180,7 +195,7 @@ static inline NTSTATUS wait_semaphore( RTL_CRITICAL_SECTION *crit, int timeout )
+         {
+             static const LONG zero;
+             /* this may wait longer than specified in case of multiple wake-ups */
+-            if (RtlWaitOnAddress( lock, &zero, sizeof(LONG), &time ) == STATUS_TIMEOUT)
++            if (wait_on_address( lock, &zero, sizeof(LONG), &time, WAIT_HINT_CRITSEC ) == STATUS_TIMEOUT)
+                 return STATUS_TIMEOUT;
+         }
+         return STATUS_WAIT_0;
+@@ -542,7 +557,7 @@ void WINAPI RtlAcquireSRWLockExclusive( RTL_SRWLOCK *lock )
+         } while (InterlockedCompareExchange( u.l, new.l, old.l ) != old.l);
+ 
+         if (!wait) return;
+-        RtlWaitOnAddress( &u.s->owners, &new.s.owners, sizeof(short), NULL );
++        wait_on_address( &u.s->owners, &new.s.owners, sizeof(short), NULL, WAIT_HINT_SRW_EXCLUSIVE );
+     }
+ }
+ 
+@@ -581,7 +596,7 @@ void WINAPI RtlAcquireSRWLockShared( RTL_SRWLOCK *lock )
+         } while (InterlockedCompareExchange( u.l, new.l, old.l ) != old.l);
+ 
+         if (!wait) return;
+-        RtlWaitOnAddress( u.s, &new.s, sizeof(struct srw_lock), NULL );
++        wait_on_address( u.s, &new.s, sizeof(struct srw_lock), NULL, WAIT_HINT_SRW_SHARED );
+     }
+ }
+ 
+@@ -767,7 +782,7 @@ NTSTATUS WINAPI RtlSleepConditionVariableCS( RTL_CONDITION_VARIABLE *variable, R
+     NTSTATUS status;
+ 
+     RtlLeaveCriticalSection( crit );
+-    status = RtlWaitOnAddress( &variable->Ptr, &value, sizeof(value), timeout );
++    status = wait_on_address( &variable->Ptr, &value, sizeof(value), timeout, WAIT_HINT_CONDVAR );
+     RtlEnterCriticalSection( crit );
+     return status;
+ }
+@@ -802,7 +817,7 @@ NTSTATUS WINAPI RtlSleepConditionVariableSRW( RTL_CONDITION_VARIABLE *variable,
+     else
+         RtlReleaseSRWLockExclusive( lock );
+ 
+-    status = RtlWaitOnAddress( &variable->Ptr, &value, sizeof(value), timeout );
++    status = wait_on_address( &variable->Ptr, &value, sizeof(value), timeout, WAIT_HINT_CONDVAR );
+ 
+     if (flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED)
+         RtlAcquireSRWLockShared( lock );
+@@ -872,11 +887,8 @@ static BOOL compare_addr( const void *addr, const void *cmp, SIZE_T size )
+     return FALSE;
+ }
+ 
+-/***********************************************************************
+- *           RtlWaitOnAddress   (NTDLL.@)
+- */
+-NTSTATUS WINAPI RtlWaitOnAddress( const void *addr, const void *cmp, SIZE_T size,
+-                                  const LARGE_INTEGER *timeout )
++static NTSTATUS wait_on_address( const void *addr, const void *cmp, SIZE_T size,
++                                 const LARGE_INTEGER *timeout, ULONG_PTR hint )
+ {
+     struct futex_queue *queue = get_futex_queue( addr );
+     struct futex_entry entry;
+@@ -906,7 +918,11 @@ NTSTATUS WINAPI RtlWaitOnAddress( const void *addr, const void *cmp, SIZE_T size
+ 
+     spin_unlock( &queue->lock );
+ 
+-    ret = NtWaitForAlertByThreadId( NULL, timeout );
++#ifdef _WIN64
++    ret = NtWaitForAlertByThreadId( (void *)((ULONG_PTR)addr | (hint << 56)), timeout );
++#else
++    ret = NtWaitForAlertByThreadId( addr, timeout );
++#endif
+ 
+     /* We may have already been removed by a call to RtlWakeAddressSingle() or RtlWakeAddressAll(). */
+     if (entry.addr)
+@@ -923,6 +939,15 @@ NTSTATUS WINAPI RtlWaitOnAddress( const void *addr, const void *cmp, SIZE_T size
+     return ret;
+ }
+ 
++/***********************************************************************
++ *           RtlWaitOnAddress   (NTDLL.@)
++ */
++NTSTATUS WINAPI RtlWaitOnAddress( const void *addr, const void *cmp, SIZE_T size,
++                                  const LARGE_INTEGER *timeout )
++{
++    return wait_on_address( addr, cmp, size, timeout, WAIT_HINT_ADDRESS );
++}
++
+ /***********************************************************************
+  *           RtlWakeAddressAll    (NTDLL.@)
+  */
+@@ -1426,7 +1451,8 @@ void WINAPI RtlDeleteBarrier( RTL_BARRIER *barrier )
+         ERR( "called before the barrier wait is satisfied.\n" );
+     }
+     while ((count = ReadAcquire( &b->structure_lock_count )))
+-        RtlWaitOnAddress( (void *)&b->structure_lock_count, &count, sizeof(b->structure_lock_count), NULL );
++        wait_on_address( (void *)&b->structure_lock_count, &count, sizeof(b->structure_lock_count), NULL,
++                         WAIT_HINT_BARRIER );
+ }
+ 
+ 
+@@ -1465,8 +1491,8 @@ BOOLEAN WINAPI RtlBarrier( RTL_BARRIER *barrier, ULONG flags )
+             YieldProcessor();
+             continue;
+         }
+-        RtlWaitOnAddress( (void *)&b->reached_thread_count, &b->total_thread_count,
+-                          sizeof(b->reached_thread_count), NULL );
++        wait_on_address( (void *)&b->reached_thread_count, &b->total_thread_count,
++                         sizeof(b->reached_thread_count), NULL, WAIT_HINT_BARRIER );
+     }
+     InterlockedIncrement( &b->waiting_thread_count );
+     if (InterlockedIncrement( &b->reached_thread_count ) >= b->total_thread_count)
+@@ -1485,7 +1511,8 @@ BOOLEAN WINAPI RtlBarrier( RTL_BARRIER *barrier, ULONG flags )
+             YieldProcessor();
+             continue;
+         }
+-        RtlWaitOnAddress( (void *)&b->wait_barrier_complete, &zero, sizeof(b->wait_barrier_complete), NULL );
++        wait_on_address( (void *)&b->wait_barrier_complete, &zero, sizeof(b->wait_barrier_complete), NULL,
++                         WAIT_HINT_BARRIER );
+     }
+ 
+ done:
+diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
+index fa9138d..43bdcf5 100644
+--- a/dlls/ntdll/unix/server.c
++++ b/dlls/ntdll/unix/server.c
+@@ -346,7 +346,7 @@ void server_leave_uninterrupted_section( pthread_mutex_t *mutex, sigset_t *sigse
+  *
+  * Wait for a reply on the waiting pipe of the current thread.
+  */
+-static int wait_select_reply( int wait_fd[2], void *cookie )
++static int wait_select_reply( int wait_fd[2], void *cookie, unsigned int *waker )
+ {
+     int signaled;
+     struct wake_up_reply reply;
+@@ -358,9 +358,13 @@ static int wait_select_reply( int wait_fd[2], void *cookie )
+         if (ret == sizeof(reply))
+         {
+             if (!reply.cookie) abort_thread( reply.signaled );  /* thread got killed */
+-            if (wine_server_get_ptr(reply.cookie) == cookie) return reply.signaled;
++            if (wine_server_get_ptr(reply.cookie) == cookie)
++            {
++                *waker = reply.__pad;  /* the thread whose request woke us (Squark's wineserver) */
++                return reply.signaled;
++            }
+             /* we stole another reply, wait for the real one */
+-            signaled = wait_select_reply( wait_fd, cookie );
++            signaled = wait_select_reply( wait_fd, cookie, waker );
+             /* and now put the wrong one back in the pipe */
+             for (;;)
+             {
+@@ -726,6 +730,7 @@ unsigned int server_select( const union select_op *select_op, data_size_t size,
+     union apc_result result;
+     sigset_t old_set;
+     int signaled;
++    unsigned int waker;
+     data_size_t reply_size;
+     struct
+     {
+@@ -737,6 +742,7 @@ unsigned int server_select( const union select_op *select_op, data_size_t size,
+ 
+     do
+     {
++        waker = WAITLOG_WAKER_IMMEDIATE;
+         pthread_sigmask( SIG_BLOCK, &server_block_set, &old_set );
+         for (;;)
+         {
+@@ -774,9 +780,10 @@ unsigned int server_select( const union select_op *select_op, data_size_t size,
+         pthread_sigmask( SIG_SETMASK, &old_set, NULL );
+         if (signaled) break;
+ 
+-        ret = wait_select_reply( data->wait_fd, &cookie );
++        ret = wait_select_reply( data->wait_fd, &cookie, &waker );
+     }
+     while (ret == STATUS_USER_APC || ret == STATUS_KERNEL_APC);
++    data->waitlog_waker = waker;
+ 
+     if (ret == STATUS_USER_APC) *user_apc = reply_data.call.user;
+     if (reply_size > sizeof(reply_data.call))
+@@ -1768,6 +1775,7 @@ void server_init_process_done(void)
+     SERVER_END_REQ;
+ 
+     assert( !status );
++    waitlog_init();
+     signal_start_thread( main_image_info.TransferAddress, peb, data->teb );
+ }
+ 
+diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
+index 0127a05..e530277 100644
+--- a/dlls/ntdll/unix/sync.c
++++ b/dlls/ntdll/unix/sync.c
+@@ -1065,12 +1065,14 @@ NTSTATUS WINAPI NtQuerySemaphore( HANDLE handle, SEMAPHORE_INFORMATION_CLASS cla
+ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, ULONG count, ULONG *previous )
+ {
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, count %u, prev_count %p\n", handle, count, previous );
+ 
+     if ((ret = inproc_release_semaphore( handle, count, previous )) != STATUS_NOT_IMPLEMENTED)
+         return ret;
+ 
++    wl = waitlog_start( WAITLOG_RELEASE_SEMAPHORE, (ULONG_PTR)handle );
+     SERVER_START_REQ( release_semaphore )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1081,6 +1083,7 @@ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, ULONG count, ULONG *previous
+         }
+     }
+     SERVER_END_REQ;
++    if (wl) waitlog_end( wl, WAITLOG_RELEASE_SEMAPHORE, 0, (ULONG_PTR)handle, ret, 0 );
+     return ret;
+ }
+ 
+@@ -1151,12 +1154,14 @@ NTSTATUS WINAPI NtOpenEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_AT
+ NTSTATUS WINAPI NtSetEvent( HANDLE handle, LONG *prev_state )
+ {
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, prev_state %p\n", handle, prev_state );
+ 
+     if ((ret = inproc_set_event( handle, prev_state )) != STATUS_NOT_IMPLEMENTED)
+         return ret;
+ 
++    wl = waitlog_start( WAITLOG_SET_EVENT, (ULONG_PTR)handle );
+     SERVER_START_REQ( event_op )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1165,6 +1170,7 @@ NTSTATUS WINAPI NtSetEvent( HANDLE handle, LONG *prev_state )
+         if (!ret && prev_state) *prev_state = reply->state;
+     }
+     SERVER_END_REQ;
++    if (wl) waitlog_end( wl, WAITLOG_SET_EVENT, 0, (ULONG_PTR)handle, ret, 0 );
+     return ret;
+ }
+ 
+@@ -1218,12 +1224,14 @@ NTSTATUS WINAPI NtClearEvent( HANDLE handle )
+ NTSTATUS WINAPI NtPulseEvent( HANDLE handle, LONG *prev_state )
+ {
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, prev_state %p\n", handle, prev_state );
+ 
+     if ((ret = inproc_pulse_event( handle, prev_state )) != STATUS_NOT_IMPLEMENTED)
+         return ret;
+ 
++    wl = waitlog_start( WAITLOG_PULSE_EVENT, (ULONG_PTR)handle );
+     SERVER_START_REQ( event_op )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1232,6 +1240,7 @@ NTSTATUS WINAPI NtPulseEvent( HANDLE handle, LONG *prev_state )
+         if (!ret && prev_state) *prev_state = reply->state;
+     }
+     SERVER_END_REQ;
++    if (wl) waitlog_end( wl, WAITLOG_PULSE_EVENT, 0, (ULONG_PTR)handle, ret, 0 );
+     return ret;
+ }
+ 
+@@ -1340,12 +1349,14 @@ NTSTATUS WINAPI NtOpenMutant( HANDLE *handle, ACCESS_MASK access, const OBJECT_A
+ NTSTATUS WINAPI NtReleaseMutant( HANDLE handle, LONG *prev_count )
+ {
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, prev_count %p\n", handle, prev_count );
+ 
+     if ((ret = inproc_release_mutex( handle, prev_count )) != STATUS_NOT_IMPLEMENTED)
+         return ret;
+ 
++    wl = waitlog_start( WAITLOG_RELEASE_MUTANT, (ULONG_PTR)handle );
+     SERVER_START_REQ( release_mutex )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1353,6 +1364,7 @@ NTSTATUS WINAPI NtReleaseMutant( HANDLE handle, LONG *prev_count )
+         if (prev_count) *prev_count = 1 - reply->prev_count;
+     }
+     SERVER_END_REQ;
++    if (wl) waitlog_end( wl, WAITLOG_RELEASE_MUTANT, 0, (ULONG_PTR)handle, ret, 0 );
+     return ret;
+ }
+ 
+@@ -2306,6 +2318,7 @@ NTSTATUS WINAPI NtWaitForMultipleObjects( DWORD count, const HANDLE *handles, WA
+     union select_op select_op;
+     UINT i, flags = SELECT_INTERRUPTIBLE;
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     if (!count || count > MAXIMUM_WAIT_OBJECTS) return STATUS_INVALID_PARAMETER_1;
+     if (type != WaitAll && type != WaitAny) FIXME( "Unsupported wait type %u\n", type );
+@@ -2329,10 +2342,18 @@ NTSTATUS WINAPI NtWaitForMultipleObjects( DWORD count, const HANDLE *handles, WA
+         return ret;
+     }
+ 
++    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handles[0] );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.wait.op = type == WaitAll ? SELECT_WAIT_ALL : SELECT_WAIT;
+     for (i = 0; i < count; i++) select_op.wait.handles[i] = wine_server_obj_handle( handles[i] );
+     ret = server_wait( &select_op, offsetof( union select_op, wait.handles[count] ), flags, timeout );
++    if (wl)
++    {
++        i = ret < count ? ret : (ret >= STATUS_ABANDONED_WAIT_0 && ret < STATUS_ABANDONED_WAIT_0 + count)
++                                ? ret - STATUS_ABANDONED_WAIT_0 : 0;
++        waitlog_end( wl, WAITLOG_SERVER_WAIT, waitlog_flags( count, type == WaitAll, alertable, timeout ),
++                     (ULONG_PTR)handles[i], ret, get_thread_data()->waitlog_waker );
++    }
+     TRACE( "-> %#x\n", ret );
+     return ret;
+ }
+@@ -2346,6 +2367,7 @@ NTSTATUS WINAPI NtWaitForSingleObject( HANDLE handle, BOOLEAN alertable, const L
+     union select_op select_op;
+     UINT flags = SELECT_INTERRUPTIBLE;
+     unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, alertable %u, timeout %s\n", handle, alertable, debugstr_timeout(timeout) );
+ 
+@@ -2355,10 +2377,13 @@ NTSTATUS WINAPI NtWaitForSingleObject( HANDLE handle, BOOLEAN alertable, const L
+         return ret;
+     }
+ 
++    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handle );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.wait.op = SELECT_WAIT;
+     select_op.wait.handles[0] = wine_server_obj_handle( handle );
+     ret = server_wait( &select_op, offsetof( union select_op, wait.handles[1] ), flags, timeout );
++    if (wl) waitlog_end( wl, WAITLOG_SERVER_WAIT, waitlog_flags( 1, FALSE, alertable, timeout ), (ULONG_PTR)handle,
++                         ret, get_thread_data()->waitlog_waker );
+     TRACE( "-> %#x\n", ret );
+     return ret;
+ }
+@@ -2373,6 +2398,7 @@ NTSTATUS WINAPI NtSignalAndWaitForSingleObject( HANDLE signal, HANDLE wait,
+     union select_op select_op;
+     UINT flags = SELECT_INTERRUPTIBLE;
+     NTSTATUS ret;
++    ULONGLONG wl;
+ 
+     TRACE( "signal %p, wait %p, alertable %u, timeout %s\n", signal, wait, alertable, debugstr_timeout(timeout) );
+ 
+@@ -2381,18 +2407,19 @@ NTSTATUS WINAPI NtSignalAndWaitForSingleObject( HANDLE signal, HANDLE wait,
+     if ((ret = inproc_signal_and_wait( signal, wait, alertable, timeout )) != STATUS_NOT_IMPLEMENTED)
+         return ret;
+ 
++    wl = waitlog_start( WAITLOG_SIGNAL_AND_WAIT, (ULONG_PTR)wait );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.signal_and_wait.op = SELECT_SIGNAL_AND_WAIT;
+     select_op.signal_and_wait.wait = wine_server_obj_handle( wait );
+     select_op.signal_and_wait.signal = wine_server_obj_handle( signal );
+-    return server_wait( &select_op, sizeof(select_op.signal_and_wait), flags, timeout );
++    ret = server_wait( &select_op, sizeof(select_op.signal_and_wait), flags, timeout );
++    if (wl) waitlog_end( wl, WAITLOG_SIGNAL_AND_WAIT, waitlog_flags( 1, FALSE, alertable, timeout ), (ULONG_PTR)wait,
++                         ret, get_thread_data()->waitlog_waker );
++    return ret;
+ }
+ 
+ 
+-/******************************************************************
+- *		NtYieldExecution (NTDLL.@)
+- */
+-NTSTATUS WINAPI NtYieldExecution(void)
++static NTSTATUS yield_execution(void)
+ {
+ #ifdef HAVE_SCHED_YIELD
+ #ifdef RUSAGE_THREAD
+@@ -2413,25 +2440,43 @@ NTSTATUS WINAPI NtYieldExecution(void)
+ }
+ 
+ 
++/******************************************************************
++ *		NtYieldExecution (NTDLL.@)
++ */
++NTSTATUS WINAPI NtYieldExecution(void)
++{
++    ULONGLONG wl = waitlog_start( WAITLOG_YIELD, 0 );
++    NTSTATUS status = yield_execution();
++
++    if (wl) waitlog_yield( wl );
++    return status;
++}
++
++
+ /******************************************************************
+  *		NtDelayExecution (NTDLL.@)
+  */
+ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeout )
+ {
+     unsigned int status = STATUS_SUCCESS;
++    ULONGLONG wl;
+ 
+     /* if alertable, we need to query the server */
+     if (alertable)
+     {
++        wl = waitlog_start( WAITLOG_DELAY_ALERTABLE, timeout ? timeout->QuadPart : TIMEOUT_INFINITE );
+         /* Since server_wait will result in an unconditional implicit yield,
+            we never return STATUS_NO_YIELD_PERFORMED */
+         if ((status = server_wait( NULL, 0, SELECT_INTERRUPTIBLE | SELECT_ALERTABLE, timeout )) == STATUS_TIMEOUT)
+             status = STATUS_SUCCESS;
++        if (wl) waitlog_end( wl, WAITLOG_DELAY_ALERTABLE, waitlog_flags( 0, FALSE, TRUE, timeout ),
++                             timeout ? timeout->QuadPart : TIMEOUT_INFINITE, status, get_thread_data()->waitlog_waker );
+         return status;
+     }
+ 
+     if (!timeout || timeout->QuadPart == TIMEOUT_INFINITE)  /* sleep forever */
+     {
++        waitlog_start( WAITLOG_DELAY, TIMEOUT_INFINITE );
+         for (;;) select( 0, NULL, NULL, NULL, NULL );
+     }
+     else
+@@ -2447,8 +2492,13 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
+ 
+         /* Note that we yield after establishing the desired timeout, but
+            we only care about the result of the yield for zero timeouts */
+-        status = NtYieldExecution();
+-        if (!when) return status;
++        wl = waitlog_start( when ? WAITLOG_DELAY : WAITLOG_YIELD, timeout->QuadPart );
++        status = yield_execution();
++        if (!when)
++        {
++            if (wl) waitlog_yield( wl );
++            return status;
++        }
+ 
+         for (;;)
+         {
+@@ -2460,6 +2510,7 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
+             tv.tv_usec = diff % 1000000;
+             if (select( 0, NULL, NULL, NULL, &tv ) != -1) break;
+         }
++        if (wl) waitlog_end( wl, WAITLOG_DELAY, WAITLOG_F_TIMEOUT, timeout->QuadPart, STATUS_SUCCESS, 0 );
+     }
+     return STATUS_SUCCESS;
+ }
+@@ -2677,16 +2728,22 @@ NTSTATUS WINAPI NtWaitForKeyedEvent( HANDLE handle, const void *key,
+ {
+     union select_op select_op;
+     UINT flags = SELECT_INTERRUPTIBLE;
++    unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, key %p, alertable %u, timeout %s\n", handle, key, alertable, debugstr_timeout(timeout) );
+ 
+     if (!handle) handle = keyed_event;
+     if ((ULONG_PTR)key & 1) return STATUS_INVALID_PARAMETER_1;
++    wl = waitlog_start( WAITLOG_KEYED_WAIT, (ULONG_PTR)key );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.keyed_event.op     = SELECT_KEYED_EVENT_WAIT;
+     select_op.keyed_event.handle = wine_server_obj_handle( handle );
+     select_op.keyed_event.key    = wine_server_client_ptr( key );
+-    return server_wait( &select_op, sizeof(select_op.keyed_event), flags, timeout );
++    ret = server_wait( &select_op, sizeof(select_op.keyed_event), flags, timeout );
++    if (wl) waitlog_end( wl, WAITLOG_KEYED_WAIT, waitlog_flags( 1, FALSE, alertable, timeout ), (ULONG_PTR)key, ret,
++                         get_thread_data()->waitlog_waker );
++    return ret;
+ }
+ 
+ 
+@@ -2698,16 +2755,22 @@ NTSTATUS WINAPI NtReleaseKeyedEvent( HANDLE handle, const void *key,
+ {
+     union select_op select_op;
+     UINT flags = SELECT_INTERRUPTIBLE;
++    unsigned int ret;
++    ULONGLONG wl;
+ 
+     TRACE( "handle %p, key %p, alertable %u, timeout %s\n", handle, key, alertable, debugstr_timeout(timeout) );
+ 
+     if (!handle) handle = keyed_event;
+     if ((ULONG_PTR)key & 1) return STATUS_INVALID_PARAMETER_1;
++    wl = waitlog_start( WAITLOG_KEYED_RELEASE, (ULONG_PTR)key );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.keyed_event.op     = SELECT_KEYED_EVENT_RELEASE;
+     select_op.keyed_event.handle = wine_server_obj_handle( handle );
+     select_op.keyed_event.key    = wine_server_client_ptr( key );
+-    return server_wait( &select_op, sizeof(select_op.keyed_event), flags, timeout );
++    ret = server_wait( &select_op, sizeof(select_op.keyed_event), flags, timeout );
++    if (wl) waitlog_end( wl, WAITLOG_KEYED_RELEASE, waitlog_flags( 1, FALSE, alertable, timeout ), (ULONG_PTR)key, ret,
++                         get_thread_data()->waitlog_waker );
++    return ret;
+ }
+ 
+ 
+@@ -2845,7 +2908,13 @@ NTSTATUS WINAPI NtRemoveIoCompletion( HANDLE handle, ULONG_PTR *key, ULONG_PTR *
+     }
+     SERVER_END_REQ;
+     if (status != STATUS_PENDING) return status;
+-    if (!timeout || timeout->QuadPart) status = server_wait_for_object( wait_handle, FALSE, timeout );
++    if (!timeout || timeout->QuadPart)
++    {
++        ULONGLONG wl = waitlog_start( WAITLOG_IO_COMPLETION, (ULONG_PTR)handle );
++        status = server_wait_for_object( wait_handle, FALSE, timeout );
++        if (wl) waitlog_end( wl, WAITLOG_IO_COMPLETION, waitlog_flags( 1, FALSE, FALSE, timeout ), (ULONG_PTR)handle,
++                             status, get_thread_data()->waitlog_waker );
++    }
+     else                               status = STATUS_TIMEOUT;
+     if (status != WAIT_OBJECT_0) return status;
+ 
+@@ -2909,7 +2978,13 @@ NTSTATUS WINAPI NtRemoveIoCompletionEx( HANDLE handle, FILE_IO_COMPLETION_INFORM
+         assert( status == STATUS_USER_APC );
+         goto done;
+     }
+-    if (!timeout || timeout->QuadPart) status = server_wait_for_object( wait_handle, alertable, timeout );
++    if (!timeout || timeout->QuadPart)
++    {
++        ULONGLONG wl = waitlog_start( WAITLOG_IO_COMPLETION, (ULONG_PTR)handle );
++        status = server_wait_for_object( wait_handle, alertable, timeout );
++        if (wl) waitlog_end( wl, WAITLOG_IO_COMPLETION, waitlog_flags( 1, FALSE, alertable, timeout ), (ULONG_PTR)handle,
++                             status, get_thread_data()->waitlog_waker );
++    }
+     else                               status = STATUS_TIMEOUT;
+     if (status != WAIT_OBJECT_0) goto done;
+ 
+@@ -3526,6 +3601,7 @@ NTSTATUS WINAPI NtAlertThreadByThreadId( HANDLE tid )
+     TRACE( "%p\n", tid );
+ 
+     if (!entry) return STATUS_INVALID_CID;
++    if (__builtin_expect( __atomic_load_n( &waitlog_state, __ATOMIC_RELAXED ), 0 )) waitlog_alert_sent( tid );
+ 
+ #ifdef USE_FUTEX
+     {
+@@ -3592,7 +3668,8 @@ NTSTATUS WINAPI NtWaitForAlertByThreadId( const void *address, const LARGE_INTEG
+ #ifdef USE_FUTEX
+     {
+         LONG *futex = &entry->futex;
+-        ULONGLONG end;
++        ULONGLONG end, wl = waitlog_start( WAITLOG_ALERT_WAIT, (ULONG_PTR)address );
++        unsigned int wl_flags = wl ? waitlog_flags( 0, FALSE, FALSE, timeout ) | WAITLOG_F_NOBLOCK : 0;
+         int ret;
+ 
+         if (timeout)
+@@ -3605,6 +3682,7 @@ NTSTATUS WINAPI NtWaitForAlertByThreadId( const void *address, const LARGE_INTEG
+ 
+         while (!InterlockedExchange( futex, 0 ))
+         {
++            wl_flags &= ~WAITLOG_F_NOBLOCK;
+             if (timeout)
+             {
+                 LONGLONG timeleft = update_timeout( end );
+@@ -3617,8 +3695,13 @@ NTSTATUS WINAPI NtWaitForAlertByThreadId( const void *address, const LARGE_INTEG
+             else
+                 ret = futex_wait( futex, 0, NULL );
+ 
+-            if (ret == -1 && errno == ETIMEDOUT) return STATUS_TIMEOUT;
++            if (ret == -1 && errno == ETIMEDOUT)
++            {
++                if (wl) waitlog_end( wl, WAITLOG_ALERT_WAIT, wl_flags, (ULONG_PTR)address, STATUS_TIMEOUT, 0 );
++                return STATUS_TIMEOUT;
++            }
+         }
++        if (wl) waitlog_end( wl, WAITLOG_ALERT_WAIT, wl_flags, (ULONG_PTR)address, STATUS_ALERTED, waitlog_take_alerter() );
+         return STATUS_ALERTED;
+     }
+ #elif defined(HAVE_KQUEUE)
+diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
+index 9b6401e..76d095c 100644
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -122,6 +122,7 @@ struct thread_data
+     BOOL         suspend;           /* suspend on startup */
+     BOOL         filesys_redir;     /* WOW64_TLS_FILESYSREDIR before the TEB is created */
+     pthread_t    pthread_id;        /* pthread thread id */
++    unsigned int waitlog_waker;     /* who ended the last server wait (waitlog.c) */
+     void        *jmp_buf;           /* setjmp buffer for exception handling */
+     void        *start;             /* thread entry point */
+     void        *param;             /* thread entry point parameter */
+@@ -259,6 +260,72 @@ extern unsigned int server_select( const union select_op *select_op, data_size_t
+ extern unsigned int server_wait( const union select_op *select_op, data_size_t size, UINT flags,
+                                  const LARGE_INTEGER *timeout );
+ extern unsigned int server_wait_for_object( HANDLE handle, BOOL alertable, const LARGE_INTEGER *timeout );
++
++/* waitlog.c: wait recorder (Squark), off unless $WINEPREFIX/squark-waitlog exists */
++enum waitlog_kind
++{
++    WAITLOG_SERVER_WAIT = 1,       /* NtWaitForSingleObject/NtWaitForMultipleObjects: obj = handle that ended it */
++    WAITLOG_SIGNAL_AND_WAIT,       /* obj = handle waited on */
++    WAITLOG_KEYED_WAIT,            /* obj = key */
++    WAITLOG_KEYED_RELEASE,         /* obj = key */
++    WAITLOG_DELAY,                 /* Sleep(n): obj = timeout (100 ns, negative is relative) */
++    WAITLOG_DELAY_ALERTABLE,       /* SleepEx(n, TRUE), through the server */
++    WAITLOG_YIELD,                 /* run of NtYieldExecution / Sleep(0): obj = how many */
++    WAITLOG_ALERT_WAIT,            /* NtWaitForAlertByThreadId: obj = address hint (top byte: for what) */
++    WAITLOG_ALERT_SEND,            /* NtAlertThreadByThreadId: obj = target thread id */
++    WAITLOG_SET_EVENT,             /* obj = handle */
++    WAITLOG_PULSE_EVENT,
++    WAITLOG_RELEASE_SEMAPHORE,
++    WAITLOG_RELEASE_MUTANT,
++    WAITLOG_IO_COMPLETION,         /* NtRemoveIoCompletion(Ex): obj = completion port */
++};
++
++#define WAITLOG_F_COUNT     0x007f  /* number of handles */
++#define WAITLOG_F_ALL       0x0080  /* WaitAll */
++#define WAITLOG_F_ALERTABLE 0x0100
++#define WAITLOG_F_TIMEOUT   0x0200  /* a finite timeout was given */
++#define WAITLOG_F_POLL      0x0400  /* zero timeout */
++#define WAITLOG_F_NOBLOCK   0x0800  /* alert wait: the alert was already there */
++#define WAITLOG_F_OPEN      0x1000  /* still waiting when the window ended */
++
++#define WAITLOG_WAKER_IMMEDIATE 1   /* server wait satisfied by the select request itself */
++
++enum waitlog_state
++{
++    WAITLOG_STATE_OFF = 0,
++    WAITLOG_STATE_RECORDING,
++    WAITLOG_STATE_STOPPED,
++    WAITLOG_STATE_GATHER,
++    WAITLOG_STATE_GATHERING,
++    WAITLOG_STATE_GATHERED,
++};
++
++extern int waitlog_state;
++extern ULONGLONG waitlog_begin( unsigned int kind, ULONG_PTR obj );
++extern void waitlog_end( ULONGLONG start, unsigned int kind, unsigned int flags, ULONG_PTR obj,
++                         unsigned int status, unsigned int waker );
++extern void waitlog_yield( ULONGLONG start );
++extern void waitlog_alert_sent( HANDLE tid );
++extern unsigned int waitlog_take_alerter(void);
++extern void waitlog_init(void);
++
++/* while off, one load and no call */
++static inline ULONGLONG waitlog_start( unsigned int kind, ULONG_PTR obj )
++{
++    if (__builtin_expect( !__atomic_load_n( &waitlog_state, __ATOMIC_RELAXED ), 1 )) return 0;
++    return waitlog_begin( kind, obj );
++}
++
++static inline unsigned int waitlog_flags( DWORD count, BOOL all, BOOLEAN alertable, const LARGE_INTEGER *timeout )
++{
++    unsigned int flags = (count < WAITLOG_F_COUNT ? count : WAITLOG_F_COUNT);
++
++    if (all) flags |= WAITLOG_F_ALL;
++    if (alertable) flags |= WAITLOG_F_ALERTABLE;
++    if (timeout && timeout->QuadPart != TIMEOUT_INFINITE)
++        flags |= timeout->QuadPart ? WAITLOG_F_TIMEOUT : WAITLOG_F_POLL;
++    return flags;
++}
+ extern unsigned int server_queue_process_apc( HANDLE process, const union apc_call *call,
+                                               union apc_result *result );
+ extern int server_get_unix_fd( HANDLE handle, unsigned int wanted_access, int *unix_fd,
+diff --git a/dlls/ntdll/unix/waitlog.c b/dlls/ntdll/unix/waitlog.c
+new file mode 100644
+index 0000000..c1640b1
+--- /dev/null
++++ b/dlls/ntdll/unix/waitlog.c
+@@ -0,0 +1,927 @@
++/*
++ * Wait recorder (Squark): which thread waits, how long, on what, and who wakes it.
++ *
++ * Copyright 2026 Squark contributors
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
++ *
++ * Off unless the directory $WINEPREFIX/squark-waitlog (or $SQUARK_WAITLOG_DIR) exists when a
++ * process starts. Then a thread of this file watches that directory with kqueue, sleeping
++ * until a file in it changes. Writing a file "ctl" there (see parse_ctl) starts a window of a
++ * few seconds in each matching process. While it is off, every instrumented wait costs one
++ * load of waitlog_state; the events of a window go to memory allocated up front and are
++ * written out only after the window, by this thread.
++ */
++
++#if 0
++#pragma makedep unix
++#endif
++
++#include "config.h"
++
++#ifdef __APPLE__
++
++#include <errno.h>
++#include <fcntl.h>
++#include <pthread.h>
++#include <signal.h>
++#include <stdarg.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/event.h>
++#include <sys/mman.h>
++#include <sys/stat.h>
++#include <sys/time.h>
++#include <time.h>
++#include <unistd.h>
++#include <mach/mach.h>
++#include <mach/mach_time.h>
++
++#include "ntstatus.h"
++#define WIN32_NO_STATUS
++#include "windef.h"
++#include "winternl.h"
++#include "wine/server.h"
++#include "wine/debug.h"
++#include "unix_private.h"
++
++WINE_DEFAULT_DEBUG_CHANNEL(sync);
++
++int waitlog_state;  /* WAITLOG_STATE_*; read on every instrumented wait */
++
++#define WL_MAX_TIDX      65536    /* Windows thread ids up to 4 * this are tracked per thread */
++#define WL_MAX_OBJS      8192
++#define WL_MAX_THREADS   4096
++#define WL_STRINGS       (1 << 20)
++
++struct waitlog_event
++{
++    ULONGLONG start;   /* mach_absolute_time() */
++    ULONGLONG end;
++    ULONGLONG obj;     /* handle, address hint, key, target thread id, timeout or yield count */
++    UINT      tid;     /* Windows thread id of the thread that waited or acted */
++    UINT      waker;   /* WAITLOG_WAKER_* or a thread id, see the README */
++    UINT      status;  /* what the call returned */
++    USHORT    kind;    /* WAITLOG_*, written last */
++    USHORT    flags;   /* WAITLOG_F_* */
++};
++C_ASSERT( sizeof(struct waitlog_event) == 40 );
++
++struct wl_thread
++{
++    ULONGLONG wait_start;  /* wait in progress, 0 if none (exchanged by its owner or the stop scan) */
++    ULONGLONG wait_obj;
++    ULONGLONG ystart;      /* run of yields in progress */
++    ULONGLONG yend;
++    UINT      ycount;
++    USHORT    wait_kind;
++    USHORT    wait_flags;
++    UINT      alerter;     /* last thread that alerted this one */
++    UINT      port;        /* Mach port name of the thread, once it logged something */
++    ULONGLONG mach_id;     /* pthread_threadid_np(), the "Thread_<n>" of sample(1) */
++};
++
++struct wl_snap
++{
++    UINT      port;
++    UINT      run_state;
++    ULONGLONG mach_id;
++    ULONGLONG cpu_us;
++    char      name[64];
++};
++
++struct wl_tinfo
++{
++    UINT      tid;
++    UINT      port;
++    UINT      order;
++    UINT      name;        /* offset in strings, 0 if none */
++    ULONGLONG entry;
++};
++
++struct wl_obj
++{
++    ULONGLONG handle;
++    UINT      type;        /* offsets in strings */
++    UINT      name;
++};
++
++static struct
++{
++    struct waitlog_event *events;
++    ULONGLONG capacity;
++    ULONGLONG count;
++    struct wl_thread *threads;
++    ULONGLONG t_on, t0, t1;
++    ULONGLONG yield_gap;
++    struct wl_snap *snap0, *snap1;
++    unsigned int nsnap0, nsnap1;
++    struct wl_tinfo *tinfo;
++    unsigned int ntinfo;
++    struct wl_obj *objs;
++    unsigned int nobjs;
++    char *strings;
++    unsigned int strings_used;
++    int gathered;
++    int open_waits, open_yields;
++} wl;
++
++static char wl_dir[1024];
++static char wl_exe[260];
++static UINT wl_wine_pid;
++static mach_timebase_info_data_t wl_timebase;
++
++static inline ULONGLONG wl_now(void)
++{
++    return mach_absolute_time();
++}
++
++static struct wl_thread *wl_self( UINT *tid_ret )
++{
++    struct thread_data *data = get_thread_data();
++    UINT tid, idx;
++
++    *tid_ret = 0;
++    if (!data) return NULL;
++    tid = data->tid;
++    *tid_ret = tid;
++    idx = tid >> 2;
++    if (idx >= WL_MAX_TIDX || !wl.threads) return NULL;
++    return &wl.threads[idx];
++}
++
++static void wl_register( struct wl_thread *t )
++{
++    uint64_t id = 0;
++
++    if (t->port) return;
++    pthread_threadid_np( NULL, &id );
++    t->mach_id = id;
++    t->port = pthread_mach_thread_np( pthread_self() );
++}
++
++static void wl_append( ULONGLONG start, ULONGLONG end, ULONGLONG obj, UINT tid, UINT waker,
++                       UINT status, USHORT kind, USHORT flags )
++{
++    ULONGLONG i = __atomic_fetch_add( &wl.count, 1, __ATOMIC_RELAXED );
++    struct waitlog_event *e;
++
++    if (i >= wl.capacity) return;
++    e = &wl.events[i];
++    e->start = start;
++    e->end = end;
++    e->obj = obj;
++    e->tid = tid;
++    e->waker = waker;
++    e->status = status;
++    e->flags = flags;
++    __atomic_store_n( &e->kind, kind, __ATOMIC_RELEASE );
++}
++
++static void wl_flush_yields( struct wl_thread *t, UINT tid )
++{
++    UINT count = __atomic_exchange_n( &t->ycount, 0, __ATOMIC_SEQ_CST );
++
++    if (count) wl_append( t->ystart, t->yend, count, tid, 0, 0, WAITLOG_YIELD, 0 );
++}
++
++static BOOL wl_blocking_kind( unsigned int kind )
++{
++    switch (kind)
++    {
++    case WAITLOG_SET_EVENT:
++    case WAITLOG_PULSE_EVENT:
++    case WAITLOG_RELEASE_SEMAPHORE:
++    case WAITLOG_RELEASE_MUTANT:
++    case WAITLOG_ALERT_SEND:
++    case WAITLOG_YIELD:
++        return FALSE;
++    }
++    return TRUE;
++}
++
++static void wl_gather(void);
++
++/* slow path of waitlog_start(): returns the start time while recording, else 0 */
++ULONGLONG waitlog_begin( unsigned int kind, ULONG_PTR obj )
++{
++    int state = __atomic_load_n( &waitlog_state, __ATOMIC_ACQUIRE );
++    struct wl_thread *t;
++    ULONGLONG now;
++    UINT tid;
++
++    if (state == WAITLOG_STATE_RECORDING)
++    {
++        now = wl_now();
++        if ((t = wl_self( &tid )))
++        {
++            wl_register( t );
++            if (wl_blocking_kind( kind ))
++            {
++                t->wait_kind = kind;
++                t->wait_obj = obj;
++                __atomic_store_n( &t->wait_start, now, __ATOMIC_SEQ_CST );
++            }
++        }
++        return now;
++    }
++    if (state == WAITLOG_STATE_GATHER && wl_blocking_kind( kind ) &&
++        __sync_bool_compare_and_swap( &waitlog_state, WAITLOG_STATE_GATHER, WAITLOG_STATE_GATHERING ))
++    {
++        /* on a Windows thread, before it waits: names of threads and objects need the server */
++        wl_gather();
++        __atomic_store_n( &waitlog_state, WAITLOG_STATE_GATHERED, __ATOMIC_RELEASE );
++    }
++    return 0;
++}
++
++void waitlog_end( ULONGLONG start, unsigned int kind, unsigned int flags, ULONG_PTR obj,
++                  unsigned int status, unsigned int waker )
++{
++    ULONGLONG end = wl_now();
++    UINT tid;
++    struct wl_thread *t = wl_self( &tid );
++    int state;
++
++    if (t)
++    {
++        if (wl_blocking_kind( kind ) && !__atomic_exchange_n( &t->wait_start, 0, __ATOMIC_SEQ_CST ))
++            return;  /* the stop scan wrote it as a wait still open at the end of the window */
++        if (t->ycount) wl_flush_yields( t, tid );
++    }
++    state = __atomic_load_n( &waitlog_state, __ATOMIC_SEQ_CST );
++    if (state != WAITLOG_STATE_RECORDING && state != WAITLOG_STATE_STOPPED) return;
++    wl_append( start, end, obj, tid, waker, status, kind, flags );
++}
++
++/* NtYieldExecution, Sleep(0): runs of them closer than yield_gap become one event */
++void waitlog_yield( ULONGLONG start )
++{
++    ULONGLONG end = wl_now();
++    struct wl_thread *t;
++    UINT tid;
++
++    if (!(t = wl_self( &tid ))) return;
++    if (t->ycount && start - t->yend <= wl.yield_gap)
++    {
++        t->yend = end;
++        t->ycount++;
++        return;
++    }
++    if (t->ycount) wl_flush_yields( t, tid );
++    t->ystart = start;
++    t->yend = end;
++    __atomic_store_n( &t->ycount, 1, __ATOMIC_SEQ_CST );
++}
++
++void waitlog_alert_sent( HANDLE target )
++{
++    UINT tid, idx = HandleToULong( target ) >> 2;
++    struct wl_thread *t;
++    ULONGLONG now;
++
++    int state = __atomic_load_n( &waitlog_state, __ATOMIC_ACQUIRE );
++
++    /* after the window a wait that began in it may still end: it gets its waker too */
++    if (state != WAITLOG_STATE_RECORDING && state != WAITLOG_STATE_STOPPED) return;
++    now = wl_now();
++    if ((t = wl_self( &tid ))) wl_register( t );
++    if (idx < WL_MAX_TIDX) __atomic_store_n( &wl.threads[idx].alerter, tid, __ATOMIC_RELEASE );
++    wl_append( now, now, HandleToULong( target ), tid, 0, 0, WAITLOG_ALERT_SEND, 0 );
++}
++
++unsigned int waitlog_take_alerter(void)
++{
++    struct wl_thread *t;
++    UINT tid;
++
++    if (!(t = wl_self( &tid ))) return 0;
++    return __atomic_exchange_n( &t->alerter, 0, __ATOMIC_ACQUIRE );
++}
++
++
++/* strings, gathered data */
++
++static UINT wl_strdup( const char *s, size_t len )
++{
++    UINT off;
++
++    if (!len || wl.strings_used + len + 1 > WL_STRINGS) return 0;
++    off = wl.strings_used;
++    memcpy( wl.strings + off, s, len );
++    wl.strings[off + len] = 0;
++    wl.strings_used += len + 1;
++    return off;
++}
++
++static UINT wl_strdupw( const WCHAR *s, size_t len )
++{
++    char buf[512];
++    size_t i, n = 0;
++
++    for (i = 0; i < len && n < sizeof(buf) - 4; i++)
++    {
++        unsigned int c = s[i];
++        if (c >= 0xd800 && c < 0xdc00 && i + 1 < len && s[i + 1] >= 0xdc00 && s[i + 1] < 0xe000)
++        {
++            c = 0x10000 + ((c - 0xd800) << 10) + (s[i + 1] - 0xdc00);
++            i++;
++        }
++        if (c < 0x80) buf[n++] = c;
++        else if (c < 0x800) { buf[n++] = 0xc0 | (c >> 6); buf[n++] = 0x80 | (c & 0x3f); }
++        else if (c < 0x10000)
++        {
++            buf[n++] = 0xe0 | (c >> 12); buf[n++] = 0x80 | ((c >> 6) & 0x3f); buf[n++] = 0x80 | (c & 0x3f);
++        }
++        else
++        {
++            buf[n++] = 0xf0 | (c >> 18); buf[n++] = 0x80 | ((c >> 12) & 0x3f);
++            buf[n++] = 0x80 | ((c >> 6) & 0x3f); buf[n++] = 0x80 | (c & 0x3f);
++        }
++    }
++    return wl_strdup( buf, n );
++}
++
++static BOOL wl_handle_kind( unsigned int kind )
++{
++    switch (kind)
++    {
++    case WAITLOG_SERVER_WAIT:
++    case WAITLOG_SIGNAL_AND_WAIT:
++    case WAITLOG_IO_COMPLETION:
++    case WAITLOG_SET_EVENT:
++    case WAITLOG_PULSE_EVENT:
++    case WAITLOG_RELEASE_SEMAPHORE:
++    case WAITLOG_RELEASE_MUTANT:
++        return TRUE;
++    }
++    return FALSE;
++}
++
++static void wl_add_obj( ULONGLONG handle )
++{
++    static ULONGLONG hash[WL_MAX_OBJS * 2];
++    unsigned int i, h = (unsigned int)((handle >> 2) * 2654435761u) % (WL_MAX_OBJS * 2);
++
++    if (!handle) { memset( hash, 0, sizeof(hash) ); return; }  /* reset */
++    if ((LONG_PTR)handle < 0 || wl.nobjs >= WL_MAX_OBJS) return;  /* pseudo handles */
++    for (i = 0; i < WL_MAX_OBJS * 2; i++, h = (h + 1) % (WL_MAX_OBJS * 2))
++    {
++        if (hash[h] == handle) return;
++        if (!hash[h]) break;
++    }
++    if (i == WL_MAX_OBJS * 2) return;
++    hash[h] = handle;
++    wl.objs[wl.nobjs++].handle = handle;
++}
++
++static void wl_gather(void)
++{
++    ULONGLONG i, n = wl.count < wl.capacity ? wl.count : wl.capacity;
++    size_t size = 1 << 20;
++    char *buffer = malloc( size );
++    union { THREAD_NAME_INFORMATION ti; OBJECT_TYPE_INFORMATION oti; OBJECT_NAME_INFORMATION oni; char b[2048]; } info;
++    unsigned int status, j, k, process_count = 0, pos = 0;
++    pid_t self = getpid();
++    ULONG len;
++
++    wl.ntinfo = 0;
++    wl.nobjs = 0;
++    if (!buffer) return;
++
++    /* threads of this process: their Windows ids, Mach port names (unix_tid on macOS) and names */
++    SERVER_START_REQ( list_processes )
++    {
++        wine_server_set_reply( req, buffer, size );
++        status = wine_server_call( req );
++        process_count = reply->process_count;
++    }
++    SERVER_END_REQ;
++    for (j = 0; !status && j < process_count; j++)
++    {
++        const struct process_info *p;
++
++        pos = (pos + 7) & ~7;
++        p = (const struct process_info *)(buffer + pos);
++        pos += sizeof(*p) + p->name_len;
++        pos = (pos + 7) & ~7;
++        for (k = 0; k < (unsigned int)p->thread_count; k++)
++        {
++            const struct thread_info *t = (const struct thread_info *)(buffer + pos);
++
++            pos += sizeof(*t);
++            if (p->unix_pid != self || wl.ntinfo >= WL_MAX_THREADS) continue;
++            wl.tinfo[wl.ntinfo].tid = t->tid;
++            wl.tinfo[wl.ntinfo].port = t->unix_tid;
++            wl.tinfo[wl.ntinfo].order = k;
++            wl.tinfo[wl.ntinfo].entry = t->entry_point;
++            wl.tinfo[wl.ntinfo].name = 0;
++            wl.ntinfo++;
++        }
++    }
++    free( buffer );
++
++    for (j = 0; j < wl.ntinfo; j++)
++    {
++        OBJECT_ATTRIBUTES attr;
++        CLIENT_ID cid;
++        HANDLE handle;
++
++        InitializeObjectAttributes( &attr, NULL, 0, NULL, NULL );
++        cid.UniqueProcess = 0;
++        cid.UniqueThread = ULongToHandle( wl.tinfo[j].tid );
++        if (NtOpenThread( &handle, THREAD_QUERY_LIMITED_INFORMATION, &attr, &cid )) continue;
++        if (!NtQueryInformationThread( handle, ThreadNameInformation, &info, sizeof(info), &len ) &&
++            info.ti.ThreadName.Length)
++            wl.tinfo[j].name = wl_strdupw( info.ti.ThreadName.Buffer, info.ti.ThreadName.Length / sizeof(WCHAR) );
++        NtClose( handle );
++    }
++
++    /* objects the window waited on or signaled */
++    wl_add_obj( 0 );
++    for (i = 0; i < n; i++)
++        if (wl_handle_kind( wl.events[i].kind )) wl_add_obj( wl.events[i].obj );
++    for (j = 0; j < wl.nobjs; j++)
++    {
++        HANDLE handle = (HANDLE)(ULONG_PTR)wl.objs[j].handle;
++
++        wl.objs[j].type = wl.objs[j].name = 0;
++        if (!NtQueryObject( handle, ObjectTypeInformation, &info, sizeof(info), &len ))
++            wl.objs[j].type = wl_strdupw( info.oti.TypeName.Buffer, info.oti.TypeName.Length / sizeof(WCHAR) );
++        if (!NtQueryObject( handle, ObjectNameInformation, &info, sizeof(info), &len ) && info.oni.Name.Length)
++            wl.objs[j].name = wl_strdupw( info.oni.Name.Buffer, info.oni.Name.Length / sizeof(WCHAR) );
++    }
++    wl.gathered = 1;
++}
++
++
++/* the watcher thread */
++
++static unsigned int wl_snapshot( struct wl_snap *snap, unsigned int max )
++{
++    thread_act_array_t list;
++    mach_msg_type_number_t count, i;
++    unsigned int n = 0;
++
++    if (task_threads( mach_task_self(), &list, &count ) != KERN_SUCCESS) return 0;
++    for (i = 0; i < count; i++)
++    {
++        thread_basic_info_data_t basic;
++        thread_identifier_info_data_t ident;
++        thread_extended_info_data_t ext;
++        mach_msg_type_number_t c;
++
++        if (n < max)
++        {
++            memset( &snap[n], 0, sizeof(snap[n]) );
++            snap[n].port = list[i];
++            c = THREAD_BASIC_INFO_COUNT;
++            if (!thread_info( list[i], THREAD_BASIC_INFO, (thread_info_t)&basic, &c ))
++            {
++                snap[n].cpu_us = basic.user_time.seconds * 1000000ull + basic.user_time.microseconds +
++                                 basic.system_time.seconds * 1000000ull + basic.system_time.microseconds;
++                snap[n].run_state = basic.run_state;
++            }
++            c = THREAD_IDENTIFIER_INFO_COUNT;
++            if (!thread_info( list[i], THREAD_IDENTIFIER_INFO, (thread_info_t)&ident, &c ))
++                snap[n].mach_id = ident.thread_id;
++            c = THREAD_EXTENDED_INFO_COUNT;
++            if (!thread_info( list[i], THREAD_EXTENDED_INFO, (thread_info_t)&ext, &c ))
++            {
++                memcpy( snap[n].name, ext.pth_name, sizeof(snap[n].name) - 1 );
++                snap[n].name[sizeof(snap[n].name) - 1] = 0;
++            }
++            n++;
++        }
++        mach_port_deallocate( mach_task_self(), list[i] );
++    }
++    vm_deallocate( mach_task_self(), (vm_address_t)list, count * sizeof(list[0]) );
++    return n;
++}
++
++struct wl_params
++{
++    char      id[64];
++    char      exe[260];
++    char      out[1024];
++    double    seconds;
++    double    warmup;
++    ULONGLONG events;
++    ULONGLONG yield_gap_us;
++};
++
++static void wl_trim( char *s )
++{
++    char *p = s + strlen( s );
++    while (p > s && (p[-1] == ' ' || p[-1] == '\t' || p[-1] == '\r')) *--p = 0;
++}
++
++/* ctl: key=value lines. id (required, a new one starts a window), exe (base name of the process,
++ * case-insensitive, or * for any; default *), seconds (default 10), warmup (default 0.5),
++ * events (buffer size, default 2000000), yieldgap_us (default 100), out (directory, default the
++ * control directory) */
++static BOOL wl_parse_ctl( struct wl_params *p )
++{
++    char path[1100], buf[4096], *line, *next;
++    int fd;
++    ssize_t len;
++
++    memset( p, 0, sizeof(*p) );
++    strcpy( p->exe, "*" );
++    p->seconds = 10;
++    p->warmup = 0.5;
++    p->events = 2000000;
++    p->yield_gap_us = 100;
++    snprintf( p->out, sizeof(p->out), "%s", wl_dir );
++
++    snprintf( path, sizeof(path), "%s/ctl", wl_dir );
++    if ((fd = open( path, O_RDONLY )) == -1) return FALSE;
++    len = read( fd, buf, sizeof(buf) - 1 );
++    close( fd );
++    if (len <= 0) return FALSE;
++    buf[len] = 0;
++    for (line = buf; line; line = next)
++    {
++        char *eq;
++
++        if ((next = strchr( line, '\n' ))) *next++ = 0;
++        wl_trim( line );
++        if (!(eq = strchr( line, '=' ))) continue;
++        *eq++ = 0;
++        if (!strcmp( line, "id" )) snprintf( p->id, sizeof(p->id), "%s", eq );
++        else if (!strcmp( line, "exe" )) snprintf( p->exe, sizeof(p->exe), "%s", eq );
++        else if (!strcmp( line, "out" )) snprintf( p->out, sizeof(p->out), "%s", eq );
++        else if (!strcmp( line, "seconds" )) p->seconds = atof( eq );
++        else if (!strcmp( line, "warmup" )) p->warmup = atof( eq );
++        else if (!strcmp( line, "events" )) p->events = strtoull( eq, NULL, 10 );
++        else if (!strcmp( line, "yieldgap_us" )) p->yield_gap_us = strtoull( eq, NULL, 10 );
++    }
++    for (line = p->id; *line; line++)
++        if (!((*line >= '0' && *line <= '9') || (*line >= 'a' && *line <= 'z') || (*line >= 'A' && *line <= 'Z') ||
++              *line == '-' || *line == '_' || *line == '.')) *line = '_';
++    if (p->seconds <= 0 || p->seconds > 600) p->seconds = 10;
++    if (p->warmup < 0 || p->warmup > 60) p->warmup = 0.5;
++    if (p->events < 1000) p->events = 1000;
++    if (p->events > 50000000) p->events = 50000000;
++    return p->id[0] != 0;
++}
++
++static void wl_exe_name(void)
++{
++    const UNICODE_STRING *path;
++    const WCHAR *s;
++    size_t i, n, start = 0;
++
++    if (wl_exe[0] || !peb || !peb->ProcessParameters) return;
++    path = &peb->ProcessParameters->ImagePathName;
++    if (!path->Buffer) return;
++    s = path->Buffer;
++    n = path->Length / sizeof(WCHAR);
++    for (i = 0; i < n; i++) if (s[i] == '\\' || s[i] == '/') start = i + 1;
++    for (i = start, n = (n - start < sizeof(wl_exe) - 1) ? n : start + sizeof(wl_exe) - 1; i < n; i++)
++        wl_exe[i - start] = (s[i] < 0x80 && s[i] > 0x20) ? s[i] : '_';
++    wl_exe[n - start] = 0;
++}
++
++static void wl_sleep_until( ULONGLONG deadline )
++{
++    for (;;)
++    {
++        ULONGLONG now = wl_now(), ns;
++        struct timespec ts;
++
++        if (now >= deadline) return;
++        ns = (deadline - now) * wl_timebase.numer / wl_timebase.denom;
++        ts.tv_sec = ns / 1000000000;
++        ts.tv_nsec = ns % 1000000000;
++        nanosleep( &ts, NULL );
++    }
++}
++
++static ULONGLONG wl_ticks( double seconds )
++{
++    return (ULONGLONG)(seconds * 1e9 * wl_timebase.denom / wl_timebase.numer);
++}
++
++static void wl_json_str( FILE *f, const char *s )
++{
++    fputc( '"', f );
++    for (; s && *s; s++)
++    {
++        unsigned char c = *s;
++        if (c == '"' || c == '\\') fprintf( f, "\\%c", c );
++        else if (c < 0x20) fprintf( f, "\\u%04x", c );
++        else fputc( c, f );
++    }
++    fputc( '"', f );
++}
++
++static void wl_write( const struct wl_params *p, ULONGLONG wall_on_us, const char *err )
++{
++    char base[1500], path[1600], tmp[1700];
++    ULONGLONG i, n = wl.count < wl.capacity ? wl.count : wl.capacity;
++    unsigned int j;
++    FILE *f;
++    int fd;
++
++    snprintf( base, sizeof(base), "%s/waitlog-%s-%s-%d", p->out, p->id, wl_exe, (int)getpid() );
++    if (!err)
++    {
++        snprintf( path, sizeof(path), "%s.events", base );
++        if ((fd = open( path, O_WRONLY | O_CREAT | O_TRUNC, 0644 )) != -1)
++        {
++            const char *ptr = (const char *)wl.events;
++            size_t left = n * sizeof(struct waitlog_event);
++            while (left)
++            {
++                ssize_t r = write( fd, ptr, left > (1 << 24) ? (1 << 24) : left );
++                if (r <= 0) break;
++                ptr += r;
++                left -= r;
++            }
++            close( fd );
++        }
++    }
++    snprintf( tmp, sizeof(tmp), "%s.json.tmp", base );
++    if (!(f = fopen( tmp, "w" ))) return;
++    fprintf( f, "{\n \"version\": 1,\n \"id\": " );
++    wl_json_str( f, p->id );
++    fprintf( f, ",\n \"exe\": " );
++    wl_json_str( f, wl_exe );
++    fprintf( f, ",\n \"pid\": %d,\n \"wine_pid\": %u,\n", (int)getpid(), wl_wine_pid );
++    if (err)
++    {
++        fprintf( f, " \"error\": " );
++        wl_json_str( f, err );
++        fprintf( f, "\n}\n" );
++        fclose( f );
++        snprintf( path, sizeof(path), "%s.json", base );
++        rename( tmp, path );
++        return;
++    }
++    fprintf( f, " \"timebase\": [%u, %u],\n", wl_timebase.numer, wl_timebase.denom );
++    fprintf( f, " \"t_on\": %llu,\n \"t0\": %llu,\n \"t1\": %llu,\n \"wall_on_us\": %llu,\n",
++             (unsigned long long)wl.t_on, (unsigned long long)wl.t0, (unsigned long long)wl.t1,
++             (unsigned long long)wall_on_us );
++    fprintf( f, " \"seconds\": %g,\n \"warmup\": %g,\n \"yield_gap_us\": %llu,\n", p->seconds, p->warmup,
++             (unsigned long long)p->yield_gap_us );
++    fprintf( f, " \"capacity\": %llu,\n \"appended\": %llu,\n \"events\": %llu,\n \"event_size\": %u,\n",
++             (unsigned long long)wl.capacity, (unsigned long long)wl.count, (unsigned long long)n,
++             (unsigned int)sizeof(struct waitlog_event) );
++    fprintf( f, " \"open_waits\": %d,\n \"open_yields\": %d,\n \"gathered\": %s,\n", wl.open_waits,
++             wl.open_yields, wl.gathered ? "true" : "false" );
++    fprintf( f, " \"threads\": [" );
++    for (j = 0; j < wl.ntinfo; j++)
++    {
++        fprintf( f, "%s\n  {\"tid\": %u, \"port\": %u, \"order\": %u, \"entry\": \"0x%llx\", \"name\": ", j ? "," : "",
++                 wl.tinfo[j].tid, wl.tinfo[j].port, wl.tinfo[j].order, (unsigned long long)wl.tinfo[j].entry );
++        wl_json_str( f, wl.tinfo[j].name ? wl.strings + wl.tinfo[j].name : "" );
++        fputc( '}', f );
++    }
++    fprintf( f, "\n ],\n \"logged\": [" );
++    for (i = 0, j = 0; i < WL_MAX_TIDX; i++)
++    {
++        if (!wl.threads[i].port) continue;
++        fprintf( f, "%s\n  {\"tid\": %u, \"port\": %u, \"mach_id\": %llu}", j++ ? "," : "", (unsigned int)(i << 2),
++                 wl.threads[i].port, (unsigned long long)wl.threads[i].mach_id );
++    }
++    fprintf( f, "\n ],\n \"mach\": [" );
++    for (j = 0; j < wl.nsnap1; j++)
++    {
++        unsigned int k;
++        long long cpu0 = -1;
++
++        for (k = 0; k < wl.nsnap0; k++)
++            if (wl.snap0[k].mach_id == wl.snap1[j].mach_id) { cpu0 = wl.snap0[k].cpu_us; break; }
++        fprintf( f, "%s\n  {\"port\": %u, \"mach_id\": %llu, \"cpu0_us\": %lld, \"cpu1_us\": %llu, \"run_state\": %u, \"pthread\": ",
++                 j ? "," : "", wl.snap1[j].port, (unsigned long long)wl.snap1[j].mach_id, cpu0,
++                 (unsigned long long)wl.snap1[j].cpu_us, wl.snap1[j].run_state );
++        wl_json_str( f, wl.snap1[j].name );
++        fputc( '}', f );
++    }
++    fprintf( f, "\n ],\n \"objects\": [" );
++    for (j = 0; j < wl.nobjs; j++)
++    {
++        fprintf( f, "%s\n  {\"handle\": \"0x%llx\", \"type\": ", j ? "," : "", (unsigned long long)wl.objs[j].handle );
++        wl_json_str( f, wl.objs[j].type ? wl.strings + wl.objs[j].type : "" );
++        fprintf( f, ", \"name\": " );
++        wl_json_str( f, wl.objs[j].name ? wl.strings + wl.objs[j].name : "" );
++        fputc( '}', f );
++    }
++    fprintf( f, "\n ]\n}\n" );
++    fclose( f );
++    snprintf( path, sizeof(path), "%s.json", base );
++    rename( tmp, path );
++}
++
++static void *wl_map( size_t size )
++{
++    void *ptr = mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0 );
++    return ptr == MAP_FAILED ? NULL : ptr;
++}
++
++static void wl_session( const struct wl_params *p )
++{
++    static ULONGLONG mapped_events;
++    struct timeval tv;
++    ULONGLONG wall_on_us, deadline, i;
++    int tries;
++
++    /* Buffers stay mapped between windows: a thread still finishing a wait of the last window
++     * may write to them after they were written out. */
++    if (!wl.threads)
++    {
++        wl.threads = wl_map( WL_MAX_TIDX * sizeof(*wl.threads) );
++        wl.snap0 = wl_map( WL_MAX_THREADS * sizeof(*wl.snap0) );
++        wl.snap1 = wl_map( WL_MAX_THREADS * sizeof(*wl.snap1) );
++        wl.tinfo = wl_map( WL_MAX_THREADS * sizeof(*wl.tinfo) );
++        wl.objs = wl_map( WL_MAX_OBJS * sizeof(*wl.objs) );
++        wl.strings = wl_map( WL_STRINGS );
++        if (!wl.threads || !wl.snap0 || !wl.snap1 || !wl.tinfo || !wl.objs || !wl.strings)
++        {
++            wl.threads = NULL;
++            wl_write( p, 0, "out of memory" );
++            return;
++        }
++    }
++    if (p->events > mapped_events)
++    {
++        struct waitlog_event *events = wl_map( p->events * sizeof(*events) );
++        if (!events)
++        {
++            wl_write( p, 0, "cannot allocate the event buffer" );
++            return;
++        }
++        if (wl.events) munmap( wl.events, mapped_events * sizeof(*events) );
++        wl.events = events;
++        mapped_events = p->events;
++    }
++    else memset( wl.events, 0, p->events * sizeof(*wl.events) );
++    memset( wl.threads, 0, WL_MAX_TIDX * sizeof(*wl.threads) );
++    wl.capacity = p->events;
++    wl.count = 0;
++    wl.yield_gap = wl_ticks( p->yield_gap_us / 1e6 );
++    wl.strings_used = 1;
++    wl.gathered = wl.open_waits = wl.open_yields = 0;
++    wl.ntinfo = wl.nobjs = 0;
++
++    gettimeofday( &tv, NULL );
++    wall_on_us = tv.tv_sec * 1000000ull + tv.tv_usec;
++    wl.t_on = wl_now();
++    __atomic_store_n( &waitlog_state, WAITLOG_STATE_RECORDING, __ATOMIC_SEQ_CST );
++
++    /* waits that began before the recording started are lost: the warmup keeps them out of the window */
++    wl.t0 = wl.t_on + wl_ticks( p->warmup );
++    wl_sleep_until( wl.t0 );
++    wl.nsnap0 = wl_snapshot( wl.snap0, WL_MAX_THREADS );
++    deadline = wl.t0 + wl_ticks( p->seconds );
++    wl_sleep_until( deadline );
++
++    __atomic_store_n( &waitlog_state, WAITLOG_STATE_STOPPED, __ATOMIC_SEQ_CST );
++    wl.t1 = wl_now();
++    wl.nsnap1 = wl_snapshot( wl.snap1, WL_MAX_THREADS );
++
++    /* waits still in progress end at t1 */
++    for (i = 0; i < WL_MAX_TIDX; i++)
++    {
++        struct wl_thread *t = &wl.threads[i];
++        ULONGLONG start;
++        UINT count;
++
++        if (!t->port) continue;
++        if ((start = __atomic_exchange_n( &t->wait_start, 0, __ATOMIC_SEQ_CST )))
++        {
++            wl_append( start, wl.t1, t->wait_obj, i << 2, 0, STATUS_PENDING, t->wait_kind, WAITLOG_F_OPEN );
++            wl.open_waits++;
++        }
++        if ((count = __atomic_exchange_n( &t->ycount, 0, __ATOMIC_SEQ_CST )))
++        {
++            wl_append( t->ystart, t->yend, count, i << 2, 0, 0, WAITLOG_YIELD, WAITLOG_F_OPEN );
++            wl.open_yields++;
++        }
++    }
++
++    /* let a Windows thread look up thread and object names, then stop */
++    usleep( 2000 );
++    __atomic_store_n( &waitlog_state, WAITLOG_STATE_GATHER, __ATOMIC_SEQ_CST );
++    for (tries = 0; tries < 600; tries++)
++    {
++        if (__atomic_load_n( &waitlog_state, __ATOMIC_ACQUIRE ) == WAITLOG_STATE_GATHERED) break;
++        usleep( 5000 );
++    }
++    if (!__sync_bool_compare_and_swap( &waitlog_state, WAITLOG_STATE_GATHER, WAITLOG_STATE_OFF ))
++    {
++        /* a thread is gathering or done: wait for it */
++        while (__atomic_load_n( &waitlog_state, __ATOMIC_ACQUIRE ) == WAITLOG_STATE_GATHERING) usleep( 1000 );
++        __atomic_store_n( &waitlog_state, WAITLOG_STATE_OFF, __ATOMIC_SEQ_CST );
++    }
++    wl_write( p, wall_on_us, NULL );
++}
++
++static BOOL wl_exe_matches( const char *pattern )
++{
++    if (!strcmp( pattern, "*" )) return TRUE;
++    wl_exe_name();
++    return !strcasecmp( pattern, wl_exe );
++}
++
++static void *wl_watcher( void *arg )
++{
++    char last_id[64] = "";
++    struct wl_params p;
++    struct kevent ev, out;
++    int kq, dirfd;
++
++    mach_timebase_info( &wl_timebase );
++    if ((dirfd = open( wl_dir, O_EVTONLY )) == -1) return NULL;
++    if ((kq = kqueue()) == -1)
++    {
++        close( dirfd );
++        return NULL;
++    }
++    EV_SET( &ev, dirfd, EVFILT_VNODE, EV_ADD | EV_CLEAR, NOTE_WRITE | NOTE_DELETE | NOTE_RENAME | NOTE_REVOKE, 0, 0 );
++    if (kevent( kq, &ev, 1, NULL, 0, NULL ) == -1) goto done;
++
++    /* a ctl from before this process started is not for it */
++    if (wl_parse_ctl( &p )) strcpy( last_id, p.id );
++
++    for (;;)
++    {
++        int r = kevent( kq, NULL, 0, &out, 1, NULL );
++
++        if (r == -1 && errno == EINTR) continue;
++        if (r <= 0) break;
++        if (out.fflags & (NOTE_DELETE | NOTE_RENAME | NOTE_REVOKE)) break;
++        if (!wl_parse_ctl( &p ) || !strcmp( p.id, last_id )) continue;
++        strcpy( last_id, p.id );
++        if (!wl_exe_matches( p.exe )) continue;
++        wl_exe_name();
++        wl_session( &p );
++    }
++done:
++    close( kq );
++    close( dirfd );
++    return NULL;
++}
++
++/* called once per process, from server_init_process_done() */
++void waitlog_init(void)
++{
++    const char *env = getenv( "SQUARK_WAITLOG_DIR" );
++    struct thread_data *data = get_thread_data();
++    pthread_attr_t attr;
++    pthread_t thread;
++    sigset_t all, old;
++    struct stat st;
++
++    if (data && data->teb) wl_wine_pid = HandleToULong( data->teb->ClientId.UniqueProcess );
++    if (env && *env) snprintf( wl_dir, sizeof(wl_dir), "%s", env );
++    else if (config_dir) snprintf( wl_dir, sizeof(wl_dir), "%s/squark-waitlog", config_dir );
++    else return;
++    if (stat( wl_dir, &st ) == -1 || !S_ISDIR( st.st_mode )) return;
++
++    /* the watcher is no Windows thread: no Wine signal may land on it */
++    sigfillset( &all );
++    pthread_sigmask( SIG_SETMASK, &all, &old );
++    pthread_attr_init( &attr );
++    pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
++    pthread_attr_setstacksize( &attr, 256 * 1024 );
++    if (!pthread_create( &thread, &attr, wl_watcher, NULL ))
++        TRACE( "watching %s\n", debugstr_a(wl_dir) );
++    pthread_attr_destroy( &attr );
++    pthread_sigmask( SIG_SETMASK, &old, NULL );
++}
++
++#else  /* __APPLE__ */
++
++#include "ntstatus.h"
++#define WIN32_NO_STATUS
++#include "windef.h"
++#include "winternl.h"
++#include "unix_private.h"
++
++int waitlog_state;
++
++ULONGLONG waitlog_begin( unsigned int kind, ULONG_PTR obj ) { return 0; }
++void waitlog_end( ULONGLONG start, unsigned int kind, unsigned int flags, ULONG_PTR obj,
++                  unsigned int status, unsigned int waker ) { }
++void waitlog_yield( ULONGLONG start ) { }
++void waitlog_alert_sent( HANDLE target ) { }
++unsigned int waitlog_take_alerter(void) { return 0; }
++void waitlog_init(void) { }
++
++#endif  /* __APPLE__ */
+diff --git a/server/thread.c b/server/thread.c
+index 58d67c7..1ed6595 100644
+--- a/server/thread.c
++++ b/server/thread.c
+@@ -1161,6 +1161,7 @@ static int check_wait( struct thread *thread )
+ static int send_thread_wakeup( struct thread *thread, client_ptr_t cookie, int signaled )
+ {
+     struct wake_up_reply reply;
++    unsigned int waker;
+     int ret;
+ 
+     /* check if we're waking current suspend wait */
+@@ -1178,6 +1179,11 @@ static int send_thread_wakeup( struct thread *thread, client_ptr_t cookie, int s
+     memset( &reply, 0, sizeof(reply) );
+     reply.cookie   = cookie;
+     reply.signaled = signaled;
++    /* Squark's wait recorder (ntdll waitlog.c): which thread's request woke it, 0x80000000 alone for
++     * none (a timeout, an fd or a timer). Bits 21-30: request code + 1, bits 0-20: thread id / 4. */
++    waker = 0x80000000;
++    if (current) waker |= (((current->req.request_header.req + 1) & 0x3ff) << 21) | ((current->id >> 2) & 0x1fffff);
++    reply.__pad    = waker;
+     if ((ret = write( get_unix_fd( thread->wait_fd ), &reply, sizeof(reply) )) == sizeof(reply))
+         return 0;
+     if (ret >= 0)
