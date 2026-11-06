@@ -78,3 +78,19 @@ WineHQ Wine 11.18.
   recording started (the warmup keeps them out of the window), waits outside ntdll (Vulkan driver, Cocoa).
   squark's `tools/waitlog/waitlog.py` turns a recording into tables; `tools/waitlog-test/` has the test
   program with known answers.
+- `0062-ntdll-threadpool-timer-queue-waits-forever-without-relative-timers.patch`: the thread pool's timer
+  queue thread (`wine_threadpool_timerqueue`) waits forever on its relative NT timer when no relative timer
+  is pending. `update_timers` armed it with `rel_now - MAXLONGLONG`; the wineserver's `timeout - monotonic_time`
+  (`timeout_to_abstime`) overflows on that, and our clang/arm64 wineserver then files the wrapped, positive
+  value in its relative list, where `get_next_timeout` finds it expired at once. The thread spun as long as
+  the process had a thread pool timer object but no relative timer pending (an unset timer, a one-shot that
+  ran, only absolute due times): MSFS 2024 227,384 waits in 10 s, a third of a core plus the wineserver's
+  share. squark's `tools/tptimer-test/` reproduces it (idle timer: 144,000-164,000 waits in 4 s and 44-46%
+  of a core in the wineserver before, none after); periodic timers fire the same, and Wine's
+  `ntdll_test threadpool` no longer fails "expected that timers are merged" (threadpool.c:1625: absolute
+  timers with a window length now merge as designed). Wine master still has the same code (since f6c53a24).
+- `0063-ntdll-tptimer-debug-channel.patch`: `WINEDEBUG=+tptimer` (off by default) logs thread pool timers as
+  the program sets them: TpAllocTimer with the module its callback is in, tp_set_timer with the due time
+  (relative ms, absolute as ms from now, 0, NULL to cancel), period and window, TpReleaseTimer; and once a
+  second the timer queue thread's rounds (which NT timer woke it, rounds with no relative timer pending,
+  callbacks submitted, timer objects, pending timers). No summary line means the thread did not wake.
