@@ -79,8 +79,12 @@ class PE:
         return [(va, vs) for n, va, vs, ra, rs, ch in self.secs if ch & 0x20000000]  # IMAGE_SCN_MEM_EXECUTE
 
     def functions(self):
-        """(begin, end) RVAs from .pdata (ARM64 RUNTIME_FUNCTION)."""
+        """(begin, end) RVAs from .pdata (ARM64 RUNTIME_FUNCTION). An ARM64X image (Wine's) has them in its exception
+        directory; a pure ARM64EC one (vkd3d-proton's, the header says AMD64) has an empty one and keeps them in the
+        CHPE metadata's ExtraRFETable."""
         rva, size = self.dirs[3]
+        if not size:
+            rva, size = self.extra_rfe()
         out = []
         for i in range(size // 8):
             begin, unwind = struct.unpack_from('<II', self.d, self.off(rva) + 8 * i)
@@ -100,6 +104,14 @@ class PE:
             return None
         va = struct.unpack_from('<Q', self.d, lc + 0xc8)[0]
         return struct.unpack_from('<14I', self.d, self.off(va - self.base)) if va else None
+
+    def extra_rfe(self):
+        """IMAGE_ARM64EC_METADATA's ExtraRFETable and ExtraRFETableSize (ULONGs 16 and 17), or (0, 0)."""
+        if not self.chpe():
+            return (0, 0)
+        lc = self.off(self.dirs[10][0])
+        va = struct.unpack_from('<Q', self.d, lc + 0xc8)[0]
+        return struct.unpack_from('<2I', self.d, self.off(va - self.base) + 64)
 
     def exports(self):
         """name -> RVA, or the forwarder string ('NTDLL.RtlFreeHeap')."""
@@ -182,6 +194,11 @@ FENCED = ('pNotifyMapViewOfSection', 'pNotifyMemoryAlloc', 'pNotifyMemoryFree', 
           'pUpdateProcessorInformation', 'pGetX87State', 'pKeepX64DebugRegisters', 'pGetX64Mxcsr', 'pSetX64Mxcsr',
           'pGuestProtection', 'pGuestProtectionRange')
 SINKS = ('RtlRaiseException', 'RtlRaiseStatus', '#RtlRaiseException', '#RtlRaiseStatus')
+# The CRT's assertion failure ends the process (message, then abort): vkd3d-proton's release build keeps its asserts,
+# whose failure ends a path. Not listed themselves (the check can't follow them: an x64 caller keeps the switch).
+# ntdll's own _assert is checked as before (it raises an exception).
+ASSERTS = ('_assert', '#_assert', '_wassert', '#_wassert')
+ASSERT_IMAGES = ('ucrtbase.dll', 'msvcrt.dll')
 # Wine patch 0070: ntdll's debug output entry points drop the JIT's FPCR bits for the rest of the call, so a path that
 # calls one ends there (everything after it runs with the native FPCR, which native code is always fine with)
 FENCES = ('__wine_dbg_header', '__wine_dbg_strdup', '__wine_dbg_output',
@@ -192,6 +209,22 @@ FENCES += tuple('#%s$hp_target' % n for n in (
     'NtAllocateVirtualMemory', 'NtAllocateVirtualMemoryEx', 'NtFlushInstructionCache', 'NtFreeVirtualMemory',
     'NtMapViewOfSection', 'NtMapViewOfSectionEx', 'NtProtectVirtualMemory', 'NtQueryVirtualMemory', 'NtReadFile',
     'NtTerminateProcess', 'NtTerminateThread', 'NtUnmapViewOfSection', 'NtUnmapViewOfSectionEx'))
+# vkd3d-proton (our fork): vkd3d_squark_native_fpcr drops the JIT's bits for the rest of the call; VK_CALL and the
+# debug output (vkd3d_dbg_printf, vkd3d_dbg_vsprintf) call it first, so a path ends there like at Wine's debug output
+FENCES += ('vkd3d_squark_native_fpcr', '#vkd3d_squark_native_fpcr')
+# Checked indirect calls (ARM64EC's icall checker, then blr x11) with a fixed set of targets, by the function they are
+# in: (targets, how many checked calls the function has, its only indirect calls). vkd3d-proton's descriptor copy
+# calls the heap's copy template, one of vkd3d_descriptor_copy_desc_<n>_single (vkd3d_bindless_find_copy_template_single),
+# twice; its third is vkUpdateDescriptorSets, behind VK_CALL's fence, so no path reaches it. Another count (the source
+# changed) and the function's indirect calls are unknown again.
+TARGET_SETS = {
+    'd3d12_desc_copy_single': (tuple('vkd3d_descriptor_copy_desc_%d_single' % n for n in (4, 8, 16, 32, 48, 64, 128)), 3),
+    # the range copy: the heap's host_copy_template (vkd3d_bindless_find_copy_template) once, vkUpdateDescriptorSets
+    'd3d12_desc_copy_range': (tuple('vkd3d_descriptor_copy_desc_%d' % n for n in (4, 8, 16, 32, 48, 64, 128)), 2),
+}
+# Images whose entry points for x64 code are their exports and the functions their data points at (COM vtables),
+# not every EC function: d3d12core has thousands no x64 code calls
+VTABLE_IMAGES = ('d3d12core.dll', 'd3d12.dll')
 INDIRECT = ('blr', 'br', 'braa', 'brab', 'blraa', 'blrab', 'braaz', 'brabz', 'blraaz', 'blrabz')
 CONDITIONAL = ('cbz', 'cbnz', 'tbz', 'tbnz')
 READS_ONLY = ('cbz', 'cbnz', 'tbz', 'tbnz', 'cmp', 'cmn', 'tst', 'ccmp', 'ccmn', 'str', 'strb', 'strh', 'stur',
@@ -241,7 +274,22 @@ class Scan:
         self.icheckers = vars_of(ICHECKERS)
         self.fenced = vars_of(FENCED)
         self.sinks = vars_of(SINKS)
+        self.asserts = vars_of(ASSERTS) if os.path.basename(pe.path).lower() in ASSERT_IMAGES else set()
+        self.sinks |= self.asserts
         self.fences = vars_of(FENCES)
+        self.target_sets = {}  # function begin -> [target RVAs]
+        for fn, (targets, count) in TARGET_SETS.items():
+            begin = self.byname.get('#' + fn, self.byname.get(fn))
+            tgts = [self.byname.get('#' + t, self.byname.get(t)) for t in targets]
+            if begin is None or None in tgts:
+                continue
+            fb, fe = self.extent(begin)
+            checked = [a for a in range(fb, fe, 4) if self.code.get(a, ('',))[0] == 'blr'
+                       and self.loaded_from(a, self.code[a][1].split(',')[0].strip()) in self.icheckers]
+            others = [a for a in range(fb, fe, 4) if self.code.get(a, ('',))[0] in INDIRECT]
+            # every indirect call is a checked one: the checker's blr, then blr x11
+            if len(checked) == count and len(others) == 2 * count:
+                self.target_sets[fb] = tgts
 
     def extent(self, rva):
         i = bisect.bisect_right(self.begins, rva) - 1
@@ -276,22 +324,30 @@ class Scan:
         return None
 
     def loaded_from(self, at, reg):
-        """The address reg was loaded from: ldr reg, [xM, #imm] after adrp xM, or ldr reg, [reg] after a literal."""
+        """The address reg was loaded from: ldr reg, [xM, #imm] after adrp xM, ldr reg, [xB] after a literal load of xB,
+        or ldr reg, [xB] after mingw's .refptr load of xB."""
         a, ins = self._def(at, reg, 16)
         if not ins or ins[0] != 'ldr':
             return None
         parts = [x.strip() for x in ins[1].replace('[', ',').replace(']', ',').split(',') if x.strip()]
-        if len(parts) == 2 and parts[1] == reg:  # ldr reg, [reg] after ldr reg, <literal>
-            a2, i2 = self._def(a, reg, 4)
-            if i2 and i2[0] == 'ldr' and '[' not in i2[1]:
+        if len(parts) == 2:  # ldr reg, [xB]
+            base = parts[1]
+            a2, i2 = self._def(a, base, 8)
+            if i2 and i2[0] == 'ldr' and '[' not in i2[1]:  # xB loaded from a literal
                 lit = int(HEX.findall(i2[1])[-1], 16) - self.pe.base
                 return struct.unpack_from('<Q', self.pe.d, self.pe.off(lit))[0] - self.pe.base
-            return None
+            if i2 and i2[0] == 'ldr':  # mingw: adrp xB, page; ldr xB, [xB, #.refptr.x]; ldr reg, [xB]
+                p2 = [x.strip() for x in i2[1].replace('[', ',').replace(']', ',').split(',') if x.strip()]
+                if len(p2) >= 3 and p2[2].startswith('#'):
+                    page = self.page_of(a2, p2[1])
+                    ref = page + int(p2[2][1:], 0) if page is not None else None
+                    if ref is not None and self.pe.off(ref) is not None:
+                        return struct.unpack_from('<Q', self.pe.d, self.pe.off(ref))[0] - self.pe.base
+                return None
+            return None if base == reg else self.page_of(a, base)
         if len(parts) >= 3 and parts[2].startswith('#'):
             page = self.page_of(a, parts[1])
             return page + int(parts[2][1:], 0) if page is not None else None
-        if len(parts) == 2:
-            return self.page_of(a, parts[1])
         return None
 
     def constant(self, at, reg):
@@ -354,6 +410,12 @@ class Scan:
                         if tgt is None:
                             return '%#x checked call, unknown target' % a, edges
                         edges.append((self, tgt, '%#x' % tgt))
+                        checked_x11 = True
+                        a += 4
+                        continue
+                    if mn == 'blr' and slot is not None and slot in self.icheckers and \
+                            self.extent(a)[0] in self.target_sets:
+                        edges.extend((self, t, '%#x' % t) for t in self.target_sets[self.extent(a)[0]])
                         checked_x11 = True
                         a += 4
                         continue
@@ -461,12 +523,32 @@ def check_node(scan, rva):
     return RESULT[key]
 
 
+def data_pointers(scan):
+    """Functions the image's data points at (absolute 8-byte pointers into a function's first instruction)."""
+    begins = set(scan.begins)
+    out = set()
+    for n, va, vs, ra, rs, ch in scan.pe.secs:
+        if ch & 0x20000000 or n in ('.pdata', '.reloc'):
+            continue
+        for off in range(0, min(vs, rs) - 7, 8):
+            v = struct.unpack_from('<Q', scan.pe.d, ra + off)[0] - scan.pe.base
+            if v in begins:
+                out.add(v)
+    return out
+
+
 def candidates(scan):
-    """What x64 code can reach: the EC entry of every export and every EC function symbol ('#name')."""
+    """What x64 code can reach: the EC entry of every export and every EC function symbol ('#name'); for
+    VTABLE_IMAGES the exports and the functions their data points at."""
     out = {}
     for name, target in scan.pe.exports().items():
         if not isinstance(target, str):
             out[name] = scan.ec_entry(name, target)
+    if os.path.basename(scan.pe.path).lower() in VTABLE_IMAGES:
+        names = {r: n for n, r, f in scan.syms if f}
+        for r in data_pointers(scan):
+            out.setdefault(names.get(r, '%#x' % r), r)
+        return out
     for n, r, f in scan.syms:
         if f and n.startswith('#') and r in scan.code:
             out.setdefault(n, r)
@@ -490,7 +572,7 @@ def main():
             name = os.path.basename(d).lower()
             sc = image(name)
             cands = candidates(sc)
-            rvas = sorted({r for n, r in cands.items() if sc.check(r) is None})
+            rvas = sorted({r for n, r in cands.items() if r not in sc.asserts and sc.check(r) is None})
             total += len(rvas)
             ident = 'FPCRNeutral_' + re.sub(r'\W', '_', name)
             lines.append('static const uint32_t %s[] = {' % ident)

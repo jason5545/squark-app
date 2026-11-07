@@ -65,6 +65,13 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   `LeaveCriticalSection` 59.8 -> 13.6 ns, `AcquireSRWLockShared` + `ReleaseSRWLockShared` 70.8 -> 25.0 ns; the table
   covers 54 % of Microsoft Flight Simulator's exits in the cockpit (72 % of the main thread's).
   0043 needs Wine patch 0070 in the same runtime.
+  Since 11/8 the table also covers vkd3d-proton's d3d12core and d3d12 (`HADRON_FPCR_SCAN_EXTRA`, the unstripped DLLs of
+  the build squark's `tools/hadron/build-runtime.sh` puts in the runtime): its COM methods (functions its data points
+  at) are the candidates, its Vulkan calls and debug output end a path (squark `patches/vkd3d-proton/0004` drops the
+  JIT's bits there), the descriptor copy's copy-template calls go to their fixed set of targets, the CRT's `_assert`
+  ends a path. 365 more functions, `CopyDescriptorsSimple`, `CreateConstantBufferView` and
+  `SetGraphicsRootDescriptorTable` among them: about 34 % of the simulator's exits in the cockpit went into d3d12core
+  (squark records 25.79).
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.

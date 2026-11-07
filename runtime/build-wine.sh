@@ -748,13 +748,16 @@ if [ "$ARCH" = arm64 ]; then
     fi
     # FEX patch 0043: the native functions x64 code may call without FPCR leaving the JIT's mode, checked in
     # this build's Wine DLLs (unstripped: the check needs their symbols). Wine patch 0070 must be in the same
-    # build; a series without 0043 has no use for the file.
+    # build; a series without 0043 has no use for the file. HADRON_FPCR_SCAN_EXTRA (space-separated paths) adds
+    # more of our own images, unstripped builds of the ones HADRON_ARM64EC_GRAPHICS puts in the runtime
+    # (tools/hadron/build-runtime.sh in squark names vkd3d-proton's); FEX uses an image's entries only when its
+    # TimeDateStamp and .text size are the scanned build's.
     if [ -n "$FEX_SERIES" ] && grep -q FPCRNeutralTable "$fex/Source/Windows/ARM64EC/Module.cpp"; then
         echo "==> listing FPCR-neutral native functions for FEX"
         python3 "$here/fex/fpcrscan.py" --table "$fex/Source/Windows/ARM64EC/FPCRNeutralTable.inc" \
             "$WINE_BUILD"/dlls/ntdll/aarch64-windows/ntdll.dll "$WINE_BUILD"/dlls/kernelbase/aarch64-windows/kernelbase.dll \
             "$WINE_BUILD"/dlls/kernel32/aarch64-windows/kernel32.dll "$WINE_BUILD"/dlls/ucrtbase/aarch64-windows/ucrtbase.dll \
-            "$WINE_BUILD"/dlls/msvcrt/aarch64-windows/msvcrt.dll || die "fpcrscan.py failed"
+            "$WINE_BUILD"/dlls/msvcrt/aarch64-windows/msvcrt.dll ${HADRON_FPCR_SCAN_EXTRA:-} || die "fpcrscan.py failed"
     fi
     for target in arm64ec:arm64ec:arm64ecfex wow64:aarch64:wow64fex; do
         build="$fex/build_${target%%:*}"
