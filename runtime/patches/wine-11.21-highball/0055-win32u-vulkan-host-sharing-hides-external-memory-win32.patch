@@ -1,0 +1,30 @@
+win32u: HADRON_VK_HOST_SHARING=1 hides VK_KHR_external_memory_win32 from the program.
+
+Highball's 0036 exposes VK_KHR_external_memory_win32 on macOS through Metal objects, for MoltenVK
+with Highball's MoltenVK patches. The steamac DXVK and vkd3d-proton (DXVK 2.6.2, vkd3d-proton 3.0b
+based) share textures through host memory instead, on KosmicKrisp, and take that path only on a
+device without VK_KHR_external_memory_win32; with it they took the win32 path, which DXVK 2.6.2 cannot
+finish here ("Failed to write shared resource info for a texture"). compat_run.sh sets the variable
+for those graphics layers only.
+
+--- a/dlls/win32u/vulkan.c
++++ b/dlls/win32u/vulkan.c
+@@ -637,6 +637,18 @@
+     {
+         WARN( "Cannot export WOW64 memory without VK_EXT_map_memory_placed\n" );
+         extensions.has_VK_KHR_external_memory_win32 = 0;
++    }
++    if (extensions.has_VK_KHR_external_memory_win32)
++    {
++        /* steamac: its DXVK and vkd3d-proton share textures through host memory (a section imported
++         * with VK_EXT_external_memory_host), which they choose only on a device without
++         * VK_KHR_external_memory_win32. HADRON_VK_HOST_SHARING=1 hides it from such a program. */
++        const char *env = getenv( "HADRON_VK_HOST_SHARING" );
++        if (env && !strcmp( env, "1" ))
++        {
++            WARN( "HADRON_VK_HOST_SHARING=1, VK_KHR_external_memory_win32 not exposed\n" );
++            extensions.has_VK_KHR_external_memory_win32 = 0;
++        }
+     }
+     extensions.has_VK_KHR_win32_keyed_mutex = extensions.has_VK_KHR_timeline_semaphore &&
+                                               extensions.has_VK_KHR_external_semaphore_fd;

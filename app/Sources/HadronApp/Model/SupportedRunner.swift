@@ -63,6 +63,7 @@ enum SupportedRunners {
         fex(id: "wine-11.21-fex", name: "Wine 11.21 (Apple Silicon)"),
         // steamac: built locally (runtime/build-wine.sh), not downloaded.
         fex(id: "wine-11.18-fex", name: "Wine 11.18 (Apple Silicon, Highball)"),
+        fex(id: "wine-11.21-highball", name: "Wine 11.21 (Apple Silicon, Highball)"),
     ]
 
     // Steam maps Cloud save paths into a prefix only for a tool whose name contains

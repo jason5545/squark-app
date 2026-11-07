@@ -4,7 +4,8 @@ FEX for a runtime with `FEX_SERIES=highball`, from
 [highball-engine](https://github.com/gauthierpiarrette/highball-engine) `fex/` at `2eedc50`, unchanged:
 
 - `0001` to `0033`, Highball's series for FEX 2610 (`fex/patches/` there, whose README explains each
-  one). They pair with Wine's `patches/wine-11.18-fex` 0022 to 0052. MIT, like FEX.
+  one). They pair with Wine's `patches/wine-11.18-fex` 0022 to 0052, and the same patches in
+  `patches/wine-11.21-highball`. MIT, like FEX.
 - `fexunixlib_darwin.cpp`, the unix helper FEX's Windows DLLs load from the ntdll.so directory, with
   BSD calls and hardware TSO through `thread_set_x86_64_compat`. It replaces FEX's own
   `Source/Windows/UnixLib` (and `fex/0001-macos-hardware-tso.patch`): `0019` and `0023` add calls

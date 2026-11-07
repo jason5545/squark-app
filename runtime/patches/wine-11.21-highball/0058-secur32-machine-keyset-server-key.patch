@@ -1,0 +1,22 @@
+secur32: Find the private key of a server certificate in a machine key set too.
+
+schannel reads a CAPI private key straight from rsaenh's registry container, and looked for that
+container only under HKEY_CURRENT_USER. rsaenh keeps the containers of a machine key set
+(CRYPT_MACHINE_KEYSET) under HKEY_LOCAL_MACHINE, so a server certificate whose key was imported that way
+(.NET: X509KeyStorageFlags.MachineKeySet, common for HTTPS servers) had no key, AcquireCredentialsHandle
+for inbound use failed (SEC_E_INTERNAL_ERROR) and the connection was closed after the client hello.
+The DPAPI blob in a machine container is marked as such, so CryptUnprotectData needs no flag.
+
+diff --git a/dlls/secur32/schannel.c b/dlls/secur32/schannel.c
+index 1e149d7..0d879da 100644
+--- a/dlls/secur32/schannel.c
++++ b/dlls/secur32/schannel.c
+@@ -603,6 +603,8 @@ static BYTE *get_key_blob(const CERT_CONTEXT *ctx, DWORD *size)
+ 
+     if (!(path = get_key_container_path(ctx))) return NULL;
+     retval = RegOpenKeyExW(HKEY_CURRENT_USER, path, 0, KEY_READ, &hkey);
++    /* rsaenh keeps the containers of a machine key set (CRYPT_MACHINE_KEYSET) under HKEY_LOCAL_MACHINE. */
++    if (retval) retval = RegOpenKeyExW(HKEY_LOCAL_MACHINE, path, 0, KEY_READ, &hkey);
+     free(path);
+     if (retval)
+         return NULL;

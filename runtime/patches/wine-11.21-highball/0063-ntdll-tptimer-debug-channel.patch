@@ -1,0 +1,171 @@
+ntdll: WINEDEBUG=+tptimer logs thread pool timers and the timer queue thread's rounds (Squark).
+
+A diagnostic, off unless the tptimer debug channel is on. TpAllocTimer logs the module the callback
+is in (taking the loader lock before any thread pool lock) and the timer it hands out; tp_set_timer
+logs the due time as the program passed it (relative in ms, absolute as ms from now, 0, or NULL for
+a cancel), the period and the window; TpReleaseTimer the timer. Once a second the
+timer queue thread logs how many rounds it made, which NT timer woke it (relative, absolute, other),
+how many rounds had no relative timer pending, how many callbacks it submitted, the number of timer
+objects and the pending absolute and relative timers. Off, the thread pays one debug-flag check per
+round; submit_expired_timers counts callbacks under timerqueue.cs either way.
+
+Applies with or without 0062.
+
+diff --git a/dlls/ntdll/threadpool.c b/dlls/ntdll/threadpool.c
+--- a/dlls/ntdll/threadpool.c
++++ b/dlls/ntdll/threadpool.c
+@@ -32,6 +32,9 @@
+ #include "ntdll_misc.h"
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(threadpool);
++/* WINEDEBUG=+tptimer (Squark, off by default): thread pool timers as the program sets them, and once a second
++ * what the timer queue thread did. */
++WINE_DECLARE_DEBUG_CHANNEL(tptimer);
+ 
+ /*
+  * Old thread pooling API
+@@ -1057,6 +1060,9 @@
+ 
+     return status;
+ }
++
++/* callbacks submitted by the timer queue thread, for WINEDEBUG=+tptimer; timerqueue.cs held */
++static ULONG tptimer_submitted;
+ 
+ /***********************************************************************
+  *           submit_expired_timers     (internal)
+@@ -1077,6 +1083,7 @@
+             return;
+ 
+         /* Queue a new callback in one of the worker threads. */
++        tptimer_submitted++;
+         list_remove( &timer->u.timer.timer_entry );
+         timer->u.timer.timer_pending = FALSE;
+         tp_object_submit( timer, FALSE );
+@@ -1160,13 +1167,68 @@
+     }
+     NtSetTimer( timerqueue.timers[REL_TIMER], &timeout, NULL, NULL, FALSE, 0, NULL );
+ }
++
++/* a due time as tp_set_timer() gets it, for WINEDEBUG=+tptimer */
++static const char *tptimer_dbgstr_due( const LARGE_INTEGER *timeout )
++{
++    LARGE_INTEGER now;
++    ULONGLONG a;
++    LONGLONG t;
++    const char *what;
+ 
++    if (!timeout) return "NULL (cancel)";
++    if (!(t = timeout->QuadPart)) return "0 (now)";
++    if (t > 0)
++    {
++        NtQuerySystemTime( &now );
++        t -= now.QuadPart;
++        what = "absolute, from now";
++    }
++    else what = "relative";
++    a = t < 0 ? -(ULONGLONG)t : (ULONGLONG)t;
++    if (a / 10000 > MAXLONG) return wine_dbg_sprintf( "%s %s (100 ns)", what, wine_dbgstr_longlong( t ) );
++    return wine_dbg_sprintf( "%s %s%lu.%04lu ms", what, t < 0 && timeout->QuadPart > 0 ? "-" : "",
++                             (ULONG)(a / 10000), (ULONG)(a % 10000) );
++}
++
+ /***********************************************************************
++ *           tptimer_loop_diag         (internal)
++ *
++ * WINEDEBUG=+tptimer: counts the timer queue thread's rounds and prints them once a second.
++ * timerqueue.cs held by caller.
++ */
++static void tptimer_loop_diag( ULONGLONG rel_now, NTSTATUS woken_by )
++{
++    static ULONGLONG start;
++    static ULONG loops, by_rel, by_abs, by_other, no_rel;
++    ULONG nabs = 0, nrel = 0;
++    struct list *ptr;
++
++    loops++;
++    if (woken_by == STATUS_WAIT_0 + REL_TIMER) by_rel++;
++    else if (woken_by == STATUS_WAIT_0 + ABS_TIMER) by_abs++;
++    else by_other++;
++    if (list_empty( &timerqueue.rel_timers )) no_rel++;
++    if (!start) start = rel_now;
++    if (rel_now - start < 10000000) return;
++
++    LIST_FOR_EACH( ptr, &timerqueue.abs_timers ) nabs++;
++    LIST_FOR_EACH( ptr, &timerqueue.rel_timers ) nrel++;
++    TRACE_(tptimer)( "%lu ms: %lu rounds (woken by the relative timer %lu, the absolute one %lu, other %lu), "
++                     "%lu with no relative timer pending; %lu callbacks submitted; %ld timer objects, "
++                     "pending absolute %lu relative %lu\n", (ULONG)((rel_now - start) / 10000), loops, by_rel,
++                     by_abs, by_other, no_rel, tptimer_submitted, timerqueue.objcount, nabs, nrel );
++    start = rel_now;
++    loops = by_rel = by_abs = by_other = no_rel = tptimer_submitted = 0;
++}
++
++/***********************************************************************
+  *           timerqueue_thread_proc    (internal)
+  */
+ static void CALLBACK timerqueue_thread_proc( void *param )
+ {
+     LARGE_INTEGER abs_now, rel_now;
++    NTSTATUS woken_by = STATUS_TIMEOUT;
+ 
+     TRACE( "starting timer queue thread\n" );
+     set_thread_name(L"wine_threadpool_timerqueue");
+@@ -1180,9 +1242,10 @@
+         submit_expired_timers( &timerqueue.abs_timers, abs_now.QuadPart, rel_now.QuadPart );
+         submit_expired_timers( &timerqueue.rel_timers, rel_now.QuadPart, rel_now.QuadPart );
+         update_timers( rel_now.QuadPart );
++        if (TRACE_ON(tptimer)) tptimer_loop_diag( rel_now.QuadPart, woken_by );
+ 
+         RtlLeaveCriticalSection( &timerqueue.cs );
+-        NtWaitForMultipleObjects( ARRAY_SIZE(timerqueue.timers),
++        woken_by = NtWaitForMultipleObjects( ARRAY_SIZE(timerqueue.timers),
+                 timerqueue.timers, WaitAny, FALSE, NULL );
+         RtlEnterCriticalSection( &timerqueue.cs );
+ 
+@@ -2569,6 +2632,19 @@
+     NTSTATUS status;
+ 
+     TRACE( "%p %p %p %p\n", out, callback, userdata, environment );
++
++    if (TRACE_ON(tptimer))
++    {
++        LDR_DATA_TABLE_ENTRY *mod;
++        ULONG_PTR magic;
++        const char *name = "(no module)";
++
++        LdrLockLoaderLock( 0, NULL, &magic );
++        if (!LdrFindEntryForAddress( callback, &mod )) name = debugstr_us( &mod->BaseDllName );
++        TRACE_(tptimer)( "alloc: callback in %s, environment %p (pool %p)\n", name, environment,
++                         environment ? environment->Pool : NULL );
++        LdrUnlockLoaderLock( 0, magic );
++    }
+ 
+     object = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*object) );
+     if (!object)
+@@ -2595,6 +2671,7 @@
+     tp_object_initialize( object, pool, userdata, environment );
+ 
+     *out = (TP_TIMER *)object;
++    TRACE_(tptimer)( "alloc: timer %p, %ld timer objects\n", object, timerqueue.objcount );
+     return STATUS_SUCCESS;
+ }
+ 
+@@ -2992,6 +3069,7 @@
+     struct threadpool_object *this = impl_from_TP_TIMER( timer );
+ 
+     TRACE( "%p\n", timer );
++    TRACE_(tptimer)( "release: timer %p\n", timer );
+ 
+     tp_object_prepare_shutdown( this );
+     this->shutdown = TRUE;
+@@ -3079,6 +3157,9 @@
+     ULONGLONG timestamp;
+ 
+     TRACE( "%p %p %lu %lu\n", timer, timeout, period, window_length );
++
++    TRACE_(tptimer)( "set: timer %p due %s, period %ld ms, window %ld ms\n", timer,
++                     tptimer_dbgstr_due( timeout ), period, window_length );
+ 
+     RtlEnterCriticalSection( &timerqueue.cs );
+ 

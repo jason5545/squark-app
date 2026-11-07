@@ -1,0 +1,80 @@
+crypt32: PFXImportCertStore gives the private key only to the certificate it belongs to.
+
+Wine attached the imported key container to every certificate of the PFX, the CA certificates of the
+chain included. Windows attaches it only to the certificate whose public key matches the key.
+.NET's X509CertificateLoader keeps one certificate of a PFX and deletes the key container of the others
+it sees with a private key, so with Wine it deleted the one container they all shared, and the kept
+certificate lost its key: schannel then refused it as a server certificate (SEC_E_UNKNOWN_CREDENTIALS),
+which closes the connection right after the client hello. Seen with MSFS Map Enhancement's local HTTPS
+server (a PFX holding the server certificate and its root CA, key in a CAPI container).
+
+When the key's public key cannot be read, every certificate gets the key as before.
+
+diff --git a/dlls/crypt32/pfx.c b/dlls/crypt32/pfx.c
+index 81f0fae..044d73c 100644
+--- a/dlls/crypt32/pfx.c
++++ b/dlls/crypt32/pfx.c
+@@ -75,6 +75,22 @@ done:
+     return prov;
+ }
+ 
++/* The public key of the imported private key, to give the key only to the certificate it belongs to. */
++static CERT_PUBLIC_KEY_INFO *get_key_info( HCRYPTPROV prov )
++{
++    CERT_PUBLIC_KEY_INFO *info;
++    DWORD size = 0;
++
++    if (!CryptExportPublicKeyInfo( prov, AT_KEYEXCHANGE, X509_ASN_ENCODING, NULL, &size )) return NULL;
++    if (!(info = CryptMemAlloc( size ))) return NULL;
++    if (!CryptExportPublicKeyInfo( prov, AT_KEYEXCHANGE, X509_ASN_ENCODING, info, &size ))
++    {
++        CryptMemFree( info );
++        return NULL;
++    }
++    return info;
++}
++
+ static BOOL set_key_context( const void *ctx, HCRYPTPROV prov )
+ {
+     CERT_KEY_CONTEXT key_ctx;
+@@ -152,6 +168,7 @@ HCERTSTORE WINAPI PFXImportCertStore( CRYPT_DATA_BLOB *pfx, const WCHAR *passwor
+     unsigned int key_count = 0;
+     HCERTSTORE store = NULL;
+     HCRYPTPROV prov = 0;
++    CERT_PUBLIC_KEY_INFO *key_info = NULL;
+     cert_store_data_t data = 0;
+     struct open_cert_store_params open_params = { pfx, password, &data, &key_count };
+     struct close_cert_store_params close_params;
+@@ -176,6 +193,7 @@ HCERTSTORE WINAPI PFXImportCertStore( CRYPT_DATA_BLOB *pfx, const WCHAR *passwor
+     {
+         prov = import_key( data, flags );
+         if (!prov) goto error;
++        key_info = get_key_info( prov );
+     }
+ 
+     if (!(store = CertOpenStore( CERT_STORE_PROV_MEMORY, 0, 0, 0, NULL )))
+@@ -200,7 +218,11 @@ HCERTSTORE WINAPI PFXImportCertStore( CRYPT_DATA_BLOB *pfx, const WCHAR *passwor
+             WARN( "CertCreateContext failed %08lx\n", GetLastError() );
+             goto error;
+         }
+-        if (prov)
++        /* Like Windows, only the certificate whose public key matches gets the private key; the CA
++         * certificates of the chain get none. A caller that deletes the key container of a certificate
++         * it does not keep (.NET does) would otherwise delete the one key container they all share. */
++        if (prov && (!key_info || CertComparePublicKeyInfo( X509_ASN_ENCODING,
++                &((const CERT_CONTEXT *)ctx)->pCertInfo->SubjectPublicKeyInfo, key_info )))
+         {
+             if (flags & PKCS12_NO_PERSIST_KEY)
+             {
+@@ -229,9 +251,11 @@ HCERTSTORE WINAPI PFXImportCertStore( CRYPT_DATA_BLOB *pfx, const WCHAR *passwor
+     }
+     close_params.data = data;
+     CRYPT32_CALL( close_cert_store, &close_params );
++    CryptMemFree( key_info );
+     return store;
+ 
+ error:
++    CryptMemFree( key_info );
+     if (prov) CryptReleaseContext( prov, 0 );
+     CertCloseStore( store, 0 );
+     close_params.data = data;

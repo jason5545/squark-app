@@ -3,9 +3,10 @@
 Squark runs Microsoft Flight Simulator 2024 from the macOS Steam client on Apple Silicon.
 It is a fork of [Hadron](https://github.com/nheisterkamp/Hadron) and the app half of
 [squark](https://github.com/jason5545/squark), which holds the investigation notes, tools
-and the list of patches. It carries a Wine 11.18 runtime with Highball's arm64 engine
-(FEX), D3D12 through vkd3d-proton and DXVK on KosmicKrisp, and its own Wine and FEX
-patches (`runtime/patches/wine-11.18-fex`, `runtime/fex/highball`).
+and the list of patches. It carries Wine runtimes with Highball's arm64 engine (FEX),
+D3D12 through vkd3d-proton and DXVK on KosmicKrisp, and its own Wine and FEX patches:
+Wine 11.18 (`runtime/patches/wine-11.18-fex`, the series as Highball made it) and Wine 11.21
+(`runtime/patches/wine-11.21-highball`, the same series moved over), with `runtime/fex/highball`.
 
 Squark is not Hadron. Please report problems with Squark in squark, not to Hadron or
 NotProton. Hadron is itself a fork of [NotProton](https://github.com/NotProtonNot/NotProton),

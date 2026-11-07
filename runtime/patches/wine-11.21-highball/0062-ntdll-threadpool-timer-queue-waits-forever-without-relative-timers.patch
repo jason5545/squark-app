@@ -1,0 +1,44 @@
+ntdll: The timer queue thread waits forever when no relative thread pool timer is pending.
+
+update_timers() arms the relative NT timer with rel_now - get_next_timeout(&rel_timers). With no
+relative timer pending that is rel_now - MAXLONGLONG, a relative timeout of almost -2^63. The
+wineserver turns a relative timeout into its monotonic form with timeout - monotonic_time
+(timeout_to_abstime() in server/file.h), and by the time the request arrives the server's
+monotonic_time is already past the client's rel_now, so the subtraction overflows. Built with clang
+for arm64, add_timeout_user() picks the list from the subtraction's flags (the arithmetically right
+answer: relative) but stores the wrapped, positive value; get_next_timeout() then finds
+-when <= monotonic_time and fires the timer at once. The timer queue thread wakes, finds nothing
+expired, arms the timer again, and so on: tens of thousands of rounds a second, each one two
+set_timer requests and a select that is already satisfied, for as long as the process has a thread
+pool timer object but no relative timer pending (a timer created and not set, one-shot timers that
+already ran, only absolute due times).
+
+Seen in Microsoft Flight Simulator 2024: wine_threadpool_timerqueue waited 227,384 times in 10 s,
+every time on the relative timer and already signaled, 34% of a core, half of it in read/write to
+the wineserver. tptimer.exe (squark tools/tptimer-test): an idle timer, an absolute due time an hour
+away, or a one-shot 20 ms timer after it ran, 144,000-204,000 waits in 4 s and 44-50% of a core in
+the wineserver before, none after; periodic timers fire as before. Wine master (2026-11) has the same
+code (since f6c53a24, "ntdll: Fix threadpool timer behavior on system time change").
+
+The absolute timer already gets MAXLONGLONG for "never" (TIMEOUT_INFINITE: set_timer() adds no
+timeout at all); the relative one now gets the same.
+
+diff --git a/dlls/ntdll/threadpool.c b/dlls/ntdll/threadpool.c
+--- a/dlls/ntdll/threadpool.c
++++ b/dlls/ntdll/threadpool.c
+@@ -1147,7 +1147,14 @@
+     if (timerqueue.objcount)
+     {
+         timeout.QuadPart = get_next_timeout( &timerqueue.rel_timers );
+-        if (timeout.QuadPart > rel_now)
++        /* No relative timer pending (get_next_timeout() returns MAXLONGLONG, the same "never" the
++         * absolute timer gets above): wait forever. rel_now - MAXLONGLONG is a relative timeout so
++         * large that the wineserver's conversion to monotonic time (timeout - monotonic_time)
++         * overflows, and the timer then expires at once, every time, so this thread spins. Anything
++         * past MAXLONGLONG / 2 (thousands of years of uptime) is never too. */
++        if (timeout.QuadPart >= MAXLONGLONG / 2)
++            timeout.QuadPart = MAXLONGLONG;
++        else if (timeout.QuadPart > rel_now)
+             timeout.QuadPart = rel_now - timeout.QuadPart;
+         else
+             timeout.QuadPart = 0;

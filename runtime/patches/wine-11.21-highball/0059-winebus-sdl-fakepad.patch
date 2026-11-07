@@ -1,0 +1,210 @@
+winebus: SQUARK_FAKEPAD=<path>, or a FIFO named squark-fakepad in the prefix, adds a virtual SDL gamepad.
+
+For testing input without a controller at hand, and for driving a program with gamepad input in the
+background. winebus attaches an SDL virtual joystick of the game controller type, 045e:02fd and named
+"squark fakepad", like a Bluetooth Xbox Wireless Controller, and reads text lines from the FIFO at
+<path> (made if missing): "<axis> <value>" with lx, ly, rx, ry, lt, rt in raw SDL values (-32768 to
+32767; sticks negative up and left, as SDL reports them, triggers -32768 released and 32767 fully
+pressed), "<button> <0|1>" with a, b, x, y, back, guide, start, ls, rs, lb, rb, up, down, left, right,
+or "reset". Lines end in a newline or ';'. The pad goes through SDL's game controller API and the
+rest of winebus like a real one, so XInput, DirectInput and Windows.Gaming.Input see it as they
+would a real pad. Needs the SDL bus.
+
+Without the variable, an existing FIFO $WINEPREFIX/squark-fakepad turns it on: the devices may have
+been started by an earlier process that did not have the variable (Steam runs a game's install script
+first, without the launch options, and the game reuses its winedevice).
+
+Neither set: no change.
+
+diff --git a/dlls/winebus.sys/bus_sdl.c b/dlls/winebus.sys/bus_sdl.c
+index e118c3f..6f3de54 100644
+--- a/dlls/winebus.sys/bus_sdl.c
++++ b/dlls/winebus.sys/bus_sdl.c
+@@ -31,6 +31,7 @@
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <sys/types.h>
++#include <sys/stat.h>
+ #include <dlfcn.h>
+ #ifdef HAVE_SDL_H
+ # include <SDL.h>
+@@ -116,6 +117,9 @@ MAKE_FUNCPTR(SDL_GameControllerAddMapping);
+ MAKE_FUNCPTR(SDL_RegisterEvents);
+ MAKE_FUNCPTR(SDL_PushEvent);
+ MAKE_FUNCPTR(SDL_GetTicks);
++static int (*pSDL_JoystickAttachVirtualEx)(const SDL_VirtualJoystickDesc *desc);
++static int (*pSDL_JoystickSetVirtualAxis)(SDL_Joystick *joystick, int axis, Sint16 value);
++static int (*pSDL_JoystickSetVirtualButton)(SDL_Joystick *joystick, int button, Uint8 value);
+ static int (*pSDL_JoystickRumble)(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms);
+ static int (*pSDL_JoystickRumbleTriggers)(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble, Uint32 duration_ms);
+ static Uint16 (*pSDL_JoystickGetProduct)(SDL_Joystick * joystick);
+@@ -1073,6 +1077,143 @@ static void process_device_event(SDL_Event *event)
+     pthread_mutex_unlock(&sdl_cs);
+ }
+ 
++/* SQUARK_FAKEPAD=<path>, or a FIFO named squark-fakepad in the prefix: a virtual SDL
++ * gamepad (045e:02fd, like a Bluetooth Xbox Wireless Controller) driven by text lines
++ * written to the FIFO at <path>. It goes
++ * through SDL's game controller API and the rest of winebus like a real pad. */
++static SDL_Joystick *fakepad;
++static int fakepad_fd = -1;
++static char fakepad_line[256];
++static size_t fakepad_len;
++
++static const char *const fakepad_axes[] = {"lx", "ly", "rx", "ry", "lt", "rt"};
++static const char *const fakepad_buttons[] =
++{
++    "a", "b", "x", "y", "back", "guide", "start", "ls", "rs", "lb", "rb", "up", "down", "left", "right",
++};
++
++static void fakepad_reset(void)
++{
++    int i;
++
++    for (i = 0; i < ARRAY_SIZE(fakepad_axes); i++)
++        pSDL_JoystickSetVirtualAxis(fakepad, i, i >= 4 ? -32768 : 0);
++    for (i = 0; i < ARRAY_SIZE(fakepad_buttons); i++)
++        pSDL_JoystickSetVirtualButton(fakepad, i, 0);
++}
++
++/* "<axis> <value>" in raw SDL values, -32768 to 32767: sticks negative up and left,
++ * as SDL gives them, triggers -32768 released and 32767 fully pressed.
++ * "<button> <0|1>", or "reset". Lines end in a newline or ';'. */
++static void fakepad_command(const char *line)
++{
++    char name[16];
++    int value, i, fields;
++
++    fields = sscanf(line, "%15s %d", name, &value);
++    if (fields == 1 && !strcmp(name, "reset"))
++    {
++        fakepad_reset();
++        return;
++    }
++    if (fields != 2)
++    {
++        if (fields > 0) WARN("SQUARK_FAKEPAD: cannot read %s\n", debugstr_a(line));
++        return;
++    }
++    if (value < -32768) value = -32768;
++    if (value > 32767) value = 32767;
++    for (i = 0; i < ARRAY_SIZE(fakepad_axes); i++)
++        if (!strcmp(name, fakepad_axes[i]))
++        {
++            pSDL_JoystickSetVirtualAxis(fakepad, i, value);
++            return;
++        }
++    for (i = 0; i < ARRAY_SIZE(fakepad_buttons); i++)
++        if (!strcmp(name, fakepad_buttons[i]))
++        {
++            pSDL_JoystickSetVirtualButton(fakepad, i, value != 0);
++            return;
++        }
++    WARN("SQUARK_FAKEPAD: unknown control %s\n", debugstr_a(name));
++}
++
++static void fakepad_poll(void)
++{
++    char buf[256];
++    ssize_t count, i;
++
++    if (fakepad_fd < 0) return;
++    while ((count = read(fakepad_fd, buf, sizeof(buf))) > 0)
++    {
++        for (i = 0; i < count; i++)
++        {
++            if (buf[i] == '\n' || buf[i] == ';')
++            {
++                fakepad_line[fakepad_len] = 0;
++                fakepad_command(fakepad_line);
++                fakepad_len = 0;
++            }
++            else if (fakepad_len < sizeof(fakepad_line) - 1) fakepad_line[fakepad_len++] = buf[i];
++        }
++    }
++}
++
++static void fakepad_init(void)
++{
++    const char *path = getenv("SQUARK_FAKEPAD"), *prefix;
++    static char prefix_fifo[4096];
++    SDL_VirtualJoystickDesc desc;
++    struct stat st;
++    int index;
++
++    /* Without the variable, a FIFO named squark-fakepad in the prefix turns it on: the
++     * devices may have been started by an earlier process without the variable (Steam
++     * runs a game's install script first, with no launch options). */
++    if ((!path || !*path) && (prefix = getenv("WINEPREFIX")) && *prefix)
++    {
++        snprintf(prefix_fifo, sizeof(prefix_fifo), "%s/squark-fakepad", prefix);
++        if (!stat(prefix_fifo, &st) && S_ISFIFO(st.st_mode)) path = prefix_fifo;
++    }
++    if (!path || !*path) return;
++    if (!pSDL_JoystickAttachVirtualEx || !pSDL_JoystickSetVirtualAxis || !pSDL_JoystickSetVirtualButton)
++    {
++        ERR("SQUARK_FAKEPAD: this SDL has no virtual joysticks\n");
++        return;
++    }
++    if (mkfifo(path, 0600) && errno != EEXIST)
++    {
++        ERR("SQUARK_FAKEPAD: cannot make the FIFO %s: %s\n", debugstr_a(path), strerror(errno));
++        return;
++    }
++    /* Open it for reading and writing, so it never reads as closed between writers. */
++    if ((fakepad_fd = open(path, O_RDWR | O_NONBLOCK | O_CLOEXEC)) < 0)
++    {
++        ERR("SQUARK_FAKEPAD: cannot open %s: %s\n", debugstr_a(path), strerror(errno));
++        return;
++    }
++
++    memset(&desc, 0, sizeof(desc));
++    desc.version = SDL_VIRTUAL_JOYSTICK_DESC_VERSION;
++    desc.type = SDL_JOYSTICK_TYPE_GAMECONTROLLER;
++    desc.naxes = ARRAY_SIZE(fakepad_axes);
++    desc.nbuttons = ARRAY_SIZE(fakepad_buttons);
++    desc.vendor_id = 0x045e;
++    desc.product_id = 0x02fd;
++    desc.axis_mask = (1u << ARRAY_SIZE(fakepad_axes)) - 1;
++    desc.button_mask = (1u << ARRAY_SIZE(fakepad_buttons)) - 1;
++    desc.name = "squark fakepad";
++    if ((index = pSDL_JoystickAttachVirtualEx(&desc)) < 0 || !(fakepad = pSDL_JoystickOpen(index)))
++    {
++        ERR("SQUARK_FAKEPAD: cannot attach the virtual gamepad: %s\n", pSDL_GetError());
++        close(fakepad_fd);
++        fakepad_fd = -1;
++        return;
++    }
++    fakepad_reset();
++    MESSAGE("winebus: SQUARK_FAKEPAD: virtual gamepad 045e:02fd reads %s\n", path);
++}
++
+ NTSTATUS sdl_bus_init(void *args)
+ {
+     const char *mapping;
+@@ -1149,6 +1290,9 @@ NTSTATUS sdl_bus_init(void *args)
+     pSDL_JoystickGetVendor = dlsym(sdl_handle, "SDL_JoystickGetVendor");
+     pSDL_JoystickGetType = dlsym(sdl_handle, "SDL_JoystickGetType");
+     pSDL_JoystickGetSerial = dlsym(sdl_handle, "SDL_JoystickGetSerial");
++    pSDL_JoystickAttachVirtualEx = dlsym(sdl_handle, "SDL_JoystickAttachVirtualEx");
++    pSDL_JoystickSetVirtualAxis = dlsym(sdl_handle, "SDL_JoystickSetVirtualAxis");
++    pSDL_JoystickSetVirtualButton = dlsym(sdl_handle, "SDL_JoystickSetVirtualButton");
+ 
+     /* SDL_QUIT does not stop winedevice; keep the existing signal handlers. */
+     pSDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+@@ -1184,6 +1328,7 @@ NTSTATUS sdl_bus_init(void *args)
+         }
+     }
+ 
++    fakepad_init();
+     return STATUS_SUCCESS;
+ 
+ failed:
+@@ -1203,6 +1348,7 @@ NTSTATUS sdl_bus_wait(void *args)
+     do
+     {
+         if (bus_event_queue_pop(&event_queue, result)) return STATUS_PENDING;
++        fakepad_poll();
+         if (pSDL_WaitEventTimeout(&event, 10) != 0) process_device_event(&event);
+         else check_all_devices_effects_state();
+     } while (event.type != quit_event);

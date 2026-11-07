@@ -1,0 +1,16 @@
+include/wine/unixlib.h: dlopen_host_lib (Highball's 0030) also compiles as C++.
+
+lsteamclient's unix side is C++ and includes wine/unixlib.h, where assigning malloc's void *
+to char * is an error.
+
+--- a/include/wine/unixlib.h
++++ b/include/wine/unixlib.h
+@@ -293,7 +293,7 @@
+     void *handle = NULL;
+ 
+     if (!strchr( name, '/' ) && dladdr( (void *)dlopen_host_lib, &info ) && info.dli_fname
+-        && (path = malloc( strlen( info.dli_fname ) + strlen( name ) + 8 )))
++        && (path = (char *)malloc( strlen( info.dli_fname ) + strlen( name ) + 8 )))
+     {
+         strcpy( path, info.dli_fname );
+         if ((p = strrchr( path, '/' ))) *p = 0;

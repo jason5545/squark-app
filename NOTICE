@@ -47,6 +47,8 @@ This fork (jason5545/Hadron, branch steamac) adds, from Highball's engine
 (https://github.com/gauthierpiarrette/highball-engine, at 2eedc50), unchanged:
 
   runtime/patches/wine-11.18-fex/0018-0052  Wine patches, LGPL-2.1-or-later
+  runtime/patches/wine-11.21-highball/0018-0052  the same, moved to Wine 11.21; 0031, 0036
+                                            and 0045 adapted to it (see its README)
   runtime/fex/highball/*.patch              FEX patches, MIT
   runtime/fex/highball/fexunixlib_darwin.cpp  FEX unix helper for macOS, MIT
   runtime/gstreamer/unpkg.py, prune.py      GStreamer packaging, LGPL-2.1-or-later
