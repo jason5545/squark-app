@@ -712,8 +712,8 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 #define NP_PREFIX_DONE NP_WEB_TEXT("Prefix rebuilt.", "Prefix rebuilt.", "Prefix 已重建。", "Prefisso ricostruito.")
 #define NP_PREFIX_DONE_BACKUP NP_WEB_TEXT("Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix 已重建。原本的備份在 Squark 的「Prefix」頁面。", "Prefisso ricostruito. Il backup dell'originale \\u00e8 nella sezione Prefissi di Squark.")
 #define NP_PREFIX_FAILED NP_WEB_TEXT("Prefix rebuild failed!", "Prefix rebuild failed!", "Prefix 重建失敗！", "Ricostruzione del prefisso non riuscita.")
-#define NP_PREFIX_LOG NP_WEB_TEXT("Open Log", "Open Log", "打開記錄檔", "Apri registro")
-#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "找不到 Squark App。請把 Squark 移到「應用程式」資料夾，打開它，再按一次「安裝」。", "App Squark non trovata. Sposta Squark in Applicazioni, aprila e fai di nuovo clic su Installa.")
+#define NP_PREFIX_LOG NP_WEB_TEXT("Open Log", "Open Log", "開啟記錄檔", "Apri registro")
+#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "找不到 Squark App。請把 Squark 移到「應用程式」資料夾，開啟它，再按一次「安裝」。", "App Squark non trovata. Sposta Squark in Applicazioni, aprila e fai di nuovo clic su Installa.")
 
 #define NP_PREFIX_ROW \
     "globalThis.NPHadronPrefixRow=(e,id)=>{if(e.npApp===id)return;e.npStop&&e.npStop();e.npApp=id;let ter" \

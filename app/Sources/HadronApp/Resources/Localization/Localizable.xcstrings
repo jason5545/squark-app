@@ -6522,7 +6522,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "遊戲視窗已打開"
+            "value" : "遊戲視窗已開啟"
           }
         }
       }
@@ -8744,7 +8744,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開 %@"
+            "value" : "開啟 %@"
           }
         }
       }
@@ -8778,7 +8778,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開記錄檔"
+            "value" : "開啟記錄檔"
           }
         }
       }
@@ -8812,7 +8812,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開 Steam"
+            "value" : "開啟 Steam"
           }
         }
       }
@@ -8846,7 +8846,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開系統設定"
+            "value" : "開啟系統設定"
           }
         }
       }
@@ -8880,7 +8880,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在「%2$@」中打開 %1$@。"
+            "value" : "已在「%2$@」中開啟 %1$@。"
           }
         }
       }
@@ -11158,7 +11158,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在所選 prefix 中執行程式或打開 Wine 工具。"
+            "value" : "在所選 prefix 中執行程式或開啟 Wine 工具。"
           }
         }
       }
