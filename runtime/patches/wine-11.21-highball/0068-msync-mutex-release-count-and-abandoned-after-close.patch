@@ -1,0 +1,71 @@
+Squark: msync, two mutex fixes found with Wine's tests (records 25.72)
+
+- NtReleaseMutant's previous state: msync returned the recursion count (2 for a mutex taken twice,
+  1 for once); NtReleaseMutant reports 1 - count (-1, 0), as the wineserver path and ntsync's
+  linux_release_mutex_obj do. ntdll_test sync, sync.c:428 and 433 failed with msync only.
+- A mutex owned by a thread that dies, whose handles were all closed while another thread waited on it
+  (kernel32_test sync, sync.c:416 and 420): the wineserver only looked at mutexes that still had a server
+  object (mutex_list), so the waiter was never told WAIT_ABANDONED and timed out. msync_abandon_mutexes()
+  now looks through every mutex in use in the shared memory. squark's tools/msync-test termwait.exe
+  "close" reproduces it (3 of 3 bad before, with WINEMSYNC=0 0 of 3).
+
+---
+diff --git a/dlls/ntdll/unix/msync.c b/dlls/ntdll/unix/msync.c
+index 0655ee4..d0fcb48 100644
+--- a/dlls/ntdll/unix/msync.c
++++ b/dlls/ntdll/unix/msync.c
+@@ -762,7 +762,9 @@ NTSTATUS msync_release_mutex_obj( int obj, LONG *prev_count )
+     if (mutex->tid != GetCurrentThreadId())
+         return STATUS_MUTANT_NOT_OWNED;
+ 
+-    if (prev_count) *prev_count = mutex->count;
++    /* Squark: the previous state as NtReleaseMutant reports it (1 - recursion count), like the
++     * wineserver (NtReleaseMutant in sync.c) and ntsync (linux_release_mutex_obj) */
++    if (prev_count) *prev_count = 1 - mutex->count;
+ 
+     if (!--mutex->count)
+     {
+diff --git a/server/msync.c b/server/msync.c
+index 3f731f0..a784226 100644
+--- a/server/msync.c
++++ b/server/msync.c
+@@ -788,19 +788,32 @@ struct mutex
+ 
+ void msync_abandon_mutexes( thread_id_t tid )
+ {
+-    struct msync *msync;
+-
+-    LIST_FOR_EACH_ENTRY( msync, &mutex_list, struct msync, mutex_entry )
++    /* Squark: look through every mutex in the shared memory, not only the ones that still have a
++     * server object (mutex_list): a mutex whose handles were all closed while a thread waited on it
++     * stays in use (the waiter holds the shared memory), and on Windows that waiter gets
++     * WAIT_ABANDONED when the owner dies. Threads die seldom; the scan reads only allocated pages. */
++    const int per_page = pagesize / sizeof(struct msync_shm);
++    int entry, i;
++
++    for (entry = 0; entry < shm_addrs_size; entry++)
+     {
+-        struct mutex *mutex = get_shm( msync->shm_idx );
++        char *page = __atomic_load_n( &shm_addrs[entry], __ATOMIC_ACQUIRE );
+ 
+-        if (mutex->tid == tid)
++        if (!page) continue;
++        for (i = 0; i < per_page; i++)
+         {
++            unsigned int idx = entry * per_page + i;
++            struct mutex *mutex = (struct mutex *)(page + i * sizeof(struct msync_shm));
++
++            if (!idx || mutex->msync_type != MSYNC_MUTEX) continue;
++            if (!__atomic_load_n( &mutex->refcount, __ATOMIC_SEQ_CST )) continue;
++            if (__atomic_load_n( &mutex->tid, __ATOMIC_SEQ_CST ) != tid) continue;
++
+             if (debug_level)
+-                fprintf( stderr, "msync_abandon_mutexes() idx=%d\n", msync->shm_idx );
++                fprintf( stderr, "msync_abandon_mutexes() idx=%d\n", idx );
+             mutex->tid = ~0;
+             mutex->count = 0;
+-            signal_all ( msync->shm_idx, (int *)mutex );
++            signal_all( idx, (int *)mutex );
+         }
+     }
+ }

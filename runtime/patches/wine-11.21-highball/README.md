@@ -118,3 +118,46 @@ commit on 11.21):
   (relative ms, absolute as ms from now, 0, NULL to cancel), period and window, TpReleaseTimer; and once a
   second the timer queue thread's rounds (which NT timer woke it, rounds with no relative timer pending,
   callbacks submitted, timer objects, pending timers). No summary line means the thread did not wake.
+- `0064-ntdll-server-msync.patch`: msync, the in-process synchronization of CrossOver on macOS (by
+  Marc-Aurel Zent, [marzent/winecx](https://github.com/marzent/winecx) `ff-wine-11.17`, `94044df0` "Add msync.",
+  LGPL-2.1-or-later): events, semaphores and mutexes live in memory shared with the wineserver and
+  waiting threads sleep on Mach semaphores, so `NtSetEvent`, `NtReleaseSemaphore`, `NtResetEvent` and
+  the waits on them no longer go through a wineserver request. It plugs into the in-process sync
+  framework Wine 11 has for ntsync (`inproc_sync.c`, the `linux_*_obj` operations in `sync.c`), which
+  macOS otherwise lacks. MSFS 2024's main thread wakes its 17 fiber workers through one semaphore, about
+  143 times a frame at 39 µs a round trip (squark records 25.71, 25.72). Rebased onto 11.21: 11.21 calls
+  `dbg_init()` after `server_init_process()`, so `msync_init()` goes right after `server_init_process( data )`
+  (where it was relative to the server in 11.17); the generated `server_protocol.h`, `request_handlers.h`
+  and `request_trace.h` come from `tools/make_requests` on 11.21, with `SERVER_PROTOCOL_VERSION` raised
+  from 971 to 972 as the original raised it. The rest applies as it is (`sync.c` next to `0061`, `server/thread.c`
+  next to `0029`).
+- `0065-msync-unregister-early-return.patch`: Highball's `patches/0014` (highball-engine `34bd3b0`, for their
+  x64 engine on CrossOver 26.3), unchanged: a multi-object wait that finds an object available while it
+  spins takes its registration with the wineserver's msync thread back, and the server unregisters
+  objects 0..i-1 whenever i > 0. Without it every lost race left a node on an object's waiter list, the
+  node pool ran out and the wineserver grew until the Mac ran out of memory (highball#224). marzent's
+  11.17 tree still has the bug.
+- Highball's `patches/0005` (yield once after an auto-reset event goes 0 to 1, for a CS:GO map load under
+  Rosetta that relied on Windows' boost of the woken thread) is left out: MSFS 2024 has not shown that
+  hang, the yield costs every auto-reset `SetEvent`, and its second half changes the wineserver path too,
+  so `WINEMSYNC=0` would no longer be the synchronization we had before. Carry it if a program hangs on
+  a job hand-off with msync and not without.
+- `0066-msync-on-by-default.patch`: msync is on unless `WINEMSYNC=0` (0064 turned it on only with
+  `WINEMSYNC=1`). The wineserver and every process of a prefix have to agree; a client that disagrees with
+  the running server stops with msync's error ("Server is running with WINEMSYNC but this process is
+  not"). `compat_run.sh` passes `WINEMSYNC` to the game by name, so a launch option `WINEMSYNC=0 %command%`
+  reaches the game and the Wine the script runs itself (prefix updates, helpers) alike.
+- `0067-ntdll-wait-recorder-records-msync.patch`: the wait recorder (`0061`) starts its record before the
+  in-process attempt, so with msync the waits, releases and sets are recorded too, flagged
+  `WAITLOG_F_INPROC` (0x2000) and without a waker (msync wakes a waiter through a Mach semaphore, not
+  through a wineserver request that names the thread). squark's `tools/waitlog/waitlog.py` shows them as
+  path `msync`, "waker not recorded". With `WINEMSYNC=0` nothing changes.
+- `0068-msync-mutex-release-count-and-abandoned-after-close.patch`: two mutex fixes to msync that Wine's own
+  tests found (they failed with msync only). `NtReleaseMutant` reported the recursion count as the previous
+  state (2, 1 for a mutex taken twice) where Windows, the wineserver path and ntsync report 1 - count (-1, 0;
+  `ntdll_test sync`, sync.c:428 and 433). And a mutex whose handles were all closed while a thread waited on it
+  was not abandoned when its owner died, so the waiter timed out instead of getting `WAIT_ABANDONED`
+  (`kernel32_test sync`, sync.c:416 and 420): the wineserver only went through the mutexes that still had a
+  server object; `msync_abandon_mutexes()` now goes through every mutex in use in the shared memory (thread
+  deaths are rare; only allocated pages are read). squark's `tools/msync-test/termwait.exe 5 close`
+  reproduces the second (3 of 3 bad before, 0 of 5 after, `WINEMSYNC=0` 0 of 5 both times).

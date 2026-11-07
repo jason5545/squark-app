@@ -2375,7 +2375,10 @@ while IFS= read -r np_feat_env; do
 done <<NP_FEAT_ENVS
 $np_feat_envs
 NP_FEAT_ENVS
-for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|HB_|MTL_|ROSETTA_|SQUARK_FEX_|VKD3D_|GST_|MESA_)[A-Z0-9_]*)=.*/\1/p'); do
+# WINEMSYNC (Wine patch 0066: msync is on unless WINEMSYNC=0) goes by name, so a launch option
+# WINEMSYNC=0 reaches the game as well as the Wine this script runs itself: the wineserver and
+# every process of a prefix have to agree on it.
+for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|VK_DRIVER_FILES|WINEMSYNC|Steam[A-Za-z0-9]*|(D3DM_|DXMT_|DXVK_|FEX_|HADRON_FEX_|HB_|MTL_|ROSETTA_|SQUARK_FEX_|VKD3D_|GST_|MESA_)[A-Z0-9_]*)=.*/\1/p'); do
   eval "value=\$$name"
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"

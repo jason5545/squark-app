@@ -55,5 +55,22 @@ ok "a refusal does not stop the rest" \
 ok "a name with a dash is not matched" "$(forwarded 'HADRON_ENV_BAD-NAME=x')" ""
 ok "the bare prefix is not matched" "$(forwarded 'HADRON_ENV_=x')" ""
 
+# Variables the script forwards by name or prefix (the loop before the HADRON_ENV_ one).
+named=$(sed -n '/^for name in \$(env | LC_ALL=C sed -nE .s\/^(CX_APPLEGPTK/,/^done$/p' "$SRC")
+case "$named" in
+  *VK_DRIVER_FILES*) ;;
+  *) echo "FAIL: the named passthrough loop was not found in $SRC"; exit 1 ;;
+esac
+printf '%s\n' "$named" > "$work/named.sh"
+forwarded_named() {
+  # shellcheck disable=SC2016 # the block expands inside the child shell, not here
+  env -i PATH="$PATH" "$@" \
+    sh -c 'w=$1; set --; . "$w/named.sh"; printf "%s\n" "$@"' sh "$work" |
+    sed -e '/^--env$/d' -e '/^$/d' | LC_ALL=C sort | tr '\n' ' '
+}
+ok "WINEMSYNC=0 reaches the game by name" "$(forwarded_named WINEMSYNC=0)" "WINEMSYNC=0 "
+ok "a name that only starts with WINEMSYNC does not" "$(forwarded_named WINEMSYNC_QLIMIT=4)" ""
+ok "the graphics prefixes still pass" "$(forwarded_named VKD3D_CONFIG=x MESA_Y=1)" "MESA_Y=1 VKD3D_CONFIG=x "
+
 [ "$fail" -eq 0 ] || exit 1
 echo "==> envpasscheck: launch options reach the game, reserved names do not"

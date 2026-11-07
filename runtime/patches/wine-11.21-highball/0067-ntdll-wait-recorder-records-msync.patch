@@ -1,0 +1,161 @@
+Squark: the wait recorder (0061) also records what msync (0064) does in process (records 25.72)
+
+With msync, NtWaitForSingleObject, NtWaitForMultipleObjects, NtSignalAndWaitForSingleObject,
+NtReleaseSemaphore, NtSetEvent, NtPulseEvent and NtReleaseMutant return from inproc_*() before
+the wineserver request that 0061 wraps, so a recording had none of them. The recording now starts
+before the in-process attempt, and an event done there carries WAITLOG_F_INPROC (0x2000) and no
+waker: msync wakes a waiter through a Mach semaphore, without a wineserver request to name the
+thread. squark's tools/waitlog/waitlog.py shows those as path msync, waker not recorded.
+
+---
+diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
+index caa444d..d77cba2 100644
+--- a/dlls/ntdll/unix/sync.c
++++ b/dlls/ntdll/unix/sync.c
+@@ -1141,10 +1141,13 @@ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, LONG count, ULONG *previous )
+     if (count <= 0)
+         return STATUS_INVALID_PARAMETER;
+ 
++    wl = waitlog_start( WAITLOG_RELEASE_SEMAPHORE, (ULONG_PTR)handle );
+     if ((ret = inproc_release_semaphore( handle, count, previous )) != STATUS_NOT_IMPLEMENTED)
++    {
++        if (wl) waitlog_end( wl, WAITLOG_RELEASE_SEMAPHORE, WAITLOG_F_INPROC, (ULONG_PTR)handle, ret, 0 );
+         return ret;
++    }
+ 
+-    wl = waitlog_start( WAITLOG_RELEASE_SEMAPHORE, (ULONG_PTR)handle );
+     SERVER_START_REQ( release_semaphore )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1230,10 +1233,13 @@ NTSTATUS WINAPI NtSetEvent( HANDLE handle, LONG *prev_state )
+ 
+     TRACE( "handle %p, prev_state %p\n", handle, prev_state );
+ 
++    wl = waitlog_start( WAITLOG_SET_EVENT, (ULONG_PTR)handle );
+     if ((ret = inproc_set_event( handle, prev_state )) != STATUS_NOT_IMPLEMENTED)
++    {
++        if (wl) waitlog_end( wl, WAITLOG_SET_EVENT, WAITLOG_F_INPROC, (ULONG_PTR)handle, ret, 0 );
+         return ret;
++    }
+ 
+-    wl = waitlog_start( WAITLOG_SET_EVENT, (ULONG_PTR)handle );
+     SERVER_START_REQ( event_op )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1300,10 +1306,13 @@ NTSTATUS WINAPI NtPulseEvent( HANDLE handle, LONG *prev_state )
+ 
+     TRACE( "handle %p, prev_state %p\n", handle, prev_state );
+ 
++    wl = waitlog_start( WAITLOG_PULSE_EVENT, (ULONG_PTR)handle );
+     if ((ret = inproc_pulse_event( handle, prev_state )) != STATUS_NOT_IMPLEMENTED)
++    {
++        if (wl) waitlog_end( wl, WAITLOG_PULSE_EVENT, WAITLOG_F_INPROC, (ULONG_PTR)handle, ret, 0 );
+         return ret;
++    }
+ 
+-    wl = waitlog_start( WAITLOG_PULSE_EVENT, (ULONG_PTR)handle );
+     SERVER_START_REQ( event_op )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -1425,10 +1434,13 @@ NTSTATUS WINAPI NtReleaseMutant( HANDLE handle, LONG *prev_count )
+ 
+     TRACE( "handle %p, prev_count %p\n", handle, prev_count );
+ 
++    wl = waitlog_start( WAITLOG_RELEASE_MUTANT, (ULONG_PTR)handle );
+     if ((ret = inproc_release_mutex( handle, prev_count )) != STATUS_NOT_IMPLEMENTED)
++    {
++        if (wl) waitlog_end( wl, WAITLOG_RELEASE_MUTANT, WAITLOG_F_INPROC, (ULONG_PTR)handle, ret, 0 );
+         return ret;
++    }
+ 
+-    wl = waitlog_start( WAITLOG_RELEASE_MUTANT, (ULONG_PTR)handle );
+     SERVER_START_REQ( release_mutex )
+     {
+         req->handle = wine_server_obj_handle( handle );
+@@ -2408,13 +2420,21 @@ NTSTATUS WINAPI NtWaitForMultipleObjects( DWORD count, const HANDLE *handles, WA
+         if (is_pseudo_handle( handles[i] )) return STATUS_INVALID_HANDLE;
+     }
+ 
++    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handles[0] );
+     if ((ret = inproc_wait( count, handles, type, alertable, timeout )) != STATUS_NOT_IMPLEMENTED)
+     {
++        if (wl)
++        {
++            i = ret < count ? ret : (ret >= STATUS_ABANDONED_WAIT_0 && ret < STATUS_ABANDONED_WAIT_0 + count)
++                                    ? ret - STATUS_ABANDONED_WAIT_0 : 0;
++            waitlog_end( wl, WAITLOG_SERVER_WAIT,
++                         waitlog_flags( count, type == WaitAll, alertable, timeout ) | WAITLOG_F_INPROC,
++                         (ULONG_PTR)handles[i], ret, 0 );
++        }
+         TRACE( "-> %#x\n", ret );
+         return ret;
+     }
+ 
+-    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handles[0] );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.wait.op = type == WaitAll ? SELECT_WAIT_ALL : SELECT_WAIT;
+     for (i = 0; i < count; i++) select_op.wait.handles[i] = wine_server_obj_handle( handles[i] );
+@@ -2443,13 +2463,15 @@ NTSTATUS WINAPI NtWaitForSingleObject( HANDLE handle, BOOLEAN alertable, const L
+ 
+     TRACE( "handle %p, alertable %u, timeout %s\n", handle, alertable, debugstr_timeout(timeout) );
+ 
++    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handle );
+     if ((ret = inproc_wait( 1, &handle, WaitAny, alertable, timeout )) != STATUS_NOT_IMPLEMENTED)
+     {
++        if (wl) waitlog_end( wl, WAITLOG_SERVER_WAIT, waitlog_flags( 1, FALSE, alertable, timeout ) | WAITLOG_F_INPROC,
++                             (ULONG_PTR)handle, ret, 0 );
+         TRACE( "-> %#x\n", ret );
+         return ret;
+     }
+ 
+-    wl = waitlog_start( WAITLOG_SERVER_WAIT, (ULONG_PTR)handle );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.wait.op = SELECT_WAIT;
+     select_op.wait.handles[0] = wine_server_obj_handle( handle );
+@@ -2476,10 +2498,14 @@ NTSTATUS WINAPI NtSignalAndWaitForSingleObject( HANDLE signal, HANDLE wait,
+ 
+     if (!signal) return STATUS_INVALID_HANDLE;
+ 
++    wl = waitlog_start( WAITLOG_SIGNAL_AND_WAIT, (ULONG_PTR)wait );
+     if ((ret = inproc_signal_and_wait( signal, wait, alertable, timeout )) != STATUS_NOT_IMPLEMENTED)
++    {
++        if (wl) waitlog_end( wl, WAITLOG_SIGNAL_AND_WAIT,
++                             waitlog_flags( 1, FALSE, alertable, timeout ) | WAITLOG_F_INPROC, (ULONG_PTR)wait, ret, 0 );
+         return ret;
++    }
+ 
+-    wl = waitlog_start( WAITLOG_SIGNAL_AND_WAIT, (ULONG_PTR)wait );
+     if (alertable) flags |= SELECT_ALERTABLE;
+     select_op.signal_and_wait.op = SELECT_SIGNAL_AND_WAIT;
+     select_op.signal_and_wait.wait = wine_server_obj_handle( wait );
+diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
+index 5cd9809..f9b8a41 100644
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -287,6 +287,7 @@ enum waitlog_kind
+ #define WAITLOG_F_POLL      0x0400  /* zero timeout */
+ #define WAITLOG_F_NOBLOCK   0x0800  /* alert wait: the alert was already there */
+ #define WAITLOG_F_OPEN      0x1000  /* still waiting when the window ended */
++#define WAITLOG_F_INPROC    0x2000  /* done in process (msync), without the wineserver: no waker */
+ 
+ #define WAITLOG_WAKER_IMMEDIATE 1   /* server wait satisfied by the select request itself */
+ 
+diff --git a/server/msync.c b/server/msync.c
+index fd08eeb..3f731f0 100644
+--- a/server/msync.c
++++ b/server/msync.c
+@@ -535,14 +535,12 @@ int do_msync(void)
+     static int do_msync_cached = -1;
+ 
+     if (do_msync_cached == -1)
+-    {
+     {
+         /* Squark: on unless WINEMSYNC=0 (the server and every process have to agree;
+          * they inherit it from the process that starts the server) */
+         const char *env = getenv("WINEMSYNC");
+         do_msync_cached = !env || !*env || atoi(env);
+     }
+-    }
+ 
+     return do_msync_cached;
+ }

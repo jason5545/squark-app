@@ -1,0 +1,44 @@
+Squark: msync is on unless WINEMSYNC=0 (records 25.72)
+
+0064 turned msync on only with WINEMSYNC=1. Squark runs it by default; WINEMSYNC=0 (or any value
+atoi reads as 0) keeps the server's synchronization as before. The wineserver and every process
+of a prefix have to agree: the process that starts the server passes its environment on, and a
+client that disagrees with the server stops with msync's own error.
+
+---
+diff --git a/dlls/ntdll/unix/msync.c b/dlls/ntdll/unix/msync.c
+index 55cd25c..0655ee4 100644
+--- a/dlls/ntdll/unix/msync.c
++++ b/dlls/ntdll/unix/msync.c
+@@ -418,7 +418,12 @@ int do_msync(void)
+     static int do_msync_cached = -1;
+ 
+     if (do_msync_cached == -1)
+-        do_msync_cached = getenv("WINEMSYNC") && atoi(getenv("WINEMSYNC"));
++    {
++        /* Squark: on unless WINEMSYNC=0 (the server and every process have to agree;
++         * they inherit it from the process that starts the server) */
++        const char *env = getenv("WINEMSYNC");
++        do_msync_cached = !env || !*env || atoi(env);
++    }
+ 
+     return do_msync_cached;
+ }
+diff --git a/server/msync.c b/server/msync.c
+index eedac12..fd08eeb 100644
+--- a/server/msync.c
++++ b/server/msync.c
+@@ -536,7 +536,12 @@ int do_msync(void)
+ 
+     if (do_msync_cached == -1)
+     {
+-        do_msync_cached = getenv("WINEMSYNC") && atoi(getenv("WINEMSYNC"));
++    {
++        /* Squark: on unless WINEMSYNC=0 (the server and every process have to agree;
++         * they inherit it from the process that starts the server) */
++        const char *env = getenv("WINEMSYNC");
++        do_msync_cached = !env || !*env || atoi(env);
++    }
+     }
+ 
+     return do_msync_cached;
