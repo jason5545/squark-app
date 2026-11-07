@@ -451,8 +451,12 @@ if [ ! -f "$WINE_BUILD/Makefile" ]; then
     disable=""
     [ "$ARCH" = x86_64 ] || disable="--disable-steam.exe"
     # shellcheck disable=SC2086
+    # PKG_CONFIG_LIBDIR goes in as an argument too: configure records arguments, not the
+    # environment, so when make runs configure again (a patch changed configure.ac) it would
+    # otherwise find Homebrew's libraries, as 11/7 it linked libusb and ffmpeg from there.
     ( cd "$WINE_BUILD" && PKG_CONFIG_LIBDIR="$DEPS/lib/pkgconfig" "$WINE_SRC/configure" \
         --prefix=/ --enable-archs="$WINE_ARCHS" --without-x $disable \
+        PKG_CONFIG_LIBDIR="$DEPS/lib/pkgconfig" \
         --host="$HOST" CC="$CC_ARCH" CXX="$CXX_ARCH" \
         FREETYPE_CFLAGS="-I$DEPS/include/freetype2" FREETYPE_LIBS="-L$DEPS/lib -lfreetype" \
         GSTREAMER_CFLAGS="$gst_cflags" GSTREAMER_LIBS="$gst_libs" \
@@ -465,6 +469,8 @@ if [ "$GSTREAMER" = yes ]; then
     grep -q "^GSTREAMER_LIBS = .*-lgstreamer-1.0" "$WINE_BUILD/Makefile" \
         || die "configure did not take GStreamer, remove $WINE_BUILD to configure again"
 fi
+grep -q "PKG_CONFIG_LIBDIR=$DEPS/lib/pkgconfig" "$WINE_BUILD/config.status" \
+    || die "configure does not keep PKG_CONFIG_LIBDIR, remove $WINE_BUILD/Makefile to configure again"
 grep -q "^host_cpu = $HOST_CPU" "$WINE_BUILD/config.status" \
     || die "configure did not take the $HOST_CPU host"
 grep -q 'SONAME_LIBVULKAN "@loader_path/../../libvulkan.1.dylib"' "$WINE_BUILD/include/config.h" \
@@ -539,6 +545,15 @@ if [ "$GSTREAMER" = yes ]; then
     for dep in $(otool -L "$OUT/lib/wine/$UNIX_DIR/winegstreamer.so" | awk '/@rpath\/lib/ { print $1 }'); do
         [ -f "$OUT/lib/GStreamer.framework/Versions/1.0/lib/${dep#@rpath/}" ] || die "GStreamer lacks $dep, which winegstreamer links"
     done
+fi
+
+# The runtime has to run without Homebrew: a unix half linking a library by a Homebrew path
+# means configure found something outside DEPS.
+if [ "$ARCH" != x86_64 ]; then
+    leaks=$(find "$OUT/lib/wine/$UNIX_DIR" "$OUT/bin" -type f -perm +111 -o -type f -name '*.so' \
+        | while read -r f; do otool -L "$f" 2>/dev/null | awk -v f="$f" '/\/opt\/homebrew\/|\/usr\/local\// { print f ": " $1 }'; done)
+    [ -z "$leaks" ] || die "linked outside the runtime, remove $WINE_BUILD/Makefile to configure again:
+$leaks"
 fi
 
 # Wine builds with -g, which is most of the size. The x86_64 unix halves stay unsigned,
