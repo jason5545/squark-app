@@ -1,0 +1,238 @@
+Squark: msync wakes one single-object waiter for an operation that frees one unit (records 25.73)
+
+ReleaseSemaphore woke every thread sleeping on the semaphore (ULF_WAKE_ALL); one took it and the rest
+went back to sleep. Now ReleaseSemaphore(1), SetEvent on an auto-reset event and ReleaseMutex wake one
+of them. A release of more than one still wakes all: a wake call costs the releasing thread the same
+for one thread or all, so waking n one by one made MSFS 2024's main thread's ReleaseSemaphore(7) cost
+3.7 µs instead of 0.7 µs. Manual-reset events, PulseEvent and the wineserver's own wakes wake all too.
+
+- A wake without ULF_WAKE_ALL goes to a thread still queued on the address; one that timed out or
+  was interrupted by a signal (suspend, system APC) is already off the queue, so the wake goes to the
+  next sleeper. A woken wait-any thread takes the object at once or finds it taken.
+- Wait-all threads wait for each object in turn without taking it, so one could take the only wake
+  and go to sleep on the next object, leaving the object free and the other waiters asleep. They now
+  hand such a wake on (wake one more if the object is still free) before sleeping again, timing out
+  or leaving for an APC. squark's tools/msync-test wakepass.exe: without the hand-on about half of the
+  releases in its "absorb" part are lost.
+- What a wait-all puts back after failing to take everything (tooslow) woke nobody, even with
+  ULF_WAKE_ALL: a waiter that looked meanwhile slept with the object free until the next release. It
+  now wakes one, the wineserver's list of multi-object waiters included.
+- Waiters with an alert object or on several objects wait on the wineserver's list, which is still
+  woken completely.
+- SQUARK_MSYNC_WAKE_ALL=1 wakes all single-object waiters again (the put-back wake stays).
+
+---
+diff --git a/dlls/ntdll/unix/msync.c b/dlls/ntdll/unix/msync.c
+index d0fcb48..04abf4c 100644
+--- a/dlls/ntdll/unix/msync.c
++++ b/dlls/ntdll/unix/msync.c
+@@ -650,12 +650,58 @@ void msync_init(void)
+     }
+ }
+ 
+-static inline void signal_all( void *shm, unsigned int shm_idx )
++/* Squark: an operation that frees one unit wakes one single-object waiter, not all of them.
++ *
++ * A thread that waits on one object without an alert object (msync_wait_single) sleeps in
++ * __ulock_wait on the object itself. Waking every one of them for each ReleaseSemaphore(1),
++ * SetEvent on an auto-reset event or ReleaseMutex let one take it and sent the others back to
++ * sleep: with 17 workers on one semaphore, 16 wasted wake-ups per job (records 25.72, 25.73).
++ * A release of more than one still wakes all of them (see signal_waiters).
++ *
++ * A wake without ULF_WAKE_ALL picks one thread that is still queued on the address and returns
++ * ENOENT when there is none. The kernel takes a thread off the queue for exactly one reason
++ * (woken, timed out or interrupted by a signal), so a thread that times out or is interrupted
++ * never swallows a wake: it goes to the next sleeper. A thread woken in the wait-any loop of
++ * msync_wait_objs goes straight back to taking the object; if it fails, someone else took it.
++ * The threads that can be woken and not take the object are the wait-all ones, which wait
++ * for each object in turn and take them all later: they hand the wake on (pass_wakes below)
++ * before they sleep again or leave. Waiters with an alert object or several objects wait
++ * through the wineserver's list, which signal_waiters still wakes completely, as before.
++ *
++ * SQUARK_MSYNC_WAKE_ALL=1 wakes every single-object waiter again. */
++#define WAKE_ALL_WAITERS (~0u)
++
++static int msync_wake_all(void)
++{
++    static int cached = -1;
++
++    if (cached == -1)
++    {
++        const char *env = getenv( "SQUARK_MSYNC_WAKE_ALL" );
++        cached = env && atoi( env );
++    }
++    return cached;
++}
++
++/* wake one thread sleeping on the object itself; 0 if none was */
++static inline int wake_one( void *shm )
++{
++    return !__ulock_wake( UL_COMPARE_AND_WAIT_SHARED | ULF_NO_ERRNO, shm, 0 );
++}
++
++static inline void signal_waiters( void *shm, unsigned int shm_idx, unsigned int wake_count )
+ {
+     __thread static mach_msg_header_t send_header;
+     struct event *event_obj = (struct event *)shm;
+ 
+-    __ulock_wake( UL_COMPARE_AND_WAIT_SHARED | ULF_WAKE_ALL, shm, 0 );
++    /* One wake call costs the releasing thread the same whether it wakes one thread or all of them,
++     * and n calls cost it n times as much: a ReleaseSemaphore(7) that woke 7 one by one took 3.7 µs
++     * against 0.7 µs (MSFS 2024's main thread releases ~145 times a frame). So only a release of
++     * one wakes one; more than that wakes all, as before. */
++    if (wake_count != 1 || msync_wake_all())
++        __ulock_wake( UL_COMPARE_AND_WAIT_SHARED | ULF_WAKE_ALL, shm, 0 );
++    else
++        wake_one( shm );
+ 
+     if (!__atomic_load_n( &event_obj->multiple_waiters, __ATOMIC_SEQ_CST ))
+         return;
+@@ -669,6 +715,46 @@ static inline void signal_all( void *shm, unsigned int shm_idx )
+                MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE, 0 );
+ }
+ 
++static inline void signal_all( void *shm, unsigned int shm_idx )
++{
++    signal_waiters( shm, shm_idx, WAKE_ALL_WAITERS );
++}
++
++/* whether a thread that took a single wake for the object could leave it to another one */
++static inline int obj_available( void *shm )
++{
++    switch (((struct event *)shm)->msync_type)
++    {
++    case MSYNC_SEMAPHORE:
++        return __atomic_load_n( &((struct semaphore *)shm)->count, __ATOMIC_SEQ_CST ) > 0;
++    case MSYNC_AUTO_EVENT:
++    case MSYNC_AUTO_SERVER:
++        return __atomic_load_n( &((struct event *)shm)->signaled, __ATOMIC_SEQ_CST ) != 0;
++    case MSYNC_MUTEX:
++    {
++        int tid = __atomic_load_n( &((struct mutex *)shm)->tid, __ATOMIC_SEQ_CST );
++        return !tid || tid == ~0;
++    }
++    default:
++        return 0;  /* manual-reset events wake every waiter */
++    }
++}
++
++/* A wait-all thread that was woken on the objects in *woken (one bit each) and is about to
++ * sleep again or leave without taking them: wake the next sleeper of those still free, so
++ * that a wake meant for a thread that takes the object doesn't end with this one. */
++static inline void pass_wakes( void **objs_shm, ULONGLONG *woken )
++{
++    ULONGLONG mask = *woken;
++    int i;
++
++    *woken = 0;
++    if (msync_wake_all()) return;
++    for (i = 0; mask; i++, mask >>= 1)
++        if ((mask & 1) && obj_available( objs_shm[i] ))
++            wake_one( objs_shm[i] );
++}
++
+ NTSTATUS msync_release_semaphore_obj( int obj, ULONG count, ULONG *prev_count )
+ {
+     struct semaphore *semaphore = get_shm( obj );
+@@ -684,7 +770,7 @@ NTSTATUS msync_release_semaphore_obj( int obj, ULONG count, ULONG *prev_count )
+ 
+     if (prev_count) *prev_count = current;
+ 
+-    signal_all( (void *)semaphore, obj );
++    signal_waiters( (void *)semaphore, obj, count );
+     return STATUS_SUCCESS;
+ }
+ 
+@@ -704,7 +790,8 @@ NTSTATUS msync_set_event_obj( int obj, LONG *prev_state )
+     LONG current;
+ 
+     if (!(current = __atomic_exchange_n( &event->signaled, 1, __ATOMIC_SEQ_CST )))
+-        signal_all( (void *)event, obj );
++        signal_waiters( (void *)event, obj, (event->msync_type == MSYNC_AUTO_EVENT ||
++                                            event->msync_type == MSYNC_AUTO_SERVER) ? 1 : WAKE_ALL_WAITERS );
+ 
+     if (prev_state) *prev_state = current;
+ 
+@@ -769,7 +856,7 @@ NTSTATUS msync_release_mutex_obj( int obj, LONG *prev_count )
+     if (!--mutex->count)
+     {
+         __atomic_store_n( &mutex->tid, 0, __ATOMIC_SEQ_CST );
+-        signal_all( (void *)mutex, obj );
++        signal_waiters( (void *)mutex, obj, 1 );
+     }
+ 
+     return STATUS_SUCCESS;
+@@ -972,6 +1059,7 @@ NTSTATUS msync_wait_objs( const DWORD count, const int *objs, BOOLEAN wait_any,
+          * waiting for an instant while we put things back. */
+ 
+         NTSTATUS status = STATUS_SUCCESS;
++        ULONGLONG woken = 0;  /* Squark: objects this thread may have taken a single wake for */
+ 
+         while (1)
+         {
+@@ -993,7 +1081,9 @@ tryagain:
+ 
+                     while (__atomic_load_n( &mutex->tid, __ATOMIC_SEQ_CST ))
+                     {
++                        pass_wakes( objs_shm, &woken );
+                         status = do_single_wait( objs[i], objs_shm[i], alert_obj, alert_obj_shm, timeout ? &end : NULL, current_tid );
++                        if (status == STATUS_SUCCESS) woken |= 1ull << i;
+                         if (status != STATUS_PENDING)
+                             break;
+                     }
+@@ -1005,14 +1095,20 @@ tryagain:
+ 
+                     while (!__atomic_load_n( &event->signaled, __ATOMIC_SEQ_CST ))
+                     {
++                        pass_wakes( objs_shm, &woken );
+                         status = do_single_wait( objs[i], objs_shm[i], alert_obj, alert_obj_shm, timeout ? &end : NULL, current_tid );
++                        if (status == STATUS_SUCCESS) woken |= 1ull << i;
+                         if (status != STATUS_PENDING)
+                             break;
+                     }
+                 }
+ 
+-                if (status == STATUS_TIMEOUT) return STATUS_TIMEOUT;
+-                if (status == STATUS_USER_APC) goto userapc;
++                if (status == STATUS_TIMEOUT || status == STATUS_USER_APC)
++                {
++                    pass_wakes( objs_shm, &woken );
++                    if (status == STATUS_TIMEOUT) return STATUS_TIMEOUT;
++                    goto userapc;
++                }
+             }
+ 
+             /* If we got here and we haven't timed out, that means all of the
+@@ -1102,6 +1198,9 @@ tryagain:
+             return STATUS_SUCCESS;
+ 
+ tooslow:
++            /* Squark: what is put back here was free when a waiter on it may have looked and gone
++             * to sleep, and nothing woke anyone for it (with every waiter woken at each release
++             * as well), so wake one for each, the wineserver's list included. */
+             for (--i; i >= 0; i--)
+             {
+                 switch (((struct event *)objs_shm[i])->msync_type)
+@@ -1113,12 +1212,14 @@ tooslow:
+                      * mutexes, but fixing it is probably more trouble than
+                      * it's worth. */
+                     __atomic_store_n( &mutex->tid, 0, __ATOMIC_SEQ_CST );
++                    signal_waiters( objs_shm[i], objs[i], 1 );
+                     break;
+                 }
+                 case MSYNC_SEMAPHORE:
+                 {
+                     struct semaphore *semaphore = (struct semaphore *)objs_shm[i];
+                     __sync_fetch_and_add( &semaphore->count, 1 );
++                    signal_waiters( objs_shm[i], objs[i], 1 );
+                     break;
+                 }
+                 case MSYNC_AUTO_EVENT:
+@@ -1126,6 +1227,7 @@ tooslow:
+                 {
+                     struct event *event = (struct event *)objs_shm[i];
+                     __atomic_store_n( &event->signaled, 1, __ATOMIC_SEQ_CST );
++                    signal_waiters( objs_shm[i], objs[i], 1 );
+                     break;
+                 }
+                 default:

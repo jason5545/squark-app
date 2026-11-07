@@ -161,3 +161,22 @@ commit on 11.21):
   server object; `msync_abandon_mutexes()` now goes through every mutex in use in the shared memory (thread
   deaths are rare; only allocated pages are read). squark's `tools/msync-test/termwait.exe 5 close`
   reproduces the second (3 of 3 bad before, 0 of 5 after, `WINEMSYNC=0` 0 of 5 both times).
+- `0069-msync-wake-one-for-a-release-of-one.patch`: msync wakes one thread, not every thread sleeping on the
+  object, for `ReleaseSemaphore(1)`, `SetEvent` on an auto-reset event and `ReleaseMutex`. Every one of them
+  used to wake (`ULF_WAKE_ALL`); one took the object and the others went back to sleep, with 17 workers on one
+  semaphore 16 wasted wake-ups a job. A release of more than one still wakes all: a wake call costs the
+  releasing thread the same for one thread or all, and waking 7 one by one made the main thread's
+  `ReleaseSemaphore(7)` in squark's harness `fiber` module 3.7 µs instead of 0.7 µs. Manual-reset events,
+  `PulseEvent` and the wineserver's own wakes still wake all. A wake without `ULF_WAKE_ALL` goes to a thread
+  still queued; one that timed out or was interrupted (suspend, system APC) is already off the queue, so it
+  can't swallow it. The ones that can are wait-all threads, which wait for each object in turn without taking
+  it: they now hand the wake on before they sleep on the next object, time out or leave for an APC (without
+  that, squark's `tools/msync-test/wakepass.exe` loses about half the releases of its `absorb` part). What a
+  wait-all puts back after missing an object (`tooslow`) now wakes one too; it woke nobody before, even with
+  `ULF_WAKE_ALL`. `SQUARK_MSYNC_WAKE_ALL=1` wakes all again. Harness, three rounds against 0068: `sync` (one
+  release a job) frame 19.75 → 19.1 ms, process CPU 112.4 → 105.4 ms a frame, main thread 12.9 → 11.7 ms;
+  `fiber` main thread's releases unchanged (0.29 ms a frame), workers' releases and sets 0.43 → 0.38 ms;
+  `sync jobs=1` CPU 34.9 → 32.1 ms a frame. msync's 344–410 µs `dispatch_us` / `job_wake_us` (145 / 14 µs
+  through the wineserver) are queueing, not wake-ups: msync lets the main thread release a batch's jobs before
+  the workers can start them; with jobs=1 (no queue) a job's wake is 7.7 µs (6.9 with 0068, 8.9 through the
+  wineserver). Records 25.73.
