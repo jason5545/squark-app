@@ -1,0 +1,35 @@
+winemac: in background mode, keep the program's threads at the priority of a visible app.
+
+HADRON_MAC_BACKGROUND=1 (0056) puts every window under the desktop. macOS then takes the program
+for an app nobody can see and, about 20 seconds after it starts, clamps all its threads to utility
+QoS (priority 20, "20T" in ps -M), although winemac holds a user-initiated activity against App
+Nap. A Mac test program with a window at the lowest level, never activated, shows the same: no
+activity 4T (App Nap), user-initiated allowing idle sleep 20T, the same plus latency-critical
+46T/31T as at the start, 40 seconds on. Latency-critical makes no power assertion; idle system
+sleep stays allowed. Background mode now always takes the activity, App Nap enabled or not.
+
+Without background mode: no change.
+
+diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -260,9 +260,17 @@
+             if (activateIfTransformed && !macdrv_background_mode())
+                 [self tryToActivateIgnoringOtherApps:YES];
+ 
+-            if (!enable_app_nap)
++            if (!enable_app_nap || macdrv_background_mode())
+             {
+-                [[[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
++                NSActivityOptions options = NSActivityUserInitiatedAllowingIdleSystemSleep;
++
++                /* Background mode puts every window under the desktop, so macOS takes the app
++                   for one nobody can see and, a few seconds on, clamps all its threads to utility
++                   QoS (priority 20) despite the user-initiated activity. Latency-critical keeps
++                   them where a visible app's are; idle system sleep stays allowed. */
++                if (macdrv_background_mode())
++                    options |= NSActivityLatencyCritical;
++                [[[NSProcessInfo processInfo] beginActivityWithOptions:options
+                                                                 reason:@"Running Windows program"] retain]; // intentional leak
+             }
+ 

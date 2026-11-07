@@ -190,3 +190,11 @@ commit on 11.21):
   wrappers that notify the emulator) drop them for the rest of the call. Native code is always fine with the
   native FPCR; FEX writes the JIT's back when the call returns to x64 code. One `mrs` and a branch more
   otherwise. Goes with FEX patch 0043 (squark records 25.77).
+- `0071-winemac-background-mode-latency-critical.patch`: in background mode (0056) every window sits under the
+  desktop, and about 20 seconds after start macOS clamped all the program's threads to utility QoS (priority
+  20 in `ps -M`), the user-initiated activity winemac holds against App Nap notwithstanding. Background mode
+  now adds `NSActivityLatencyCritical` to that activity (and takes it with App Nap enabled too); threads stay
+  at 46/37/31 as at the start. No power assertion, idle system sleep stays allowed. A Mac test program with a
+  window at the lowest level showed the four cases 40 seconds on: no activity 4T, user-initiated allowing idle
+  sleep 20T, the same plus latency-critical 46T/31T, `NSActivityUserInitiated|LatencyCritical` 47T but with
+  a `PreventUserIdleSystemSleep` assertion. Unchanged without background mode (squark records 25.78).
