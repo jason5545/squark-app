@@ -158,7 +158,7 @@ mincheck:
 l10ncheck:
 	@bin=$$(swift build --package-path app -c release --show-bin-path); \
 	python3 dylib/tests/l10ncheck.py app/Sources/HadronApp/Resources/Localization/Localizable.xcstrings \
-		"$$bin/../../Intermediates.noindex/HadronApp.build/$$(basename "$$bin")" zh-Hans it de fr
+		"$$bin/../../Intermediates.noindex/HadronApp.build/$$(basename "$$bin")" zh-Hans zh-Hant it de fr
 
 # runcheck owns compat_run.sh, whose warnings wait for a change that can move
 # the embedded __text baseline

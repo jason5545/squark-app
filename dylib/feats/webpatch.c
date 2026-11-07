@@ -663,47 +663,57 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "globalThis.navigator?.language||\"\").toLowerCase().replace(/_/g,\"-\");" \
     "return /^(zh(-hans(-[a-z0-9]+)*|-cn|-sg)?|schinese)$/.test(l)})()"
 
+// squark: Traditional Chinese (Taiwan, Hong Kong), which Steam calls tchinese.
+#define NP_WEB_IS_TW \
+    "(()=>{const l=(globalThis.document?.documentElement?.lang||" \
+    "globalThis.navigator?.language||\"\").toLowerCase().replace(/_/g,\"-\");" \
+    "return /^(zh-(hant(-[a-z0-9]+)*|tw|hk|mo)|tchinese)$/.test(l)})()"
+
 #define NP_WEB_IS_IT \
     "(()=>{const l=(globalThis.document?.documentElement?.lang||" \
     "globalThis.navigator?.language||\"\").toLowerCase().replace(/_/g,\"-\");" \
     "return /^(it(-[a-z0-9]+)*|italian)$/.test(l)})()"
 
-#define NP_WEB_TEXT(EN, ZH, IT) \
-    "(" NP_WEB_IS_ZH "?\"" ZH "\":" NP_WEB_IS_IT "?\"" IT "\":\"" EN "\")"
+#define NP_WEB_TEXT(EN, ZH, TW, IT) \
+    "(" NP_WEB_IS_TW "?\"" TW "\":" NP_WEB_IS_ZH "?\"" ZH "\":" NP_WEB_IS_IT "?\"" IT "\":\"" EN "\")"
 
 #define NP_COMPAT_HINT NP_WEB_TEXT( \
     "Enable Squark under Properties > Compatibility to install and run the Windows version.", \
     "请在“属性 > 兼容性”中启用 Squark，以安装并运行 Windows 版本。", \
+    "請在「內容 > 相容性」中啟用 Squark，以安裝並執行 Windows 版本。", \
     "Abilita Squark in Propriet\\u00e0 > Compatibilit\\u00e0 per installare e avviare la versione Windows.")
 
 #define NP_IMAGE_FILES_LABEL NP_WEB_TEXT( \
-    "Image Files (*.tga,*.png,*.exe)", "图像文件 (*.tga,*.png,*.exe)", "File immagine (*.tga,*.png,*.exe)")
+    "Image Files (*.tga,*.png,*.exe)", "图像文件 (*.tga,*.png,*.exe)", \
+    "影像檔案 (*.tga,*.png,*.exe)", "File immagine (*.tga,*.png,*.exe)")
 
 #define NP_LIBRARY_WINDOWS_HINT NP_WEB_TEXT( \
     "Show only games that run on Windows and do not have a macOS version", \
     "Show only games that run on Windows and do not have a macOS version", \
+    "只顯示能在 Windows 上執行、沒有 macOS 版本的遊戲", \
     "Mostra solo i giochi che funzionano su Windows e non hanno una versione macOS")
 
 #define NP_LIBRARY_WINDOWS_SUMMARY NP_WEB_TEXT( \
     "Runs on Windows, no Mac OS version", \
     "Runs on Windows, no Mac OS version", \
+    "可在 Windows 上執行，沒有 macOS 版本", \
     "Funziona su Windows, nessuna versione macOS")
 
 // Rebuild row in the options panel. Chinese waits for a translator.
 // The row is redrawn on every poll, so the bar keeps its phase from when the rebuild started
 // instead of restarting on each redraw.
-#define NP_PREFIX_NEED NP_WEB_TEXT("Switching to this compatibility tool requires a prefix rebuild. Rebuild now?", "Switching to this compatibility tool requires a prefix rebuild. Rebuild now?", "Per passare a questo strumento di compatibilit\\u00e0 bisogna ricostruire il prefisso. Ricostruirlo ora?")
-#define NP_PREFIX_BACKUP NP_WEB_TEXT("Backup & Rebuild Prefix", "Backup & Rebuild Prefix", "Backup e ricostruisci prefisso")
-#define NP_PREFIX_REBUILD NP_WEB_TEXT("Rebuild Prefix", "Rebuild Prefix", "Ricostruisci prefisso")
-#define NP_PREFIX_RUNNING NP_WEB_TEXT("Quit the game to rebuild.", "Quit the game to rebuild.", "Chiudi il gioco per ricostruire il prefisso.")
-#define NP_PREFIX_SETUP NP_WEB_TEXT("Rebuilding prefix\\u2026", "Rebuilding prefix\\u2026", "Ricostruzione del prefisso\\u2026")
-#define NP_PREFIX_COPY NP_WEB_TEXT("Copying your files\\u2026", "Copying your files\\u2026", "Copia dei tuoi file\\u2026")
-#define NP_PREFIX_FINISH NP_WEB_TEXT("Finishing\\u2026", "Finishing\\u2026", "Ultimi passaggi\\u2026")
-#define NP_PREFIX_DONE NP_WEB_TEXT("Prefix rebuilt.", "Prefix rebuilt.", "Prefisso ricostruito.")
-#define NP_PREFIX_DONE_BACKUP NP_WEB_TEXT("Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefisso ricostruito. Il backup dell'originale \\u00e8 nella sezione Prefissi di Squark.")
-#define NP_PREFIX_FAILED NP_WEB_TEXT("Prefix rebuild failed!", "Prefix rebuild failed!", "Ricostruzione del prefisso non riuscita.")
-#define NP_PREFIX_LOG NP_WEB_TEXT("Open Log", "Open Log", "Apri registro")
-#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "App Squark non trovata. Sposta Squark in Applicazioni, aprila e fai di nuovo clic su Installa.")
+#define NP_PREFIX_NEED NP_WEB_TEXT("Switching to this compatibility tool requires a prefix rebuild. Rebuild now?", "Switching to this compatibility tool requires a prefix rebuild. Rebuild now?", "換到這個相容性工具需要重建 prefix。現在重建嗎？", "Per passare a questo strumento di compatibilit\\u00e0 bisogna ricostruire il prefisso. Ricostruirlo ora?")
+#define NP_PREFIX_BACKUP NP_WEB_TEXT("Backup & Rebuild Prefix", "Backup & Rebuild Prefix", "備份並重建 prefix", "Backup e ricostruisci prefisso")
+#define NP_PREFIX_REBUILD NP_WEB_TEXT("Rebuild Prefix", "Rebuild Prefix", "重建 prefix", "Ricostruisci prefisso")
+#define NP_PREFIX_RUNNING NP_WEB_TEXT("Quit the game to rebuild.", "Quit the game to rebuild.", "請先結束遊戲再重建。", "Chiudi il gioco per ricostruire il prefisso.")
+#define NP_PREFIX_SETUP NP_WEB_TEXT("Rebuilding prefix\\u2026", "Rebuilding prefix\\u2026", "正在重建 prefix\\u2026", "Ricostruzione del prefisso\\u2026")
+#define NP_PREFIX_COPY NP_WEB_TEXT("Copying your files\\u2026", "Copying your files\\u2026", "正在複製你的檔案\\u2026", "Copia dei tuoi file\\u2026")
+#define NP_PREFIX_FINISH NP_WEB_TEXT("Finishing\\u2026", "Finishing\\u2026", "即將完成\\u2026", "Ultimi passaggi\\u2026")
+#define NP_PREFIX_DONE NP_WEB_TEXT("Prefix rebuilt.", "Prefix rebuilt.", "Prefix 已重建。", "Prefisso ricostruito.")
+#define NP_PREFIX_DONE_BACKUP NP_WEB_TEXT("Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix rebuilt. A backup of the original is in Squark's Prefixes view.", "Prefix 已重建。原本的備份在 Squark 的「Prefix」頁面。", "Prefisso ricostruito. Il backup dell'originale \\u00e8 nella sezione Prefissi di Squark.")
+#define NP_PREFIX_FAILED NP_WEB_TEXT("Prefix rebuild failed!", "Prefix rebuild failed!", "Prefix 重建失敗！", "Ricostruzione del prefisso non riuscita.")
+#define NP_PREFIX_LOG NP_WEB_TEXT("Open Log", "Open Log", "打開記錄檔", "Apri registro")
+#define NP_PREFIX_APP NP_WEB_TEXT("Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "Couldn't find the Squark app. Move Squark to Applications, open it and click Install again.", "找不到 Squark App。請把 Squark 移到「應用程式」資料夾，打開它，再按一次「安裝」。", "App Squark non trovata. Sposta Squark in Applicazioni, aprila e fai di nuovo clic su Installa.")
 
 #define NP_PREFIX_ROW \
     "globalThis.NPHadronPrefixRow=(e,id)=>{if(e.npApp===id)return;e.npStop&&e.npStop();e.npApp=id;let ter" \
@@ -789,14 +799,14 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 // FEX runs arm64 Wine, which has no D3DMetal and never runs under Rosetta.
 #define NP_PANEL(RT, BARREL) \
     "({fex,get:G,saved:readSaved,set:s,clearUnused,head,dflt,dev})=>{" \
-    "const npZh=" NP_WEB_IS_ZH ",npIt=" NP_WEB_IS_IT ",npL=(en,zh,it)=>npZh?zh:npIt?it:en," \
+    "const npZh=" NP_WEB_IS_ZH ",npTw=" NP_WEB_IS_TW ",npIt=" NP_WEB_IS_IT ",npL=(en,zh,tw,it)=>npTw?tw:npZh?zh:npIt?it:en," \
     "NPHadronReady=" NP_READY ",NPHadronFeat=" NP_FEATS "," \
     "on1=(k,n=0)=>{const p=NPHadronFeat.find(x=>x.k===k);" \
     "return!!p&&n<32&&NPHadronReady[k]!==0&&G(k)===p.on&&(!p.dep||on1(p.dep,n+1))}," \
     "P=f=>{const rd=NPHadronReady[f.k]!==0;" \
     "return(0," RT ".jsx)(" BARREL ".Yh," \
     "{className:\"NPHadronRow\"+(f.d?\" NPHadronRowDesc\":\"\")," \
-    "label:rd?f.l:f.l+npL(\" (not installed)\",\" (未安装)\",\" (not installed)\"),disabled:!rd," \
+    "label:rd?f.l:f.l+npL(\" (not installed)\",\" (未安装)\",\"（未安裝）\",\" (not installed)\"),disabled:!rd," \
     "description:f.d||undefined," \
     "checked:rd&&G(f.k)===f.on," \
     "onChange:v=>s([[f.k,v?f.on:(f.off||\"\")]])},f.k)}," \
@@ -815,50 +825,51 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "pf=c=>{const v=(c.split(\";\").filter(fk).pop()||\"=2\").replace(/^[^=]*=/,\"\").replace(/\"/g,\"\").trim().split(/\\s/)[0];" \
     "return Math.max(isNaN(+v)?2:+v,1)}," \
     "fn=pf(G(\"DXMT_CONFIG\"))," \
-    "U=[{data:\"\",label:npL(\"Off\",\"关闭\",\"Disattivato\")}," \
+    "U=[{data:\"\",label:npL(\"Off\",\"关闭\",\"關閉\",\"Disattivato\")}," \
     "{data:\"1.5\",label:\"1.5x\"}," \
     "{data:\"1.72\",label:\"1.72x\"}," \
     "{data:\"2.0\",label:\"2x\"}," \
     "{data:\"3.0\",label:\"3x\"}]," \
-    "B=[{data:\"dxmt\",label:npL(\"DXMT (Metal)\",\"DXMT（Metal）\",\"DXMT (Metal)\")}," \
-    "{data:\"d3dmetal\",label:npL(\"D3DMetal (CrossOver Wine)\",\"D3DMetal（CrossOver Wine）\",\"D3DMetal (CrossOver Wine)\")}," \
+    "B=[{data:\"dxmt\",label:npL(\"DXMT (Metal)\",\"DXMT（Metal）\",\"DXMT（Metal）\",\"DXMT (Metal)\")}," \
+    "{data:\"d3dmetal\",label:npL(\"D3DMetal (CrossOver Wine)\",\"D3DMetal（CrossOver Wine）\",\"D3DMetal（CrossOver Wine）\",\"D3DMetal (CrossOver Wine)\")}," \
     "{data:\"vkd3d\",label:\"vkd3d-proton + KosmicKrisp\"}," \
     "{data:\"dxvk\",label:fex?\"DXVK + KosmicKrisp\":\"DXVK 3.1\"}," \
     "{data:\"dxvk1\",label:\"DXVK 1.10\"}," \
-    "{data:\"wined3d\",label:npL(\"WineD3D (Wine's own)\",\"WineD3D（Wine 自带）\",\"WineD3D (integrato in Wine)\")}]" \
+    "{data:\"wined3d\",label:npL(\"WineD3D (Wine's own)\",\"WineD3D（Wine 自带）\",\"WineD3D（Wine 內建）\",\"WineD3D (integrato in Wine)\")}]" \
     ".filter(x=>fex?[\"vkd3d\",\"dxvk\",\"dxvk1\",\"wined3d\"].indexOf(x.data)>=0:\"vkd3d\"!==x.data)," \
     "pick=f=>\"1\"===f(\"DXMT_METALFX_SPATIAL_SWAPCHAIN\")?(U.find(u=>u.data&&+u.data===pf(f(\"DXMT_CONFIG\")||\"\"))" \
     "||{data:String(pf(f(\"DXMT_CONFIG\")||\"\"))}).data:\"\";" \
     "return(0," RT ".jsx)(\"div\",{className:\"NPHadronPanel\",children:(0," RT ".jsxs)(" RT ".Fragment,{children:[" \
     "(0," RT ".jsx)(\"style\",{children:" NP_OPTIONS_CSS "}),head," \
-    "(0," RT ".jsxs)(" BARREL ".XY,{label:npL(\"Graphics\",\"图形\",\"Grafica\"),children:[" \
+    "(0," RT ".jsxs)(" BARREL ".XY,{label:npL(\"Graphics\",\"图形\",\"圖形\",\"Grafica\"),children:[" \
     "(0," RT ".jsx)(" BARREL ".m,{rgOptions:B,selectedOption:b," \
     "onChange:v=>s([[\"HADRON_GRAPHICS\",w(\"HADRON_GRAPHICS\",v.data,none)]]" \
     ".concat(!clearUnused||\"dxmt\"===v.data?[]:[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",\"\"]," \
     "[\"DXMT_CONFIG\",fx(\"\")],[\"DXMT_ENABLE_NVEXT\",\"\"]]))})," \
-    "T(\"MTL_HUD_ENABLED\",npL(\"Metal HUD\",\"Metal 性能监视器\",\"Metal HUD\"))," \
+    "T(\"MTL_HUD_ENABLED\",npL(\"Metal HUD\",\"Metal 性能监视器\",\"Metal HUD\",\"Metal HUD\"))," \
     "dx&&T(\"DXMT_ENABLE_NVEXT\",\"DLSS\")," \
-    "!fex&&D(\"ROSETTA_ADVERTISE_AVX\",npL(\"Advertise AVX2 to Rosetta\",\"向 Rosetta 声明 AVX2 支持\",\"Segnala AVX2 a Rosetta\"))," \
-    "T(\"HADRON_RETINA\",npL(\"High Resolution\",\"高分辨率\",\"Alta risoluzione\"))," \
-    "T(\"HADRON_DDRAW\",npL(\"cnc-ddraw (old DirectDraw games)\",\"cnc-ddraw（旧版 DirectDraw 游戏）\",\"cnc-ddraw (vecchi giochi DirectDraw)\"),\"cnc-ddraw\")" \
+    "!fex&&D(\"ROSETTA_ADVERTISE_AVX\",npL(\"Advertise AVX2 to Rosetta\",\"向 Rosetta 声明 AVX2 支持\",\"向 Rosetta 宣告支援 AVX2\",\"Segnala AVX2 a Rosetta\"))," \
+    "T(\"HADRON_RETINA\",npL(\"High Resolution\",\"高分辨率\",\"高解析度\",\"Alta risoluzione\"))," \
+    "T(\"HADRON_DDRAW\",npL(\"cnc-ddraw (old DirectDraw games)\",\"cnc-ddraw（旧版 DirectDraw 游戏）\",\"cnc-ddraw（舊的 DirectDraw 遊戲）\",\"cnc-ddraw (vecchi giochi DirectDraw)\"),\"cnc-ddraw\")" \
     "]},\"gfx\")," \
     "dx&&(0," RT ".jsx)(" BARREL ".XY," \
     "{label:npL(\"MetalFX Upscaling (Samples from the resolution the game is set to)\"," \
-    "\"MetalFX 超分辨率（以游戏设置的分辨率为采样来源）\",\"Upscaling MetalFX (ingrandisce l'immagine dalla risoluzione del gioco)\")," \
+    "\"MetalFX 超分辨率（以游戏设置的分辨率为采样来源）\",\"MetalFX 升頻（從遊戲設定的解析度放大）\",\"Upscaling MetalFX (ingrandisce l'immagine dalla risoluzione del gioco)\")," \
     "children:(0," RT ".jsx)(" BARREL ".m,{rgOptions:U," \
     "selectedOption:sw?(U.find(u=>u.data&&+u.data===fn)||{data:String(fn)}).data:\"\"," \
     "onChange:v=>s(dflt&&v.data===pick(k=>dflt(k)||\"\")" \
     "?[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",\"\"],[\"DXMT_CONFIG\",fx(\"\")]]" \
     ":[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",v.data?\"1\":\"0\"],[\"DXMT_CONFIG\",fx(v.data)]])})},\"usf\")," \
-    "(0," RT ".jsxs)(" BARREL ".XY,{label:npL(\"Controllers\",\"控制器\",\"Controller\"),children:[" \
+    "(0," RT ".jsxs)(" BARREL ".XY,{label:npL(\"Controllers\",\"控制器\",\"控制器\",\"Controller\"),children:[" \
     "T(\"HADRON_RAW_CONTROLLERS\",npL(\"Let games read controllers directly (May break Steam Input. Not recommended)\"," \
     "\"允许游戏直接读取控制器（可能导致 Steam Input 失效，不推荐）\"," \
+    "\"讓遊戲直接讀取控制器（可能讓 Steam Input 失效，不建議）\"," \
     "\"Lascia che i giochi leggano direttamente i controller (pu\\u00f2 interferire con Steam Input, sconsigliato)\"))" \
     "]},\"ctl\")," \
     "fex&&(0," RT ".jsx)(" BARREL ".XY,{label:\"FEX\"," \
     "children:D(\"FEX_X87REDUCEDPRECISION\"," \
-    "\"Reduced x87 Precision (Improves game performance)\")},\"fex\")," \
-    "dev&&NPHadronFeat.length?(0," RT ".jsx)(" BARREL ".XY,{label:npL(\"Developer\",\"开发者\",\"Developer\")," \
+    "npL(\"Reduced x87 Precision (Improves game performance)\",\"Reduced x87 Precision (Improves game performance)\",\"降低 x87 精確度（提升遊戲效能）\",\"Reduced x87 Precision (Improves game performance)\"))},\"fex\")," \
+    "dev&&NPHadronFeat.length?(0," RT ".jsx)(" BARREL ".XY,{label:npL(\"Developer\",\"开发者\",\"開發者\",\"Developer\")," \
     "children:NPHadronFeat.filter(f=>!f.dep||on1(f.dep)).map(P)},\"dev\"):null" \
     "]})})}"
 
@@ -903,19 +914,19 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "if(" NP_STR(NP_COMPATSVC_PARTLY_APPLIED) "===x.GetEResult()){all[nn]=d;lost=1;globalThis.NPHadronDefaultsLost=1;bump(c=>c+1);console.error(\"Squark: Apply left some versions " \
     "with their own settings, so Default Compatibility Settings are hidden until Steam restarts\");return}" \
     "done(x,()=>{all[nn]=d;BL.forEach(y=>{y.runner===nn&&(y.override=null)})})" \
-    "&&my===gen&&sok(" NP_WEB_IS_IT "?\"Applicate. Ora tutti gli strumenti di compatibilit\\u00e0 \"+kk+\" usano queste impostazioni.\":\"Applied. Every \"+kk+\" Compatibility Tool now uses these settings.\")})})}," \
+    "&&my===gen&&sok(" NP_WEB_IS_TW "?\"已套用。所有 \"+kk+\" 相容性工具現在都使用這些設定。\":" NP_WEB_IS_IT "?\"Applicate. Ora tutti gli strumenti di compatibilit\\u00e0 \"+kk+\" usano queste impostazioni.\":\"Applied. Every \"+kk+\" Compatibility Tool now uses these settings.\")})})}," \
     "pickTool=t=>{const p=BL.find(x=>x.id===t);if(p){si(p.id);sr(\"fex\"===p.runner?1:0);clr()}}," \
     "btn=(k,l,t,f,dsc)=>(0," RT ".jsx)(" BARREL ".D0,{label:l,description:dsc," \
     "childrenContainerWidth:\"min\",children:(0," RT ".jsx)(" BARREL ".$n,{className:\"NPHadronSetBtn\"," \
     "onClick:f,children:t})},k);" \
     "eff(()=>{const on=e=>pickTool(e.detail);globalThis.addEventListener?.(\"nphadrondefaulttool\",on);" \
     "return()=>globalThis.removeEventListener?.(\"nphadrondefaulttool\",on)},[]);if(lost)return null;" \
-    "return NPHadronPanel({fex,get:G,saved:G,set:s,head:(0," RT ".jsxs)(" BARREL ".XY,{label:" NP_WEB_TEXT("Default Compatibility Settings", "Default Compatibility Settings", "Impostazioni di compatibilit\\u00e0 predefinite") ",children:[" \
-    "BL.length?(0," RT ".jsx)(" BARREL ".Vb,{label:" NP_WEB_TEXT("Compatibility tool", "Compatibility tool", "Strumento di compatibilit\\u00e0") "," \
+    "return NPHadronPanel({fex,get:G,saved:G,set:s,head:(0," RT ".jsxs)(" BARREL ".XY,{label:" NP_WEB_TEXT("Default Compatibility Settings", "Default Compatibility Settings", "預設相容性設定", "Impostazioni di compatibilit\\u00e0 predefinite") ",children:[" \
+    "BL.length?(0," RT ".jsx)(" BARREL ".Vb,{label:" NP_WEB_TEXT("Compatibility tool", "Compatibility tool", "相容性工具", "Strumento di compatibilit\\u00e0") "," \
     "bMatchWidth:!1,rgOptions:BL.map(x=>({data:x.id,label:x.label}))," \
     "selectedOption:b?b.id:\"\",onChange:v=>{const p=BL.find(x=>x.id===v.data);if(!p)return;" \
     "si(p.id);sr(p.runner===\"fex\"?1:0);clr()}},\"version\"):null," \
-    "b?btn(\"apply\",(" NP_WEB_IS_IT "?\"Applica come predefinite a tutti gli strumenti di compatibilit\\u00e0 \"+kind:\"Apply as defaults for all \"+kind+\" Compatibility Tools\")," NP_WEB_TEXT("Apply", "Apply", "Applica") ",apply,ok||void 0):null" \
+    "b?btn(\"apply\",(" NP_WEB_IS_TW "?\"套用為所有 \"+kind+\" 相容性工具的預設值\":" NP_WEB_IS_IT "?\"Applica come predefinite a tutti gli strumenti di compatibilit\\u00e0 \"+kind:\"Apply as defaults for all \"+kind+\" Compatibility Tools\")," NP_WEB_TEXT("Apply", "Apply", "套用", "Applica") ",apply,ok||void 0):null" \
     "]},\"defaults\")})};" \
     "return()=>{const up=typeof globalThis.NPHadronUseState==\"function\"&&typeof globalThis.NPHadronUseEffect==\"function\"" \
     "&&typeof globalThis.NPHadronSpecifyRoute==\"function\";" \

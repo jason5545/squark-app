@@ -11,6 +11,7 @@
 		<string>fr</string>
 		<string>it</string>
 		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>HadronApp</string>

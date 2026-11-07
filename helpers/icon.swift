@@ -9,26 +9,17 @@ let space = CGColorSpace(name: CGColorSpace.sRGB)!
 let white = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
 let coverage: CGFloat = 0.82
 
-// steamac: Squark's icon. Squark is squawk (a transponder code, what a radar shows beside a
-// target) plus quark, so a radar scope: the scope's rim, a range ring, the sweep with its
-// fading trail, and a quark as the target it has just painted.
-let scopeRadius: CGFloat = 430
-let scopeWidth: CGFloat = 40
-let ringRadius: CGFloat = 262
-let ringWidth: CGFloat = 20
-let hubRadius: CGFloat = 30
-let sweepAngle: CGFloat = 38
-let sweepLength: CGFloat = 404
-let sweepWidth: CGFloat = 44
-let trailSpan: CGFloat = 80
-let trailAlpha: CGFloat = 0.6
-let quarkAngle: CGFloat = 76
-let quarkOrbit: CGFloat = 340
-let quarkRadius: CGFloat = 66
+// steamac: Squark's icon. Squark runs Windows games, not one game, so the diamond of a gamepad's
+// four face buttons. The top one is a quark, amber, and the ring around it its superpartner: a
+// squark is the superpartner of a quark.
+let buttonOffset: CGFloat = 262
+let buttonRadius: CGFloat = 134
+let haloGap: CGFloat = 40
+let haloWidth: CGFloat = 22
 
 enum Element: String, CaseIterable {
-    case scope = "Scope"
-    case sweep = "Sweep"
+    case buttons = "Buttons"
+    case halo = "Halo"
     case quark = "Quark"
 
     var fileName: String {
@@ -37,8 +28,8 @@ enum Element: String, CaseIterable {
 
     var fill: String {
         switch self {
-        case .scope: "srgb:1.00000,1.00000,1.00000,1.00000"
-        case .sweep: "srgb:0.43137,0.94902,0.76078,1.00000"
+        case .buttons: "srgb:0.43137,0.94902,0.76078,1.00000"
+        case .halo: "srgb:1.00000,1.00000,1.00000,1.00000"
         case .quark: "srgb:1.00000,0.69020,0.12549,1.00000"
         }
     }
@@ -64,10 +55,10 @@ func makeContext(size: CGFloat) -> CGContext {
     return context
 }
 
-func circle(_ radius: CGFloat) -> CGRect {
+func circle(_ radius: CGFloat, at middle: CGPoint = center) -> CGRect {
     CGRect(
-        x: center.x - radius,
-        y: center.y - radius,
+        x: middle.x - radius,
+        y: middle.y - radius,
         width: radius * 2,
         height: radius * 2
     )
@@ -76,39 +67,21 @@ func circle(_ radius: CGFloat) -> CGRect {
 func draw(_ element: Element, into context: CGContext) {
     context.setStrokeColor(white)
     context.setFillColor(white)
+    // Up is 90 degrees: the context's origin is at the bottom left.
+    let top = point(angle: 90, radius: buttonOffset)
 
     switch element {
-    case .scope:
-        context.setLineWidth(scopeWidth)
-        context.strokeEllipse(in: circle(scopeRadius))
-        context.setLineWidth(ringWidth)
-        context.strokeEllipse(in: circle(ringRadius))
-        context.fillEllipse(in: circle(hubRadius))
-
-    case .sweep:
-        // The sweep turns clockwise, so its trail lies counterclockwise of it, fading the
-        // further back it lies.
-        let steps = 140
-        for step in 0..<steps {
-            let back = CGFloat(step) / CGFloat(steps)
-            let from = (sweepAngle + trailSpan * back) * .pi / 180
-            let to = (sweepAngle + trailSpan * (back + 1 / CGFloat(steps))) * .pi / 180
-            context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: trailAlpha * pow(1 - back, 1.6)))
-            context.move(to: center)
-            context.addArc(center: center, radius: sweepLength, startAngle: from, endAngle: to, clockwise: false)
-            context.closePath()
-            context.fillPath()
+    case .buttons:
+        for angle: CGFloat in [0, 180, 270] {
+            context.fillEllipse(in: circle(buttonRadius, at: point(angle: angle, radius: buttonOffset)))
         }
-        context.setLineWidth(sweepWidth)
-        context.setLineCap(.round)
-        context.move(to: center)
-        context.addLine(to: point(angle: sweepAngle, radius: sweepLength))
-        context.strokePath()
+
+    case .halo:
+        context.setLineWidth(haloWidth)
+        context.strokeEllipse(in: circle(buttonRadius + haloGap, at: top))
 
     case .quark:
-        let at = point(angle: quarkAngle, radius: quarkOrbit)
-        context.fillEllipse(in: CGRect(x: at.x - quarkRadius, y: at.y - quarkRadius,
-                                       width: quarkRadius * 2, height: quarkRadius * 2))
+        context.fillEllipse(in: circle(buttonRadius, at: top))
     }
 }
 
@@ -187,11 +160,11 @@ func layer(_ element: Element) -> [String: Any] {
     ["fill": ["solid": element.fill], "image-name": element.fileName, "name": element.rawValue]
 }
 
-// Back to front: the scope, the sweep, the target on top.
+// Back to front: the three buttons, the superpartner's ring, the quark on top.
 let groups: [(name: String, elements: [Element], depth: Double, translucency: Double)] = [
-    ("Scope", [.scope], 0.40, 0.35),
-    ("Sweep", [.sweep], 0.70, 0.25),
-    ("Quark", [.quark], 1.00, 0.15),
+    ("Buttons", [.buttons], 0.50, 0.45),
+    ("Halo", [.halo], 0.70, 0.30),
+    ("Quark", [.quark], 1.00, 0.10),
 ]
 
 func group(_ entry: (name: String, elements: [Element], depth: Double, translucency: Double)) -> [String: Any] {

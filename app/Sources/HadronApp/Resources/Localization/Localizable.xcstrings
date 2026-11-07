@@ -26,6 +26,12 @@
             "state" : "translated",
             "value" : "（使用 %@）"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（使用 %@）"
+          }
         }
       }
     },
@@ -53,6 +59,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 和 %@ 均来自 %@，但指定了不同的哈希值。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 和 %@ 都來自 %@，但指定的雜湊值不同。"
           }
         }
       }
@@ -88,6 +100,12 @@
             "state" : "translated",
             "value" : "%1$@ 对 %3$@ 返回了 %2$lld。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 對 %3$@ 回傳了 %2$lld。"
+          }
         }
       }
     },
@@ -115,6 +133,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ 与 %2$@ 冲突。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 與 %2$@ 衝突。"
           }
         }
       }
@@ -144,6 +168,12 @@
             "state" : "translated",
             "value" : "无法从容器中复制 %@。容器保持原样，未丢失任何内容。请检查剩余空间和权限，然后重试。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法從 prefix 複製出 %@。prefix 保持原樣，沒有遺失任何東西。請檢查剩餘空間和權限，然後再試一次。"
+          }
         }
       }
     },
@@ -171,6 +201,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法将 %@ 读取为属性列表。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法把 %@ 讀成屬性列表。"
           }
         }
       }
@@ -200,6 +236,12 @@
             "state" : "translated",
             "value" : "无法读取 %@。%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取 %@。%@"
+          }
         }
       }
     },
@@ -227,6 +269,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法对 %@ 签名。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法簽署 %@。"
           }
         }
       }
@@ -256,6 +304,12 @@
             "state" : "translated",
             "value" : "无法解压 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法解壓縮 %@。"
+          }
         }
       }
     },
@@ -283,6 +337,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法写入 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法寫入 %@。"
           }
         }
       }
@@ -312,6 +372,12 @@
             "state" : "translated",
             "value" : "%@ 中不包含 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 裡沒有 %@。"
+          }
         }
       }
     },
@@ -339,6 +405,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 似乎没有可备份的游戏容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 似乎沒有可以備份的 prefix。"
           }
         }
       }
@@ -374,6 +446,12 @@
             "state" : "translated",
             "value" : "%1$@ 中没有 Wine 运行环境 %2$@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 裡沒有 Wine 執行環境 %2$@。"
+          }
         }
       }
     },
@@ -401,6 +479,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 与 Squark 预期的校验和不符，因此未被使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的檢查碼和 Squark 預期的不符，所以沒有使用。"
           }
         }
       }
@@ -430,6 +514,12 @@
             "state" : "translated",
             "value" : "%@ 未通过自身签名验证。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 沒有通過自己的簽章驗證。"
+          }
         }
       }
     },
@@ -457,6 +547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 执行失败，状态码为 %d。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 失敗，狀態碼 %d。"
           }
         }
       }
@@ -486,6 +582,12 @@
             "state" : "translated",
             "value" : "%@ 执行失败，状态码为 %d：%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 失敗，狀態碼 %d：%@"
+          }
         }
       }
     },
@@ -513,6 +615,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 中没有 D3DMetal DLL。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 裡沒有 D3DMetal 的 DLL。"
           }
         }
       }
@@ -542,6 +650,12 @@
             "state" : "translated",
             "value" : "%@ 在 %@ 处没有游戏容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 在 %@ 沒有 prefix。"
+          }
         }
       }
     },
@@ -569,6 +683,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 已在列表中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已經在清單裡。"
           }
         }
       }
@@ -598,6 +718,12 @@
             "state" : "translated",
             "value" : "%@ 已存在。如需重新下载该运行环境，请先将其移除。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已經存在。要重新下載這個執行環境，請先移除它。"
+          }
         }
       }
     },
@@ -626,6 +752,12 @@
             "state" : "translated",
             "value" : "%@ 是上次未完成重建留下的文件，可能保存着唯一的游戏存档。请先将其移到安全位置，然后重试。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 是上次沒做完的重建留下來的，可能存著唯一一份存檔。請先把它移到安全的地方，再試一次。"
+          }
         }
       }
     },
@@ -650,6 +782,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Steam。"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 不是 Steam。"
@@ -682,6 +820,12 @@
             "state" : "translated",
             "value" : "%@ 不是 Squark Wine 运行时。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Squark 的 Wine 執行環境。"
+          }
         }
       }
     },
@@ -709,6 +853,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 不是 Windows 程序。请选择 exe、msi、bat 或 cmd 文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Windows 程式。請選擇 exe、msi、bat 或 cmd 檔案。"
           }
         }
       }
@@ -738,6 +888,12 @@
             "state" : "translated",
             "value" : "不支持构建版本 %@。支持的版本：%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援 %@ 這個版本。支援的版本：%@。"
+          }
         }
       }
     },
@@ -765,6 +921,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 并非由 Valve 签名。预期 TeamIdentifier=%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Valve 簽署的。預期 TeamIdentifier=%@。"
           }
         }
       }
@@ -794,6 +956,12 @@
             "state" : "translated",
             "value" : "%@ 不是 Steam 应用包。预期 Identifier=%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Steam 的 App 套件。預期 Identifier=%@。"
+          }
         }
       }
     },
@@ -821,6 +989,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 不存在，无法安装。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不存在，沒有地方可以安裝。"
           }
         }
       }
@@ -850,6 +1024,12 @@
             "state" : "translated",
             "value" : "%@ 正在运行。请先退出游戏。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在執行。請先結束遊戲。"
+          }
         }
       }
     },
@@ -877,6 +1057,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 指定了未声明的软件包 %@。已声明：%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 指定的套件 %@ 沒有宣告過。已宣告：%@。"
           }
         }
       }
@@ -906,6 +1092,12 @@
             "state" : "translated",
             "value" : "%@ 模板 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 範本 %2$@"
+          }
         }
       }
     },
@@ -933,6 +1125,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 上次使用 %@ 运行，但该兼容工具已不可用。请先重建游戏容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 上次是用 %@ 執行的，這個相容性工具已經不在了。請先重建 prefix。"
           }
         }
       }
@@ -973,6 +1171,12 @@
             "state" : "translated",
             "value" : "%@，独占空间 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，獨占空間 %@"
+          }
         }
       }
     },
@@ -1001,6 +1205,12 @@
             "state" : "translated",
             "value" : "应用资源中缺少 %@.%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App 資源裡缺少 %@.%@。"
+          }
         }
       }
     },
@@ -1025,6 +1235,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少 %@/%@"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "缺少 %@/%@"
@@ -1056,6 +1272,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 个备份"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 個備份"
           }
         }
       }
@@ -1091,6 +1313,12 @@
             "state" : "translated",
             "value" : "%1$lld / %2$lld MB，%3$lld%%"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld MB，%3$lld%%"
+          }
         }
       }
     },
@@ -1118,6 +1346,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已选择 %1$lld 个：%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已選擇 %1$lld 個：%2$@"
           }
         }
       }
@@ -1147,6 +1381,12 @@
             "state" : "translated",
             "value" : "1 个备份"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 個備份"
+          }
         }
       }
     },
@@ -1174,6 +1414,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 客户端更新可能导致 Squark 无法使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 用戶端更新可能讓 Squark 無法使用。"
           }
         }
       }
@@ -1203,6 +1449,12 @@
             "state" : "translated",
             "value" : "用 Squark 兼容性工具启动游戏后，游戏会显示在这里。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 Squark 相容性工具啟動過的遊戲會顯示在這裡。"
+          }
         }
       }
     },
@@ -1230,6 +1482,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有游戏或 Wine 工具正在使用构建版本 %@。请先退出，再更新 Squark。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有遊戲或 Wine 工具正在使用 %@。請先結束它，再更新 Squark。"
           }
         }
       }
@@ -1259,6 +1517,12 @@
             "state" : "translated",
             "value" : "有游戏或 Wine 工具正在运行。请先退出，再更新 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有遊戲或 Wine 工具正在執行。請先結束它，再更新 Squark。"
+          }
         }
       }
     },
@@ -1286,6 +1550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍有游戏或 Wine 工具正在使用构建版本 %@。请先退出。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "還有遊戲或 Wine 工具正在使用 %@。請先結束它。"
           }
         }
       }
@@ -1315,6 +1585,12 @@
             "state" : "translated",
             "value" : "已安装较新的 Squark 版本。请使用该版本更新或修复已安装的文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已經安裝了較新的 Squark。請用那個版本更新或修復已安裝的檔案。"
+          }
         }
       }
     },
@@ -1342,6 +1618,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装较新的版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已經安裝了較新的版本。"
           }
         }
       }
@@ -1371,6 +1653,12 @@
             "state" : "translated",
             "value" : "通过 Squark 启动 Windows 游戏后，对应的游戏容器就会显示在这里。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過 Squark 啟動過 Windows 遊戲後，它的 prefix 會顯示在這裡。"
+          }
         }
       }
     },
@@ -1398,6 +1686,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增"
           }
         }
       }
@@ -1427,6 +1721,12 @@
             "state" : "translated",
             "value" : "添加 D3DMetal"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增 D3DMetal"
+          }
         }
       }
     },
@@ -1454,6 +1754,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从这台 Mac 上的 Apple Game Porting Toolkit 或 CrossOver 添加 D3DMetal。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從這部 Mac 上的 Apple Game Porting Toolkit 或 CrossOver 新增 D3DMetal。"
           }
         }
       }
@@ -1483,6 +1789,12 @@
             "state" : "translated",
             "value" : "添加 D3DMetal…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增 D3DMetal…"
+          }
         }
       }
     },
@@ -1510,6 +1822,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加 Wine 运行时…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增 Wine 執行環境…"
           }
         }
       }
@@ -1539,6 +1857,12 @@
             "state" : "translated",
             "value" : "从其他文件夹添加 Squark Wine 运行时。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從其他資料夾新增 Squark Wine 執行環境。"
+          }
         }
       }
     },
@@ -1566,6 +1890,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从 %@ 添加"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從 %@ 新增"
           }
         }
       }
@@ -1595,6 +1925,12 @@
             "state" : "translated",
             "value" : "已添加"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已新增"
+          }
         }
       }
     },
@@ -1622,6 +1958,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在添加 D3DMetal"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在新增 D3DMetal"
           }
         }
       }
@@ -1651,6 +1993,12 @@
             "state" : "translated",
             "value" : "添加…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增…"
+          }
         }
       }
     },
@@ -1678,6 +2026,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许客户端更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許用戶端更新"
           }
         }
       }
@@ -1707,6 +2061,12 @@
             "state" : "translated",
             "value" : "正在允许 Steam 客户端更新"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在允許 Steam 用戶端更新"
+          }
         }
       }
     },
@@ -1734,6 +2094,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检测到其他动态库。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偵測到其他 dylib。"
           }
         }
       }
@@ -1763,6 +2129,12 @@
             "state" : "translated",
             "value" : "检测到其他动态库。请先修复 Steam，再安装 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偵測到其他 dylib。請先修復 Steam，再安裝 Squark。"
+          }
         }
       }
     },
@@ -1790,6 +2162,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "另一项安装操作正在修改此处的文件。请等待该操作完成。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一項安裝作業正在修改這裡的檔案。請等它完成。"
           }
         }
       }
@@ -1819,6 +2197,12 @@
             "state" : "translated",
             "value" : "其中的所有数据都将丢失。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裡面的資料都會遺失。"
+          }
         }
       }
     },
@@ -1846,6 +2230,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些备份中的所有数据都将丢失。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裡面的資料都會遺失。"
           }
         }
       }
@@ -1875,6 +2265,12 @@
             "state" : "translated",
             "value" : "应用 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App %@"
+          }
         }
       }
     },
@@ -1902,6 +2298,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "应用 ID"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App ID"
           }
         }
       }
@@ -1931,6 +2333,12 @@
             "state" : "translated",
             "value" : "确定要备份这些游戏容器吗？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要備份這些 prefix 嗎？"
+          }
         }
       }
     },
@@ -1958,6 +2366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要备份此游戏容器吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要備份這個 prefix 嗎？"
           }
         }
       }
@@ -1987,6 +2401,12 @@
             "state" : "translated",
             "value" : "确定要删除这 %lld 个备份吗？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要刪除這 %lld 個備份嗎？"
+          }
         }
       }
     },
@@ -2014,6 +2434,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要删除此备份吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要刪除這個備份嗎？"
           }
         }
       }
@@ -2043,6 +2469,12 @@
             "state" : "translated",
             "value" : "确定要继续吗？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要這樣做嗎？"
+          }
         }
       }
     },
@@ -2070,6 +2502,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "升序"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遞增"
           }
         }
       }
@@ -2099,6 +2537,12 @@
             "state" : "translated",
             "value" : "可供下载"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以下載"
+          }
         }
       }
     },
@@ -2126,6 +2570,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份 %lld 个游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份 %lld 個 prefix"
           }
         }
       }
@@ -2155,6 +2605,12 @@
             "state" : "translated",
             "value" : "备份游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份 prefix"
+          }
         }
       }
     },
@@ -2182,6 +2638,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份并重建"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份並重建"
           }
         }
       }
@@ -2211,6 +2673,12 @@
             "state" : "translated",
             "value" : "备份并重建 %lld 个游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份並重建 %lld 個 prefix"
+          }
         }
       }
     },
@@ -2238,6 +2706,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份 %lld 个游戏容器？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份 %lld 個 prefix？"
           }
         }
       }
@@ -2267,6 +2741,12 @@
             "state" : "translated",
             "value" : "备份游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份 prefix"
+          }
         }
       }
     },
@@ -2294,6 +2774,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份游戏容器？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份 prefix？"
           }
         }
       }
@@ -2323,6 +2809,12 @@
             "state" : "translated",
             "value" : "备份“%@”的游戏容器？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份「%@」的 prefix？"
+          }
         }
       }
     },
@@ -2350,6 +2842,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備份時間"
           }
         }
       }
@@ -2379,6 +2877,12 @@
             "state" : "translated",
             "value" : "已备份 %lld 个游戏容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已備份 %lld 個 prefix。"
+          }
         }
       }
     },
@@ -2406,6 +2910,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已备份“%@”的游戏容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已備份「%@」的 prefix。"
           }
         }
       }
@@ -2435,6 +2945,12 @@
             "state" : "translated",
             "value" : "阻止客户端更新"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻擋用戶端更新"
+          }
         }
       }
     },
@@ -2462,6 +2978,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阻止 Steam 客户端更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻擋 Steam 用戶端更新"
           }
         }
       }
@@ -2491,6 +3013,12 @@
             "state" : "translated",
             "value" : "阻止 Steam 客户端更新？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻擋 Steam 用戶端更新？"
+          }
         }
       }
     },
@@ -2518,6 +3046,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阻止更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻擋更新"
           }
         }
       }
@@ -2547,6 +3081,12 @@
             "state" : "translated",
             "value" : "阻止客户端更新"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻擋用戶端更新"
+          }
         }
       }
     },
@@ -2574,6 +3114,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在阻止 Steam 客户端更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在阻擋 Steam 用戶端更新"
           }
         }
       }
@@ -2603,6 +3149,12 @@
             "state" : "translated",
             "value" : "尚未设置构建版本 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 尚未設定。"
+          }
         }
       }
     },
@@ -2630,6 +3182,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未设置构建版本 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 尚未設定。"
           }
         }
       }
@@ -2659,6 +3217,12 @@
             "state" : "translated",
             "value" : "请用 runtime/build-wine.sh 构建，再通过“添加 Wine 运行环境…”添加其文件夹"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請用 runtime/build-wine.sh 編譯，再用「新增 Wine 執行環境…」加入它的資料夾。"
+          }
         }
       }
     },
@@ -2683,6 +3247,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU %lld%%"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU %lld%%"
@@ -2715,6 +3285,12 @@
             "state" : "translated",
             "value" : "正在计算…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在計算…"
+          }
         }
       }
     },
@@ -2739,6 +3315,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
@@ -2771,6 +3353,12 @@
             "state" : "translated",
             "value" : "类别"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別"
+          }
         }
       }
     },
@@ -2798,6 +3386,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检查更新…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢查更新…"
           }
         }
       }
@@ -2827,6 +3421,12 @@
             "state" : "translated",
             "value" : "检查已安装的文件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢查已安裝的檔案"
+          }
         }
       }
     },
@@ -2854,6 +3454,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请检查权限，确认当前用户拥有该文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請檢查權限，確認你的使用者帳號擁有這個資料夾。"
           }
         }
       }
@@ -2883,6 +3489,12 @@
             "state" : "translated",
             "value" : "正在检查"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在檢查"
+          }
         }
       }
     },
@@ -2910,6 +3522,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在检查 Steam"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在檢查 Steam"
           }
         }
       }
@@ -2939,6 +3557,12 @@
             "state" : "translated",
             "value" : "正在检查 Wine 运行环境"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在檢查 Wine 執行環境"
+          }
         }
       }
     },
@@ -2966,6 +3590,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在校验下载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在檢查下載的檔案"
           }
         }
       }
@@ -2995,6 +3625,12 @@
             "state" : "translated",
             "value" : "正在检查游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在檢查 prefix"
+          }
         }
       }
     },
@@ -3022,6 +3658,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇"
           }
         }
       }
@@ -3051,6 +3693,12 @@
             "state" : "translated",
             "value" : "选择要在“%@”中运行的 Windows 程序。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇要在「%@」裡執行的 Windows 程式。"
+          }
         }
       }
     },
@@ -3078,6 +3726,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请至少选择一个软件包。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請至少選一個套件。"
           }
         }
       }
@@ -3107,6 +3761,12 @@
             "state" : "translated",
             "value" : "选择…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇…"
+          }
         }
       }
     },
@@ -3131,6 +3791,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在清理"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在清理"
@@ -3163,6 +3829,12 @@
             "state" : "translated",
             "value" : "清除 Steam 的控制器权限，让 macOS 重新询问授权。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除 Steam 的控制器權限，讓 macOS 重新詢問。"
+          }
         }
       }
     },
@@ -3190,6 +3862,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉"
           }
         }
       }
@@ -3219,6 +3897,12 @@
             "state" : "translated",
             "value" : "请先关闭 Steam，再继续。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先關閉 Steam 再繼續。"
+          }
         }
       }
     },
@@ -3246,6 +3930,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "兼容工具已设置，无需重复操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相容性工具已經設定好了。"
           }
         }
       }
@@ -3275,6 +3965,12 @@
             "state" : "translated",
             "value" : "兼容工具已就绪。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相容性工具已就緒。"
+          }
         }
       }
     },
@@ -3302,6 +3998,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "兼容工具已就绪。%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相容性工具已就緒。%@"
           }
         }
       }
@@ -3331,6 +4033,12 @@
             "state" : "translated",
             "value" : "无法读取组件列表。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取元件清單。"
+          }
         }
       }
     },
@@ -3358,6 +4066,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "组件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元件"
           }
         }
       }
@@ -3387,6 +4101,12 @@
             "state" : "translated",
             "value" : "正在配置 Steam"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在設定 Steam"
+          }
         }
       }
     },
@@ -3414,6 +4134,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍然继续"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍然繼續"
           }
         }
       }
@@ -3443,6 +4169,12 @@
             "state" : "translated",
             "value" : "控制器权限"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器權限"
+          }
         }
       }
     },
@@ -3470,6 +4202,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "控制器权限已重置。请重启 Steam，让 macOS 重新询问权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器權限已重設。請重新啟動 Steam，讓 macOS 再問一次。"
           }
         }
       }
@@ -3499,6 +4237,12 @@
             "state" : "translated",
             "value" : "控制器权限已重置。下次启动 Steam 时，macOS 将重新询问权限。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器權限已重設。下次啟動 Steam 時，macOS 會再問一次。"
+          }
         }
       }
     },
@@ -3526,6 +4270,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在将游戏容器转换到此运行环境"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在把 prefix 轉換到這個執行環境"
           }
         }
       }
@@ -3555,6 +4305,12 @@
             "state" : "translated",
             "value" : "其他磁盘上的副本 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他磁碟上的副本 %@"
+          }
         }
       }
     },
@@ -3582,6 +4338,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新复制 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新複製 %@。"
           }
         }
       }
@@ -3611,6 +4373,12 @@
             "state" : "translated",
             "value" : "复制 %@ 并设置其兼容工具。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 %@ 並設定它的相容性工具。"
+          }
         }
       }
     },
@@ -3638,6 +4406,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "副本已损坏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "副本已損壞"
           }
         }
       }
@@ -3667,6 +4441,12 @@
             "state" : "translated",
             "value" : "复制 Wine 运行时"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 Wine 執行環境"
+          }
         }
       }
     },
@@ -3694,6 +4474,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制已构建的桥接文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製編譯好的 bridge 檔案"
           }
         }
       }
@@ -3723,6 +4509,12 @@
             "state" : "translated",
             "value" : "复制 %@ 失败。%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 %@ 失敗。%@"
+          }
         }
       }
     },
@@ -3750,6 +4542,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在复制 Steam 文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在複製 Steam 檔案"
           }
         }
       }
@@ -3779,6 +4577,12 @@
             "state" : "translated",
             "value" : "正在复制 Wine 运行时"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在複製 Wine 執行環境"
+          }
         }
       }
     },
@@ -3806,6 +4610,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Copying your files…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在複製你的檔案…"
           }
         }
       }
@@ -3835,6 +4645,12 @@
             "state" : "translated",
             "value" : "无法检查已安装的文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法檢查已安裝的檔案。"
+          }
         }
       }
     },
@@ -3862,6 +4678,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法清理 %@ 处的容器模板：%@ 请刷新后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法清理 %@ 的 prefix 範本：%@ 請重新整理再試一次。"
           }
         }
       }
@@ -3891,6 +4713,12 @@
             "state" : "translated",
             "value" : "无法锁定 %@ 处的安装：%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法鎖定 %@ 的安裝：%@。"
+          }
         }
       }
     },
@@ -3918,6 +4746,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法移除容器模板 %@：%@ 请刷新后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法移除 prefix 範本 %@：%@ 請重新整理再試一次。"
           }
         }
       }
@@ -3947,6 +4781,12 @@
             "state" : "translated",
             "value" : "无法写入文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法寫入檔案。"
+          }
         }
       }
     },
@@ -3974,6 +4814,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在创建游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在建立 prefix"
           }
         }
       }
@@ -4006,6 +4852,12 @@
             "state" : "translated",
             "value" : "已中断"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "被中斷"
+          }
         }
       }
     },
@@ -4033,6 +4885,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已添加 D3DMetal。可在游戏的 Squark 设置中为该游戏选择它。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已新增 D3DMetal。在遊戲的 Squark 設定裡就能選它。"
           }
         }
       }
@@ -4062,6 +4920,12 @@
             "state" : "translated",
             "value" : "D3DMetal 通过 Metal 运行 DirectX 11 和 12 游戏。Squark 无法随附它，因此会从这台 Mac 上的 CrossOver 或 Game Porting Toolkit 获取。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal 透過 Metal 執行 DirectX 11 和 12 的遊戲。Squark 不能隨附它，所以會從這部 Mac 上的 CrossOver 或 Game Porting Toolkit 取得。"
+          }
         }
       }
     },
@@ -4086,6 +4950,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DLL"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "DLL"
@@ -4118,6 +4988,12 @@
             "state" : "translated",
             "value" : "删除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除"
+          }
         }
       }
     },
@@ -4145,6 +5021,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除 %lld 个备份"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 %lld 個備份"
           }
         }
       }
@@ -4174,6 +5056,12 @@
             "state" : "translated",
             "value" : "删除 %lld 个游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 %lld 個 prefix"
+          }
         }
       }
     },
@@ -4201,6 +5089,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除 %lld 个备份？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 %lld 個備份？"
           }
         }
       }
@@ -4230,6 +5124,12 @@
             "state" : "translated",
             "value" : "删除 %lld 个游戏容器？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 %lld 個 prefix？"
+          }
         }
       }
     },
@@ -4257,6 +5157,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部删除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部刪除"
           }
         }
       }
@@ -4286,6 +5192,12 @@
             "state" : "translated",
             "value" : "删除备份"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除備份"
+          }
         }
       }
     },
@@ -4313,6 +5225,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 prefix"
           }
         }
       }
@@ -4342,6 +5260,12 @@
             "state" : "translated",
             "value" : "删除 Squark 保存的此版本副本。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 Squark 裡這個版本的副本。"
+          }
         }
       }
     },
@@ -4369,6 +5293,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除备份？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除備份？"
           }
         }
       }
@@ -4398,6 +5328,12 @@
             "state" : "translated",
             "value" : "删除重建时保留的所有备份。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除重建時留下的所有備份。"
+          }
         }
       }
     },
@@ -4425,6 +5361,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 prefix"
           }
         }
       }
@@ -4454,6 +5396,12 @@
             "state" : "translated",
             "value" : "删除游戏容器？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 prefix？"
+          }
         }
       }
     },
@@ -4481,6 +5429,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除“%@”的备份？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除「%@」的備份？"
           }
         }
       }
@@ -4510,6 +5464,12 @@
             "state" : "translated",
             "value" : "删除“%@”的游戏容器？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除「%@」的 prefix？"
+          }
         }
       }
     },
@@ -4537,6 +5497,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除所选备份。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除所選備份。"
           }
         }
       }
@@ -4566,6 +5532,12 @@
             "state" : "translated",
             "value" : "已删除 %2$lld 个游戏容器的 %1$lld 个备份。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除 %2$lld 個 prefix 的 %1$lld 個備份。"
+          }
         }
       }
     },
@@ -4593,6 +5565,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已删除“%2$@”的 %1$lld 个备份。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除「%2$@」的 %1$lld 個備份。"
           }
         }
       }
@@ -4622,6 +5600,12 @@
             "state" : "translated",
             "value" : "已删除 %lld 个游戏容器。下次启动游戏时，Steam 将创建新容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除 %lld 個 prefix。之後再啟動遊戲時，Steam 會建立新的 prefix。"
+          }
         }
       }
     },
@@ -4649,6 +5633,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已删除“%@”的备份。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除「%@」的備份。"
           }
         }
       }
@@ -4678,6 +5668,12 @@
             "state" : "translated",
             "value" : "已删除“%@”的游戏容器。下次启动该游戏时，Steam 将创建新容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除「%@」的 prefix。之後再啟動這個遊戲時，Steam 會建立新的 prefix。"
+          }
         }
       }
     },
@@ -4705,6 +5701,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "降序"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遞減"
           }
         }
       }
@@ -4734,6 +5736,12 @@
             "state" : "translated",
             "value" : "正在解除与 Steam 的关联"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解除與 Steam 的連結"
+          }
         }
       }
     },
@@ -4761,6 +5769,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未能启动（退出代码 %lld）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有啟動（結束代碼 %lld）"
           }
         }
       }
@@ -4790,6 +5804,12 @@
             "state" : "translated",
             "value" : "已完成"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
         }
       }
     },
@@ -4817,6 +5837,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載"
           }
         }
       }
@@ -4846,6 +5872,12 @@
             "state" : "translated",
             "value" : "下载 Wine 运行环境"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載 Wine 執行環境"
+          }
         }
       }
     },
@@ -4873,6 +5905,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载缺失的 Valve 组件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載缺少的 Valve 元件。"
           }
         }
       }
@@ -4902,6 +5940,12 @@
             "state" : "translated",
             "value" : "已停止下载。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止下載。"
+          }
         }
       }
     },
@@ -4929,6 +5973,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载此运行环境并设置其兼容性工具。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載這個執行環境並設定它的相容性工具。"
           }
         }
       }
@@ -4958,6 +6008,12 @@
             "state" : "translated",
             "value" : "已下载缺失的组件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已下載缺少的元件。"
+          }
         }
       }
     },
@@ -4985,6 +6041,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下載 %@"
           }
         }
       }
@@ -5014,6 +6076,12 @@
             "state" : "translated",
             "value" : "正在从 %@ 下载"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在從 %@ 下載"
+          }
         }
       }
     },
@@ -5041,6 +6109,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载缺失的组件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下載缺少的元件"
           }
         }
       }
@@ -5070,6 +6144,12 @@
             "state" : "translated",
             "value" : "已退出"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已結束"
+          }
         }
       }
     },
@@ -5097,6 +6177,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已退出，状态 %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已結束，狀態碼 %lld"
           }
         }
       }
@@ -5126,6 +6212,12 @@
             "state" : "translated",
             "value" : "正在解压"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解壓縮"
+          }
         }
       }
     },
@@ -5153,6 +6245,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失敗"
           }
         }
       }
@@ -5182,6 +6280,12 @@
             "state" : "translated",
             "value" : "下载 Valve 组件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載 Valve 元件"
+          }
         }
       }
     },
@@ -5209,6 +6313,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载 Valve 组件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載 Valve 元件"
           }
         }
       }
@@ -5238,6 +6348,12 @@
             "state" : "translated",
             "value" : "查找 Squark 组件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尋找 Squark 的元件"
+          }
         }
       }
     },
@@ -5265,6 +6381,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在完成收尾工作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在收尾"
           }
         }
       }
@@ -5294,6 +6416,12 @@
             "state" : "new",
             "value" : "Finishing…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即將完成…"
+          }
         }
       }
     },
@@ -5321,6 +6449,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字型"
           }
         }
       }
@@ -5350,6 +6484,12 @@
             "state" : "translated",
             "value" : "游戏"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遊戲"
+          }
         }
       }
     },
@@ -5377,6 +6517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏窗口已打开"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遊戲視窗已打開"
           }
         }
       }
@@ -5406,6 +6552,12 @@
             "state" : "translated",
             "value" : "常规"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般"
+          }
         }
       }
     },
@@ -5434,6 +6586,12 @@
             "state" : "translated",
             "value" : "如果 Squark 安装在那里，它将保持安装状态。仍要继续吗？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果那裡裝了 Squark，它會繼續留著。仍要繼續嗎？"
+          }
         }
       }
     },
@@ -5458,6 +6616,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不完整"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "不完整"
@@ -5490,6 +6654,12 @@
             "state" : "translated",
             "value" : "安装"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝"
+          }
         }
       }
     },
@@ -5517,6 +6687,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装 Squark"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝 Squark"
           }
         }
       }
@@ -5546,6 +6722,12 @@
             "state" : "translated",
             "value" : "将 Squark 安装到 Steam。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將 Squark 安裝到 Steam。"
+          }
         }
       }
     },
@@ -5573,6 +6755,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装已被阻止。请刷新“状态”页面，并使用此前安装此版本的 Squark 应用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝被擋下來了。請重新整理「狀態」，並使用安裝這個版本的那個 Squark App。"
           }
         }
       }
@@ -5602,6 +6790,12 @@
             "state" : "translated",
             "value" : "已安装"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝"
+          }
         }
       }
     },
@@ -5630,6 +6824,12 @@
             "state" : "translated",
             "value" : "无法验证已安装的内容。请刷新“状态”页面，查看仍需处理的文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法驗證已安裝的內容。請重新整理「狀態」頁面，查看還需要處理的檔案。"
+          }
         }
       }
     },
@@ -5657,6 +6857,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装的文件与此版本不一致。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝的檔案和這個版本不一致。"
           }
         }
       }
@@ -5692,6 +6898,12 @@
             "state" : "translated",
             "value" : "已安装：%1$@，构建于 %2$@。此应用：%3$@，构建于 %4$@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝：%1$@，編譯於 %2$@。這個 App：%3$@，編譯於 %4$@。"
+          }
         }
       }
     },
@@ -5726,6 +6938,12 @@
             "state" : "translated",
             "value" : "已安装：%1$@。此应用：%2$@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝：%1$@。這個 App：%2$@。"
+          }
         }
       }
     },
@@ -5753,6 +6971,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安装"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝"
           }
         }
       }
@@ -5782,6 +7006,12 @@
             "state" : "translated",
             "value" : "正在安装兼容工具"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝相容性工具"
+          }
         }
       }
     },
@@ -5809,6 +7039,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安装组件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝元件"
           }
         }
       }
@@ -5838,6 +7074,12 @@
             "state" : "translated",
             "value" : "正在安装签名数据库"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝簽章資料庫"
+          }
         }
       }
     },
@@ -5865,6 +7107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安装…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝…"
           }
         }
       }
@@ -5894,6 +7142,12 @@
             "state" : "translated",
             "value" : "它会将游戏容器中的 DLL 替换为与当前兼容工具匹配的版本。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它會把 prefix 裡的 DLL 換成和目前相容性工具相符的版本。"
+          }
         }
       }
     },
@@ -5922,6 +7176,12 @@
             "state" : "translated",
             "value" : "进程退出后输出通道仍未关闭，因此未能捕获输出。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "程式結束時輸出還開著，所以沒有擷取到任何輸出。"
+          }
         }
       }
     },
@@ -5946,6 +7206,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次使用"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次使用"
@@ -5978,6 +7244,12 @@
             "state" : "translated",
             "value" : "启动"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動"
+          }
         }
       }
     },
@@ -6005,6 +7277,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启动日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動記錄檔"
           }
         }
       }
@@ -6034,6 +7312,12 @@
             "state" : "translated",
             "value" : "启动记录"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動紀錄"
+          }
         }
       }
     },
@@ -6062,6 +7346,12 @@
             "state" : "translated",
             "value" : "游戏库"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏庫"
+          }
         }
       }
     },
@@ -6086,6 +7376,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行：%@"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "第 %lld 行：%@"
@@ -6118,6 +7414,12 @@
             "state" : "translated",
             "value" : "第 %lld 行包含未知来源 %@。已知来源：%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行包含未知來源 %@。已知來源：%@。"
+          }
         }
       }
     },
@@ -6145,6 +7447,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "第 %lld 行不是有效的来源和路径：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行不是有效的來源和路徑：%@"
           }
         }
       }
@@ -6174,6 +7482,12 @@
             "state" : "translated",
             "value" : "第 %lld 行重复声明了 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行重複宣告了 %@。"
+          }
         }
       }
     },
@@ -6201,6 +7515,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "列出 Winetricks 软件包"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出 Winetricks 套件"
           }
         }
       }
@@ -6230,6 +7550,12 @@
             "state" : "translated",
             "value" : "重新列出备份并更新大小。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新列出備份並更新大小。"
+          }
         }
       }
     },
@@ -6258,6 +7584,12 @@
             "state" : "translated",
             "value" : "重新列出游戏容器并更新大小。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新列出 prefix 並更新大小。"
+          }
         }
       }
     },
@@ -6282,6 +7614,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "位置"
@@ -6314,6 +7652,12 @@
             "state" : "translated",
             "value" : "日志"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄檔"
+          }
         }
       }
     },
@@ -6341,6 +7685,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在查找备份"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在尋找備份"
           }
         }
       }
@@ -6370,6 +7720,12 @@
             "state" : "translated",
             "value" : "正在查找游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在尋找 prefix"
+          }
         }
       }
     },
@@ -6397,6 +7753,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "手动下载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動下載"
           }
         }
       }
@@ -6426,6 +7788,12 @@
             "state" : "translated",
             "value" : "缺少组件：%@。请运行 make app-payload，然后重新构建应用。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少元件：%@。請執行 make app-payload，再重新編譯 App。"
+          }
         }
       }
     },
@@ -6453,6 +7821,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "缺失。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不存在。"
           }
         }
       }
@@ -6482,6 +7856,12 @@
             "state" : "translated",
             "value" : "缺少：%@。请点击“安装”，为当前 macOS 用户恢复这些文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少：%@。按「安裝」可以為目前的 macOS 使用者還原這些檔案。"
+          }
         }
       }
     },
@@ -6506,6 +7886,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "更多"
@@ -6538,6 +7924,12 @@
             "state" : "translated",
             "value" : "更多操作"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多動作"
+          }
         }
       }
     },
@@ -6565,6 +7957,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更多操作，%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多動作，%@"
           }
         }
       }
@@ -6594,6 +7992,12 @@
             "state" : "translated",
             "value" : "名称"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名稱"
+          }
         }
       }
     },
@@ -6618,6 +8022,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要重建"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要重建"
@@ -6650,6 +8060,12 @@
             "state" : "translated",
             "value" : "从未使用"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從未"
+          }
         }
       }
     },
@@ -6677,6 +8093,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无备份"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有備份"
           }
         }
       }
@@ -6706,6 +8128,12 @@
             "state" : "translated",
             "value" : "在 %@ 中未找到 D3DMetal。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 %@ 裡找不到 D3DMetal。"
+          }
         }
       }
     },
@@ -6733,6 +8161,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无启动记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有啟動紀錄"
           }
         }
       }
@@ -6762,6 +8196,12 @@
             "state" : "translated",
             "value" : "无启动记录"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有啟動紀錄"
+          }
         }
       }
     },
@@ -6789,6 +8229,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有 prefix"
           }
         }
       }
@@ -6818,6 +8264,12 @@
             "state" : "translated",
             "value" : "未找到 Squark Wine 运行时。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到 Squark 的 Wine 執行環境。"
+          }
         }
       }
     },
@@ -6845,6 +8297,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 处没有兼容工具。请先执行“设置兼容工具”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 沒有相容性工具。請先使用「設定相容性工具」。"
           }
         }
       }
@@ -6874,6 +8332,12 @@
             "state" : "translated",
             "value" : "尚未设置兼容工具。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未設定相容性工具。"
+          }
         }
       }
     },
@@ -6901,6 +8365,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 处没有文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到檔案：%@。"
           }
         }
       }
@@ -6930,6 +8400,12 @@
             "state" : "translated",
             "value" : "已卸载"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解除安裝"
+          }
         }
       }
     },
@@ -6957,6 +8433,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無"
           }
         }
       }
@@ -6986,6 +8468,12 @@
             "state" : "translated",
             "value" : "未添加"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未新增"
+          }
         }
       }
     },
@@ -7013,6 +8501,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂不提供下载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前還不能下載"
           }
         }
       }
@@ -7042,6 +8536,12 @@
             "state" : "translated",
             "value" : "未找到。支持的版本：%@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到。支援的版本：%@。"
+          }
         }
       }
     },
@@ -7069,6 +8569,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未安装。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未安裝。"
           }
         }
       }
@@ -7098,6 +8604,12 @@
             "state" : "translated",
             "value" : "未设置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未設定"
+          }
         }
       }
     },
@@ -7126,6 +8638,12 @@
             "state" : "translated",
             "value" : "不受支持"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援"
+          }
         }
       }
     },
@@ -7150,6 +8668,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未部署。"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未部署。"
@@ -7182,6 +8706,12 @@
             "state" : "translated",
             "value" : "已有 %lld 秒没有任何动静，游戏仍没有窗口，可能已卡住：可以停止游戏，或保存诊断信息查看它在等待什么。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已經 %lld 秒沒有動靜，遊戲也還沒有視窗，可能卡住了：可以停止它，或儲存診斷資訊看它在等什麼。"
+          }
         }
       }
     },
@@ -7209,6 +8739,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開 %@"
           }
         }
       }
@@ -7238,6 +8774,12 @@
             "state" : "translated",
             "value" : "打开日志"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開記錄檔"
+          }
         }
       }
     },
@@ -7265,6 +8807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开 Steam"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開 Steam"
           }
         }
       }
@@ -7294,6 +8842,12 @@
             "state" : "translated",
             "value" : "打开系统设置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開系統設定"
+          }
         }
       }
     },
@@ -7321,6 +8875,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已在“%2$@”中打开%1$@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在「%2$@」中打開 %1$@。"
           }
         }
       }
@@ -7350,6 +8910,12 @@
             "state" : "translated",
             "value" : "顺序"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "順序"
+          }
         }
       }
     },
@@ -7377,6 +8943,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏叠加层适配组件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遊戲內介面元件（overlay shim）"
           }
         }
       }
@@ -7406,6 +8978,12 @@
             "state" : "translated",
             "value" : "请选择 CrossOver 或已装载的 Game Porting Toolkit 磁盘映像。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇 CrossOver 或已裝載的 Game Porting Toolkit 磁碟映像檔。"
+          }
         }
       }
     },
@@ -7433,6 +9011,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 Steam 中按游戏选择它，位于游戏的 Squark 设置中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Steam 裡逐一為遊戲選擇，位置在遊戲的 Squark 設定。"
           }
         }
       }
@@ -7462,6 +9046,12 @@
             "state" : "translated",
             "value" : "游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefix"
+          }
         }
       }
     },
@@ -7489,6 +9079,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "容器备份"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefix 備份"
           }
         }
       }
@@ -7518,6 +9114,12 @@
             "state" : "translated",
             "value" : "游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefix"
+          }
         }
       }
     },
@@ -7545,6 +9147,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在准备"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在準備"
           }
         }
       }
@@ -7574,6 +9182,12 @@
             "state" : "translated",
             "value" : "正在准备游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在準備 prefix"
+          }
         }
       }
     },
@@ -7601,6 +9215,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "独占空间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "獨占空間"
           }
         }
       }
@@ -7630,6 +9250,12 @@
             "state" : "translated",
             "value" : "发行商"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "發行商"
+          }
         }
       }
     },
@@ -7657,6 +9283,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "读取 Valve 文件列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讀取 Valve 檔案清單"
           }
         }
       }
@@ -7686,6 +9318,12 @@
             "state" : "translated",
             "value" : "读取组件列表"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讀取元件清單"
+          }
         }
       }
     },
@@ -7713,6 +9351,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已就绪。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已就緒。"
           }
         }
       }
@@ -7742,6 +9386,12 @@
             "state" : "translated",
             "value" : "重建 %lld 个游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 %lld 個 prefix"
+          }
         }
       }
     },
@@ -7769,6 +9419,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不备份，直接重建 %lld 个游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不備份，直接重建 %lld 個 prefix"
           }
         }
       }
@@ -7798,6 +9454,12 @@
             "state" : "translated",
             "value" : "重建 %lld 个游戏容器%@？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 %lld 個 prefix%@？"
+          }
         }
       }
     },
@@ -7825,6 +9487,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重建游戏容器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 prefix"
           }
         }
       }
@@ -7854,6 +9522,12 @@
             "state" : "translated",
             "value" : "不备份，直接重建"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不備份，直接重建"
+          }
         }
       }
     },
@@ -7881,6 +9555,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重建游戏容器%@？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 prefix%@？"
           }
         }
       }
@@ -7910,6 +9590,12 @@
             "state" : "translated",
             "value" : "重建“%@”的游戏容器%@？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建「%@」的 prefix%@？"
+          }
         }
       }
     },
@@ -7937,6 +9623,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Rebuilding the prefix"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重建 prefix"
           }
         }
       }
@@ -7966,6 +9658,12 @@
             "state" : "new",
             "value" : "Rebuilding…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重建…"
+          }
         }
       }
     },
@@ -7993,6 +9691,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已重建 %lld 个游戏容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建 %lld 個 prefix。"
           }
         }
       }
@@ -8022,6 +9726,12 @@
             "state" : "translated",
             "value" : "已重建 %lld 个游戏容器。各原容器均保存在对应游戏容器旁。请先进入游戏确认存档正常，再删除备份以释放空间。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建 %lld 個 prefix。原本的 prefix 都留在各遊戲的 prefix 旁邊。請先進遊戲確認存檔還在，再刪除備份以節省空間。"
+          }
         }
       }
     },
@@ -8049,6 +9759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已重建“%@”的游戏容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建「%@」的 prefix。"
           }
         }
       }
@@ -8078,6 +9794,12 @@
             "state" : "translated",
             "value" : "已重建“%@”的游戏容器。原容器保存在 %@。请先进入游戏确认存档正常，再删除备份以释放空间。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建「%@」的 prefix。原本的留在 %@。請先進遊戲確認存檔還在，再刪除備份以節省空間。"
+          }
         }
       }
     },
@@ -8105,6 +9827,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "记录容器版本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄 prefix 的版本"
           }
         }
       }
@@ -8134,6 +9862,12 @@
             "state" : "translated",
             "value" : "重建游戏容器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新建立 prefix"
+          }
         }
       }
     },
@@ -8161,6 +9895,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新整理"
           }
         }
       }
@@ -8190,6 +9930,12 @@
             "state" : "translated",
             "value" : "注册表编辑器"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登錄編輯程式"
+          }
         }
       }
     },
@@ -8218,6 +9964,12 @@
             "state" : "translated",
             "value" : "重新安装"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新安裝"
+          }
         }
       }
     },
@@ -8242,6 +9994,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除"
@@ -8274,6 +10032,12 @@
             "state" : "translated",
             "value" : "移除副本"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除副本"
+          }
         }
       }
     },
@@ -8298,6 +10062,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除副本…"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除副本…"
@@ -8330,6 +10100,12 @@
             "state" : "translated",
             "value" : "全部移除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部移除"
+          }
         }
       }
     },
@@ -8354,6 +10130,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 Squark"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除 Squark"
@@ -8386,6 +10168,12 @@
             "state" : "translated",
             "value" : "移除 Squark 并将 Steam 恢复原状。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 Squark，並把 Steam 還原成原本的狀態。"
+          }
         }
       }
     },
@@ -8413,6 +10201,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除构建版本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除版本"
           }
         }
       }
@@ -8442,6 +10236,12 @@
             "state" : "translated",
             "value" : "移除 Squark 创建的所有内容？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要移除 Squark 建立的所有東西嗎？"
+          }
         }
       }
     },
@@ -8469,6 +10269,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从列表中移除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從清單中移除"
           }
         }
       }
@@ -8498,6 +10304,12 @@
             "state" : "translated",
             "value" : "移除 %@ 的副本？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要移除 %@ 的副本嗎？"
+          }
         }
       }
     },
@@ -8526,6 +10338,12 @@
             "state" : "translated",
             "value" : "已移除构建版本 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除版本 %@。"
+          }
         }
       }
     },
@@ -8550,6 +10368,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除…"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除…"
@@ -8582,6 +10406,12 @@
             "state" : "translated",
             "value" : "正在移除文件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在移除檔案"
+          }
         }
       }
     },
@@ -8609,6 +10439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修复"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復"
           }
         }
       }
@@ -8638,6 +10474,12 @@
             "state" : "translated",
             "value" : "修复 Steam"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復 Steam"
+          }
         }
       }
     },
@@ -8665,6 +10507,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先修复 Steam，再安装 Squark。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先修復 Steam，再安裝 Squark。"
           }
         }
       }
@@ -8694,6 +10542,12 @@
             "state" : "translated",
             "value" : "替换 D3DMetal…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代 D3DMetal…"
+          }
         }
       }
     },
@@ -8721,6 +10575,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "替换 Steam"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代 Steam"
           }
         }
       }
@@ -8750,6 +10610,12 @@
             "state" : "translated",
             "value" : "使用 Valve 原版应用包替换 Steam？"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要用 Valve 原版的 App 套件取代 Steam 嗎？"
+          }
         }
       }
     },
@@ -8777,6 +10643,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "替换 %@ 失败。%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代 %@ 失敗。%@"
           }
         }
       }
@@ -8806,6 +10678,12 @@
             "state" : "translated",
             "value" : "重置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重設"
+          }
         }
       }
     },
@@ -8833,6 +10711,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重置控制器权限"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重設控制器權限"
           }
         }
       }
@@ -8862,6 +10746,12 @@
             "state" : "translated",
             "value" : "正在重置 Steam 的控制器权限"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重設 Steam 的控制器權限"
+          }
         }
       }
     },
@@ -8889,6 +10779,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请重启 Steam，以更新兼容工具列表。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請重新啟動 Steam，更新相容性工具清單。"
           }
         }
       }
@@ -8918,6 +10814,12 @@
             "state" : "translated",
             "value" : "将 Steam 恢复原状。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把 Steam 還原成原本的狀態。"
+          }
         }
       }
     },
@@ -8945,6 +10847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此应用附带的文件恢复安装。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用這個 App 附帶的檔案還原。"
           }
         }
       }
@@ -8974,6 +10882,12 @@
             "state" : "translated",
             "value" : "正在恢复 Steam"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在還原 Steam"
+          }
         }
       }
     },
@@ -9001,6 +10915,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試一次"
           }
         }
       }
@@ -9030,6 +10950,12 @@
             "state" : "translated",
             "value" : "在访达中显示日志"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示記錄檔"
+          }
         }
       }
     },
@@ -9057,6 +10983,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在访达中显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示"
           }
         }
       }
@@ -9086,6 +11018,12 @@
             "state" : "translated",
             "value" : "运行"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行"
+          }
         }
       }
     },
@@ -9113,6 +11051,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "运行 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行 %@"
           }
         }
       }
@@ -9142,6 +11086,12 @@
             "state" : "translated",
             "value" : "运行程序…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行程式…"
+          }
         }
       }
     },
@@ -9169,6 +11119,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "运行 Winetricks"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行 Winetricks"
           }
         }
       }
@@ -9198,6 +11154,12 @@
             "state" : "translated",
             "value" : "在所选游戏容器中运行程序或打开 Wine 工具。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在所選 prefix 中執行程式或打開 Wine 工具。"
+          }
         }
       }
     },
@@ -9225,6 +11187,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "运行环境 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行環境 %@"
           }
         }
       }
@@ -9254,6 +11222,12 @@
             "state" : "translated",
             "value" : "正在运行"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在執行"
+          }
         }
       }
     },
@@ -9281,6 +11255,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到运行时文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到執行環境資料夾。"
           }
         }
       }
@@ -9310,6 +11290,12 @@
             "state" : "translated",
             "value" : "保存诊断信息…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存診斷資訊…"
+          }
         }
       }
     },
@@ -9337,6 +11323,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋"
           }
         }
       }
@@ -9366,6 +11358,12 @@
             "state" : "translated",
             "value" : "请选择 CrossOver、已装载的 Game Porting Toolkit 磁盘映像，或包含 D3DMetal 的文件夹。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇 CrossOver、已裝載的 Game Porting Toolkit 磁碟映像檔，或包含 D3DMetal 的資料夾。"
+          }
         }
       }
     },
@@ -9393,6 +11391,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请选择一个 Squark Wine 运行时文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇一個 Squark Wine 執行環境資料夾。"
           }
         }
       }
@@ -9422,6 +11426,12 @@
             "state" : "translated",
             "value" : "请选择你的 Steam 应用。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇你的 Steam。"
+          }
         }
       }
     },
@@ -9449,6 +11459,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
           }
         }
       }
@@ -9478,6 +11494,12 @@
             "state" : "translated",
             "value" : "设置兼容工具"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定相容性工具"
+          }
         }
       }
     },
@@ -9505,6 +11527,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已設定"
           }
         }
       }
@@ -9534,6 +11562,12 @@
             "state" : "translated",
             "value" : "设置兼容工具"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定相容性工具"
+          }
         }
       }
     },
@@ -9561,6 +11595,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在设置兼容工具"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在設定相容性工具"
           }
         }
       }
@@ -9590,6 +11630,12 @@
             "state" : "translated",
             "value" : "设置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
         }
       }
     },
@@ -9617,6 +11663,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装与设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝與設定"
           }
         }
       }
@@ -9646,6 +11698,12 @@
             "state" : "translated",
             "value" : "显示日志"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示記錄檔"
+          }
         }
       }
     },
@@ -9673,6 +11731,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏启动时显示启动窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遊戲啟動時顯示啟動視窗"
           }
         }
       }
@@ -9702,6 +11766,12 @@
             "state" : "translated",
             "value" : "在访达中显示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示"
+          }
         }
       }
     },
@@ -9729,6 +11799,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在访达中显示所选备份。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示所選備份。"
           }
         }
       }
@@ -9758,6 +11834,12 @@
             "state" : "translated",
             "value" : "在访达中显示所选游戏容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示所選 prefix。"
+          }
         }
       }
     },
@@ -9785,6 +11867,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "签名数据库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簽署資料庫"
           }
         }
       }
@@ -9814,6 +11902,12 @@
             "state" : "translated",
             "value" : "正在签名"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在簽署"
+          }
         }
       }
     },
@@ -9842,6 +11936,12 @@
             "state" : "translated",
             "value" : "下载的文件存在问题。请检查是否有新版 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載的檔案有問題。請檢查有沒有新版的 Squark。"
+          }
         }
       }
     },
@@ -9866,6 +11966,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序方式"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "排序方式"
@@ -9898,6 +12004,12 @@
             "state" : "translated",
             "value" : "按%@排序"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "依%@排序"
+          }
         }
       }
     },
@@ -9929,6 +12041,12 @@
             "state" : "translated",
             "value" : "Squark 组件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 元件"
+          }
         }
       }
     },
@@ -9956,6 +12074,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 无法使用名称中含有冒号的文件夹中的 Steam。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 無法使用放在名稱含冒號的資料夾裡的 Steam。"
           }
         }
       }
@@ -9985,6 +12109,12 @@
             "state" : "translated",
             "value" : "Squark 未包含任何组件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 沒有附帶任何元件。"
+          }
         }
       }
     },
@@ -10012,6 +12142,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 无法从 %@ 下载所需文件。请稍后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 無法從 %@ 下載需要的檔案。請稍後再試。"
           }
         }
       }
@@ -10041,6 +12177,12 @@
             "state" : "translated",
             "value" : "Squark 无法连接 %@ 服务器。请检查网络连接，然后重试。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 連不上 %@ 的伺服器。請檢查網路連線後再試一次。"
+          }
         }
       }
     },
@@ -10068,6 +12210,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 不会通过 Winetricks 运行 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 不會用 Winetricks 執行 %@。"
           }
         }
       }
@@ -10097,6 +12245,12 @@
             "state" : "translated",
             "value" : "Squark 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 只移除了一部分，因為找不到 %@ 的 Steam。請刪除那份 Steam 並重新安裝，才能完全移除 Squark。"
+          }
         }
       }
     },
@@ -10121,6 +12275,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已移除。"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 已移除。"
@@ -10153,6 +12313,12 @@
             "state" : "translated",
             "value" : "Squark 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已移除，但無法還原 Steam。請先從 steampowered.com 重新安裝 Steam 再使用。"
+          }
         }
       }
     },
@@ -10180,6 +12346,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已經安裝在 %@。要選另一份 Steam 之前，請先用「修復 Steam」把它移除。"
           }
         }
       }
@@ -10209,6 +12381,12 @@
             "state" : "new",
             "value" : "Squark is rebuilding the prefix for %@."
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 正在重建「%@」的 prefix。"
+          }
         }
       }
     },
@@ -10236,6 +12414,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Squark is rebuilding this game's prefix."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 正在重建這個遊戲的 prefix。"
           }
         }
       }
@@ -10265,6 +12449,12 @@
             "state" : "translated",
             "value" : "Squark 需要“App 管理”权限。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 需要「App 管理」權限。"
+          }
         }
       }
     },
@@ -10292,6 +12482,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Squark 安装成功。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 安裝成功。"
           }
         }
       }
@@ -10321,6 +12517,12 @@
             "state" : "translated",
             "value" : "正在准备组件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在準備元件"
+          }
         }
       }
     },
@@ -10348,6 +12550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启动 Steam，或将其调到最前面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動 Steam，或把它帶到最前面。"
           }
         }
       }
@@ -10377,6 +12585,12 @@
             "state" : "translated",
             "value" : "已在“%2$@”中启动 %1$@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在「%2$@」中啟動 %1$@。"
+          }
         }
       }
     },
@@ -10404,6 +12618,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在启动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在啟動"
           }
         }
       }
@@ -10433,6 +12653,12 @@
             "state" : "translated",
             "value" : "正在启动游戏"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在啟動遊戲"
+          }
         }
       }
     },
@@ -10460,6 +12686,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "状态"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "狀態"
           }
         }
       }
@@ -10492,6 +12724,12 @@
             "state" : "translated",
             "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 Squark。其他所有 Squark 数据都会被移除，但 Windows 游戏及游戏容器除外。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的 Steam 沒有連接，所以無法從它移除 Squark。Squark 的其他資料都會移除，Windows 遊戲和 prefix 除外。"
+          }
         }
       }
     },
@@ -10519,6 +12757,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于 %@ 的 Steam 未连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的 Steam 沒有連接。"
           }
         }
       }
@@ -10548,6 +12792,12 @@
             "state" : "translated",
             "value" : "已允许 Steam 客户端更新。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允許 Steam 用戶端更新。"
+          }
         }
       }
     },
@@ -10575,6 +12825,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已阻止 Steam 客户端更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已阻擋 Steam 用戶端更新。"
           }
         }
       }
@@ -10604,6 +12860,12 @@
             "state" : "translated",
             "value" : "Steam 客户端更新可能导致 Squark 无法使用。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 用戶端更新可能讓 Squark 無法使用。"
+          }
         }
       }
     },
@@ -10631,6 +12893,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 客户端更新可能导致 Squark 无法使用。你可以阻止 Steam 自动更新，避免等待 Squark 适配新版本，但这也意味着无法及时获得 Steam 客户端的功能改进和安全更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 用戶端更新可能讓 Squark 無法使用。如果你不想等 Squark 跟上新版 Steam，可以讓 Steam 用戶端不再自動更新，代價是收不到 Steam 用戶端的更新。"
           }
         }
       }
@@ -10660,6 +12928,12 @@
             "state" : "translated",
             "value" : "未能完全恢复 Steam。请再次执行“修复 Steam”。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法完全還原 Steam。請再執行一次「修復 Steam」。"
+          }
         }
       }
     },
@@ -10687,6 +12961,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 中的另一份 Squark 是由本机其他账户安装的。请使用该账户更新 Squark，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 裡的 Squark 是這部 Mac 上另一個帳號安裝的。請從那個帳號更新 Squark，再試一次。"
           }
         }
       }
@@ -10716,6 +12996,12 @@
             "state" : "translated",
             "value" : "Steam 尚未配置 Squark，当前账户无权修改。请使用安装 Steam 的账户执行安装。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 還沒有為 Squark 設定好，而這個帳號無法修改它。請從擁有 Steam 的帳號安裝。"
+          }
         }
       }
     },
@@ -10743,6 +13029,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 集成需要修复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 整合需要修復。"
           }
         }
       }
@@ -10772,6 +13064,12 @@
             "state" : "translated",
             "value" : "此操作会将 Steam 恢复为未修改的状态，并移除 Squark（包括 Steam 文件夹内的兼容工具）。不会删除 Windows 游戏及 Steam Play 游戏容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 會還原成未修改的狀態，Squark 也會移除，包括 Steam 資料夾裡的相容性工具。Windows 遊戲和 Steam Play 的 prefix 不會移除。"
+          }
         }
       }
     },
@@ -10799,6 +13097,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 正在运行"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在執行"
           }
         }
       }
@@ -10828,6 +13132,12 @@
             "state" : "translated",
             "value" : "Steam 正在运行，请先关闭 Steam。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在執行，請先關閉 Steam。"
+          }
         }
       }
     },
@@ -10855,6 +13165,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 已配置为注入其他动态库。请先修复 Steam，再安装 Squark。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 被設定成注入其他 dylib。請先修復 Steam，再安裝 Squark。"
           }
         }
       }
@@ -10884,6 +13200,12 @@
             "state" : "translated",
             "value" : "未找到 Steam。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到 Steam。"
+          }
         }
       }
     },
@@ -10911,6 +13233,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 已恢复原状。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已還原成原本的狀態。"
           }
         }
       }
@@ -10940,6 +13268,12 @@
             "state" : "translated",
             "value" : "Steam 由这台 Mac 上的其他账户安装，只有该账户可以修改。请登录该账户，重新安装 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 是這部 Mac 上的另一個帳號安裝的，只有那個帳號可以修改。請用那個帳號登入 macOS，再重新安裝 Squark。"
+          }
         }
       }
     },
@@ -10967,6 +13301,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 已停止，请重新启动。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已經停止，請重新啟動它。"
           }
         }
       }
@@ -10996,6 +13336,12 @@
             "state" : "translated",
             "value" : "Steam 中已安装的动态库与当前账户的版本记录不一致。请使用上次执行安装的 Squark 应用完成或修复安装。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 裡安裝的 dylib 和這個帳號的版本紀錄不符。請用上次安裝它的 Squark App 完成或修復安裝。"
+          }
         }
       }
     },
@@ -11020,6 +13366,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止"
@@ -11052,6 +13404,12 @@
             "state" : "translated",
             "value" : "停止游戏"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止遊戲"
+          }
         }
       }
     },
@@ -11076,6 +13434,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在停止"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在停止"
@@ -11108,6 +13472,12 @@
             "state" : "translated",
             "value" : "正在停止 Steam"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在停止 Steam"
+          }
         }
       }
     },
@@ -11135,6 +13505,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任务管理器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作管理員"
           }
         }
       }
@@ -11164,6 +13540,12 @@
             "state" : "translated",
             "value" : "模板清理未完成"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "範本清理未完成"
+          }
         }
       }
     },
@@ -11191,6 +13573,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模板 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "範本 %@"
           }
         }
       }
@@ -11220,6 +13608,12 @@
             "state" : "translated",
             "value" : "Steam 客户端将不会自动更新。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 用戶端不會自動更新。"
+          }
         }
       }
     },
@@ -11247,6 +13641,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Valve 文件列表：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valve 檔案清單：%@"
           }
         }
       }
@@ -11276,6 +13676,12 @@
             "state" : "translated",
             "value" : "随附的 Squark 动态库无效。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隨附的 Squark dylib 無效。"
+          }
         }
       }
     },
@@ -11303,6 +13709,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "组件列表为空。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元件清單為空。"
           }
         }
       }
@@ -11332,6 +13744,12 @@
             "state" : "translated",
             "value" : "位于 %@ 的副本不是 Wine 运行时 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的副本不是 Wine 執行環境 %@。"
+          }
         }
       }
     },
@@ -11359,6 +13777,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该副本在 %@/wine 处没有 Wine 加载器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個副本在 %@/wine 沒有 Wine 載入器。"
           }
         }
       }
@@ -11388,6 +13812,12 @@
             "state" : "translated",
             "value" : "容器内的游戏存档将永久丢失！"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "prefix 裡的遊戲存檔會全部遺失！"
+          }
         }
       }
     },
@@ -11415,6 +13845,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些容器内的游戏存档将永久丢失！"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這些 prefix 裡的遊戲存檔會全部遺失！"
           }
         }
       }
@@ -11444,6 +13880,12 @@
             "state" : "translated",
             "value" : "已安装版本的记录无效。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝版本的紀錄無效。"
+          }
         }
       }
     },
@@ -11471,6 +13913,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不会移除复制来源的运行时文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製來源的執行環境資料夾不會移除。"
           }
         }
       }
@@ -11500,6 +13948,12 @@
             "state" : "translated",
             "value" : "缺少以下组件：%@。请运行 make app-payload，然后重新构建应用。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少這些元件：%@。請執行 make app-payload，再重新編譯 App。"
+          }
         }
       }
     },
@@ -11527,6 +13981,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "以下文件未能更新：%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這些檔案沒有更新：%@。"
           }
         }
       }
@@ -11556,6 +14016,12 @@
             "state" : "translated",
             "value" : "此应用包含的文件比 Steam 中已安装的文件更新。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個 App 帶的檔案比 Steam 裡安裝的新。"
+          }
         }
       }
     },
@@ -11583,6 +14049,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此应用包含适用于 Steam 的更新文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個 App 帶有 Steam 用的更新檔案。"
           }
         }
       }
@@ -11612,6 +14084,12 @@
             "state" : "translated",
             "value" : "此版本的 Squark 未包含任何组件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個版本的 Squark 完全沒有附帶元件。"
+          }
         }
       }
     },
@@ -11639,6 +14117,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "也可能修复游戏之前能运行、现在却无法运行的问题。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遊戲以前能啟動、能玩，現在卻不行時，這個工具也可能修好。"
           }
         }
       }
@@ -11668,6 +14152,12 @@
             "state" : "translated",
             "value" : "此 Squark 副本无法修复 Steam。请重新安装 Squark。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這份 Squark 無法修復 Steam。請重新安裝 Squark。"
+          }
         }
       }
     },
@@ -11695,6 +14185,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此软件包的文件需要手动下载，Squark 无法代劳。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個套件的檔案要手動下載，Squark 沒辦法代勞。"
           }
         }
       }
@@ -11724,6 +14220,12 @@
             "state" : "translated",
             "value" : "此工具用于修复更换兼容工具后的游戏容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個工具用來修復換過相容性工具之後的 prefix。"
+          }
         }
       }
     },
@@ -11751,6 +14253,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此操作将删除该游戏的容器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這會刪除這個遊戲的 prefix。"
           }
         }
       }
@@ -11780,6 +14288,12 @@
             "state" : "translated",
             "value" : "此操作将删除 %lld 个游戏的容器。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這會刪除 %lld 個遊戲的 prefix。"
+          }
         }
       }
     },
@@ -11807,6 +14321,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此操作会将 Steam 恢复原状，但不会移除 Squark 使用的支持组件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這會把 Steam 本身還原成原本的狀態，但不會移除 Squark 用的支援元件。"
           }
         }
       }
@@ -11836,6 +14356,12 @@
             "state" : "translated",
             "value" : "兼容工具"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相容性工具"
+          }
         }
       }
     },
@@ -11860,6 +14386,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "工具"
@@ -11892,6 +14424,12 @@
             "state" : "translated",
             "value" : "未知"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
         }
       }
     },
@@ -11919,6 +14457,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在解包"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解開"
           }
         }
       }
@@ -11948,6 +14492,12 @@
             "state" : "translated",
             "value" : "正在解压运行环境"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解壓縮執行環境"
+          }
         }
       }
     },
@@ -11972,6 +14522,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新"
@@ -12004,6 +14560,12 @@
             "state" : "translated",
             "value" : "有可用更新（%@）。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可用的更新（%@）。"
+          }
         }
       }
     },
@@ -12031,6 +14593,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有可用更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可用的更新。"
           }
         }
       }
@@ -12060,6 +14628,12 @@
             "state" : "translated",
             "value" : "更新兼容工具"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新相容性工具"
+          }
         }
       }
     },
@@ -12087,6 +14661,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用其他文件夹或磁盘中的 Steam。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用其他資料夾或磁碟上的 Steam。"
           }
         }
       }
@@ -12116,6 +14696,12 @@
             "state" : "translated",
             "value" : "请使用较新版的 Squark 更新或修复已安装的文件。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請用較新版的 Squark 更新或修復已安裝的檔案。"
+          }
         }
       }
     },
@@ -12143,6 +14729,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在验证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在驗證"
           }
         }
       }
@@ -12172,6 +14764,12 @@
             "state" : "translated",
             "value" : "不支持版本 %@（支持：%@）"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援 %@ 版（支援：%@）"
+          }
         }
       }
     },
@@ -12199,6 +14797,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Windows 进程"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 處理程序"
           }
         }
       }
@@ -12228,6 +14832,12 @@
             "state" : "translated",
             "value" : "Wine 配置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 設定"
+          }
         }
       }
     },
@@ -12256,6 +14866,12 @@
             "state" : "translated",
             "value" : "Wine 日志"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 記錄檔"
+          }
         }
       }
     },
@@ -12283,6 +14899,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wine 运行时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 執行環境"
           }
         }
       }
@@ -12318,6 +14940,12 @@
             "state" : "translated",
             "value" : "Winetricks 会继续运行。完成后会在“游戏容器”窗口中显示。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks 會繼續執行。完成時會顯示在「Prefix」視窗。"
+          }
         }
       }
     },
@@ -12346,6 +14974,12 @@
             "state" : "translated",
             "value" : "Winetricks 已在“%2$@”中运行 %1$@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks 已在「%2$@」中執行 %1$@。"
+          }
         }
       }
     },
@@ -12373,6 +15007,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Winetricks 已停止，状态码为 %d。输出位于 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks 已停止，狀態碼 %d。輸出在 %@。"
           }
         }
       }
@@ -12405,6 +15045,12 @@
             "state" : "translated",
             "value" : "年份"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年份"
+          }
         }
       }
     },
@@ -12432,6 +15078,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此工具不会删除游戏存档。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用這個工具不會刪除存檔。"
           }
         }
       }
@@ -12461,6 +15113,12 @@
             "state" : "translated",
             "value" : "base 字段和一个 URL"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "base 和一個 URL"
+          }
         }
       }
     },
@@ -12488,6 +15146,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "bundle 字段、文件名、SHA-256 值、内部归档和应用包名称"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bundle、檔名、sha256、內層封存檔和 bundle 名稱"
           }
         }
       }
@@ -12517,6 +15181,12 @@
             "state" : "translated",
             "value" : "file 字段、桥接路径、软件包 ID、内部路径和 SHA-256 值"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "file、bridge 路徑、套件 ID、內層路徑和 sha256"
+          }
         }
       }
     },
@@ -12544,6 +15214,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "package 字段、ID、文件名和 SHA-256 值"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package、ID、檔名和 sha256"
           }
         }
       }
@@ -12573,6 +15249,12 @@
             "state" : "translated",
             "value" : "较早的 Wine 运行时"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "較早的 Wine 執行環境"
+          }
         }
       }
     },
@@ -12600,6 +15282,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "声明了第二个应用包，但最多只能安装一个。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宣告了第二個 bundle。最多只能安裝一個。"
           }
         }
       }
@@ -12629,6 +15317,12 @@
             "state" : "translated",
             "value" : "声明的软件包 %@ 未被任何文件行使用。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宣告的套件 %@ 沒有任何檔案行使用。"
+          }
         }
       }
     },
@@ -12656,6 +15350,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "末尾不是 64 位小写 SHA-256 值：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結尾不是 64 個小寫字元的 sha256：%@"
           }
         }
       }
@@ -12685,6 +15385,12 @@
             "state" : "translated",
             "value" : "不包含有效的 HTTPS URL：%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不含 https URL：%@"
+          }
         }
       }
     },
@@ -12712,6 +15418,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "包含未知行类型 %@。已知类型：base、package、file、bundle。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含未知的行類型 %@。已知類型：base、package、file、bundle。"
           }
         }
       }
@@ -12741,6 +15453,12 @@
             "state" : "translated",
             "value" : "不符合格式“%@”：%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不符合格式「%@」：%@"
+          }
         }
       }
     },
@@ -12768,6 +15486,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS 未能重置 Steam 的 %@ 权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 沒有為 Steam 重設 %@。"
           }
         }
       }
@@ -12797,6 +15521,12 @@
             "state" : "translated",
             "value" : "未指定下载所需的 CDN 主机。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有指定要下載的 CDN 主機。"
+          }
         }
       }
     },
@@ -12824,6 +15554,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未指定任何文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有指定檔案。"
           }
         }
       }
@@ -12853,6 +15589,12 @@
             "state" : "translated",
             "value" : "未指定任何软件包。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有指定套件。"
+          }
         }
       }
     },
@@ -12881,6 +15623,12 @@
             "state" : "translated",
             "value" : "重复声明了桥接路径 %@。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複宣告了 bridge 路徑 %@。"
+          }
         }
       }
     },
@@ -12908,6 +15656,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重复声明了软件包 ID %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複宣告了套件 ID %@。"
           }
         }
       }
