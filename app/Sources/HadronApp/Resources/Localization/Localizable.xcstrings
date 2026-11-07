@@ -4289,34 +4289,6 @@
         }
       }
     },
-    "Delete Squark's copy of this build." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Squark-Kopie dieses Builds löschen."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer la copie de ce build faite par Squark."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina la copia di Squark di questa build."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除 Squark 保存的此版本副本。"
-          }
-        }
-      }
-    },
     "Delete Prefix" : {
       "localizations" : {
         "de" : {
@@ -4341,6 +4313,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除游戏容器"
+          }
+        }
+      }
+    },
+    "Delete Squark's copy of this build." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Squark-Kopie dieses Builds löschen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la copie de ce build faite par Squark."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina la copia di Squark di questa build."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 Squark 保存的此版本副本。"
           }
         }
       }
@@ -5405,401 +5405,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "常规"
-          }
-        }
-      }
-    },
-    "Squark" : {
-      "shouldTranslate" : false
-    },
-    "Squark Components" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark-Komponenten"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Composants de Squark"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Componenti di Squark"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 组件"
-          }
-        }
-      }
-    },
-    "Squark cannot use Steam from a folder with a colon in its name." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark kann Steam nicht aus einem Ordner verwenden, dessen Name einen Doppelpunkt enthält."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark ne peut pas utiliser Steam depuis un dossier dont le nom contient deux-points."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark non può usare Steam da una cartella con i due punti nel nome."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 无法使用名称中含有冒号的文件夹中的 Steam。"
-          }
-        }
-      }
-    },
-    "Squark carries no components." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark enthält keine Komponenten."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark ne contient aucun composant."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark non contiene componenti."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 未包含任何组件。"
-          }
-        }
-      }
-    },
-    "Squark could not download the files it needs from %@. Please try again later." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark konnte die benötigten Dateien nicht von %@ laden. Bitte versuche es später erneut."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark n'a pas pu télécharger les fichiers nécessaires depuis %@. Veuillez réessayer plus tard."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark non è riuscito a scaricare da %@ i file che gli servono. Riprova più tardi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 无法从 %@ 下载所需文件。请稍后重试。"
-          }
-        }
-      }
-    },
-    "Squark could not reach %@'s servers. Please check your internet connection and try again." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark konnte die Server von %@ nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark n'a pas pu joindre les serveurs de %@. Vérifiez votre connexion Internet et réessayez."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark non è riuscito a raggiungere i server di %@. Controlla la connessione a internet e riprova."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 无法连接 %@ 服务器。请检查网络连接，然后重试。"
-          }
-        }
-      }
-    },
-    "Squark does not run %@ with Winetricks." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark führt %@ nicht mit Winetricks aus."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark n'exécute pas %@ avec Winetricks."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark non esegue %@ con Winetricks."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 不会通过 Winetricks 运行 %@。"
-          }
-        }
-      }
-    },
-    "Squark has been partially removed, because Steam at %@ cannot be found. Delete that copy of Steam and reinstall it to fully remove Squark." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark wurde nur teilweise entfernt, weil Steam unter %@ nicht gefunden wurde. Lösche diese Steam-Kopie und installiere Steam neu, um Squark vollständig zu entfernen."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark a été partiellement supprimé, car Steam est introuvable à %@. Supprimez cette copie de Steam et réinstallez-la pour supprimer complètement Squark."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark è stato rimosso solo in parte, perché Steam in %@ non si trova. Elimina quella copia di Steam e reinstallala per rimuovere del tutto Squark."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 Squark。"
-          }
-        }
-      }
-    },
-    "Squark has been removed." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark wurde entfernt."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark a été supprimé."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark è stato rimosso."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 已移除。"
-          }
-        }
-      }
-    },
-    "Squark has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark wurde entfernt. Steam konnte nicht wiederhergestellt werden. Installiere Steam von steampowered.com neu, bevor du es wieder verwendest."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark a été supprimé. Steam n'a pas pu être restauré. Réinstallez Steam depuis steampowered.com avant de l'utiliser à nouveau."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark è stato rimosso. Non è stato possibile ripristinare Steam: reinstallalo da steampowered.com prima di usarlo di nuovo."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
-          }
-        }
-      }
-    },
-    "Squark is installed in %@. Use Repair Steam to remove it before choosing another copy of Steam." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark ist in %@ installiert. Entferne es mit „Steam reparieren“, bevor du eine andere Steam-Kopie wählst."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark est installé dans %@. Utilisez « Réparer Steam » pour le supprimer avant de choisir une autre copie de Steam."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark è installato in %@. Usa Ripara Steam per rimuoverlo prima di scegliere un'altra copia di Steam."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
-          }
-        }
-      }
-    },
-    "Squark is rebuilding the prefix for %@." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark erstellt das Präfix für %@ neu."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark reconstruit le préfixe de %@."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark sta ricostruendo il prefisso di %@."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Squark is rebuilding the prefix for %@."
-          }
-        }
-      }
-    },
-    "Squark is rebuilding this game's prefix." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark erstellt das Präfix dieses Spiels neu."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark reconstruit le préfixe de ce jeu."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark sta ricostruendo il prefisso di questo gioco."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Squark is rebuilding this game's prefix."
-          }
-        }
-      }
-    },
-    "Squark needs the App Management permission." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark benötigt die Berechtigung „App-Verwaltung“."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark a besoin de l'autorisation « Gestion des apps »."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark ha bisogno del permesso Gestione app."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 需要“App 管理”权限。"
-          }
-        }
-      }
-    },
-    "Squark successfully installed." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark wurde erfolgreich installiert."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark a été installé avec succès."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark installato correttamente."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Squark 安装成功。"
           }
         }
       }
@@ -7104,34 +6709,6 @@
         }
       }
     },
-    "No Squark Wine runtime found." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Squark-Wine-Runtime gefunden."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun runtime Wine Squark trouvé."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun runtime Wine di Squark trovato."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未找到 Squark Wine 运行时。"
-          }
-        }
-      }
-    },
     "No Launch" : {
       "localizations" : {
         "de" : {
@@ -7212,6 +6789,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无游戏容器"
+          }
+        }
+      }
+    },
+    "No Squark Wine runtime found." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Squark-Wine-Runtime gefunden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun runtime Wine Squark trouvé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun runtime Wine di Squark trovato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 Squark Wine 运行时。"
           }
         }
       }
@@ -10292,6 +9897,401 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按%@排序"
+          }
+        }
+      }
+    },
+    "Squark" : {
+      "shouldTranslate" : false
+    },
+    "Squark Components" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark-Komponenten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Composants de Squark"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Componenti di Squark"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 组件"
+          }
+        }
+      }
+    },
+    "Squark cannot use Steam from a folder with a colon in its name." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark kann Steam nicht aus einem Ordner verwenden, dessen Name einen Doppelpunkt enthält."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark ne peut pas utiliser Steam depuis un dossier dont le nom contient deux-points."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark non può usare Steam da una cartella con i due punti nel nome."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 无法使用名称中含有冒号的文件夹中的 Steam。"
+          }
+        }
+      }
+    },
+    "Squark carries no components." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark enthält keine Komponenten."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark ne contient aucun composant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark non contiene componenti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 未包含任何组件。"
+          }
+        }
+      }
+    },
+    "Squark could not download the files it needs from %@. Please try again later." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark konnte die benötigten Dateien nicht von %@ laden. Bitte versuche es später erneut."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark n'a pas pu télécharger les fichiers nécessaires depuis %@. Veuillez réessayer plus tard."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark non è riuscito a scaricare da %@ i file che gli servono. Riprova più tardi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 无法从 %@ 下载所需文件。请稍后重试。"
+          }
+        }
+      }
+    },
+    "Squark could not reach %@'s servers. Please check your internet connection and try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark konnte die Server von %@ nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark n'a pas pu joindre les serveurs de %@. Vérifiez votre connexion Internet et réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark non è riuscito a raggiungere i server di %@. Controlla la connessione a internet e riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 无法连接 %@ 服务器。请检查网络连接，然后重试。"
+          }
+        }
+      }
+    },
+    "Squark does not run %@ with Winetricks." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark führt %@ nicht mit Winetricks aus."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark n'exécute pas %@ avec Winetricks."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark non esegue %@ con Winetricks."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 不会通过 Winetricks 运行 %@。"
+          }
+        }
+      }
+    },
+    "Squark has been partially removed, because Steam at %@ cannot be found. Delete that copy of Steam and reinstall it to fully remove Squark." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark wurde nur teilweise entfernt, weil Steam unter %@ nicht gefunden wurde. Lösche diese Steam-Kopie und installiere Steam neu, um Squark vollständig zu entfernen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark a été partiellement supprimé, car Steam est introuvable à %@. Supprimez cette copie de Steam et réinstallez-la pour supprimer complètement Squark."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark è stato rimosso solo in parte, perché Steam in %@ non si trova. Elimina quella copia di Steam e reinstallala per rimuovere del tutto Squark."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 Squark。"
+          }
+        }
+      }
+    },
+    "Squark has been removed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark wurde entfernt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark a été supprimé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark è stato rimosso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已移除。"
+          }
+        }
+      }
+    },
+    "Squark has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark wurde entfernt. Steam konnte nicht wiederhergestellt werden. Installiere Steam von steampowered.com neu, bevor du es wieder verwendest."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark a été supprimé. Steam n'a pas pu être restauré. Réinstallez Steam depuis steampowered.com avant de l'utiliser à nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark è stato rimosso. Non è stato possibile ripristinare Steam: reinstallalo da steampowered.com prima di usarlo di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
+          }
+        }
+      }
+    },
+    "Squark is installed in %@. Use Repair Steam to remove it before choosing another copy of Steam." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark ist in %@ installiert. Entferne es mit „Steam reparieren“, bevor du eine andere Steam-Kopie wählst."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark est installé dans %@. Utilisez « Réparer Steam » pour le supprimer avant de choisir une autre copie de Steam."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark è installato in %@. Usa Ripara Steam per rimuoverlo prima di scegliere un'altra copia di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
+          }
+        }
+      }
+    },
+    "Squark is rebuilding the prefix for %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark erstellt das Präfix für %@ neu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark reconstruit le préfixe de %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark sta ricostruendo il prefisso di %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Squark is rebuilding the prefix for %@."
+          }
+        }
+      }
+    },
+    "Squark is rebuilding this game's prefix." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark erstellt das Präfix dieses Spiels neu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark reconstruit le préfixe de ce jeu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark sta ricostruendo il prefisso di questo gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Squark is rebuilding this game's prefix."
+          }
+        }
+      }
+    },
+    "Squark needs the App Management permission." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark benötigt die Berechtigung „App-Verwaltung“."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark a besoin de l'autorisation « Gestion des apps »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark ha bisogno del permesso Gestione app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 需要“App 管理”权限。"
+          }
+        }
+      }
+    },
+    "Squark successfully installed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark wurde erfolgreich installiert."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark a été installé avec succès."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark installato correttamente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Squark 安装成功。"
           }
         }
       }
