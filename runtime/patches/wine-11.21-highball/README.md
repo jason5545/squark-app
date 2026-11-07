@@ -180,3 +180,13 @@ commit on 11.21):
   through the wineserver) are queueing, not wake-ups: msync lets the main thread release a batch's jobs before
   the workers can start them; with jobs=1 (no queue) a job's wake is 7.7 µs (6.9 with 0068, 8.9 through the
   wineserver). Records 25.73.
+- `0070-ntdll-drop-FEX-JIT-FPCR-bits-for-the-unix-side-and-debug-output.patch`: with FEX patch 0043, x64 code
+  calls checked native functions without FPCR leaving the JIT's mode (AH, NEP and the trap enables armed from
+  MXCSR stay set). What those functions reach that the check does not follow is fenced here:
+  `__wine_syscall_dispatcher` drops the bits for the unix side (it already saved FPCR and writes it back on
+  return; the mask goes in x13, as x11 holds the user stack for the arguments past the eighth);
+  `__wine_unix_call_dispatcher` now saves FPCR in the frame, drops the bits and puts them back after the call;
+  `__wine_dbg_header`, `__wine_dbg_strdup`, `__wine_dbg_output` and `enter_syscall_callback` (the ARM64EC
+  wrappers that notify the emulator) drop them for the rest of the call. Native code is always fine with the
+  native FPCR; FEX writes the JIT's back when the call returns to x64 code. One `mrs` and a branch more
+  otherwise. Goes with FEX patch 0043 (squark records 25.77).

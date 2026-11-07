@@ -1,0 +1,386 @@
+ARM64EC: native calls that keep the JIT's FPCR (a generated table of checked functions)
+
+ExitFunctionEC writes FPCR on the way out of the JIT (to drop AH, NEP and the trap enables armed from MXCSR) and
+FillSpecialRegs writes it back on the way in. On Apple cores a write to FPCR waits for everything in flight: about
+8 ns each in a tight loop, more in real code. Microsoft Flight Simulator's main thread spent 8.3 % of its time on the
+instruction after ExitFunctionEC's msr FPCR and 6 % after the dispatcher's (squark records 25.70, 25.77). 0036 skipped
+both writes for memcpy, memmove and memset of Wine's builtin CRT; this extends it to every native function that
+nothing those bits change can run in.
+
+- FPCRNeutralTable.inc, generated when the runtime is built (squark-app runtime/fex/fpcrscan.py, run by
+  build-wine.sh before FEX is compiled) from that build's ntdll, kernelbase, kernel32, ucrtbase and msvcrt: every
+  function from which nothing reachable does floating-point data processing, writes FPCR or makes an indirect call the
+  tool can't follow. It follows direct calls, jumps, tail calls, the import table (api sets and forwarders), switch
+  tables, Wine's call checker for hybrid_patchable functions; calls into Wine's syscall and unix call dispatchers,
+  ntdll's debug output entry points and its ARM64EC syscall wrappers end a path because Wine patch 0070 drops the
+  JIT's bits there, and calls into FEX's own exports through ntdll's pointers because FEX drops them there too
+  (NativeFPCR below). An image is used only when its name, TimeDateStamp and .text size are the scanned build's.
+  Without the file the table is empty and only 0036's functions are listed.
+- The targets live in an open-addressing set of 1 << 15 slots (linear probing, 0 ends a probe, 1 is a removed
+  entry, at most 3/4 full) that ExitFunctionEC probes with eor/ubfx (no flags touched); 0036's linear list of 16 is
+  gone. Images are added when mapped and their entries removed when unmapped, as before.
+- FEX's exports that ntdll calls through pointers (Notify*, BTCpu64*, FlushInstructionCacheHeavy, GetX87State,
+  Get/SetX64Mxcsr, KeepX64DebugRegisters, GuestProtection(Range), UpdateProcessorInformation) drop the JIT's FPCR
+  bits first thing: such a call can now come from a function that runs with them. None of them reads or writes the
+  live FPCR otherwise. The JIT writes the bits back when the call returns to x64 code.
+
+SQUARK_FEX_FPCR_TABLE=0 leaves the generated table out (0036's memcpy, memmove and memset stay).
+
+Measured with x64 calls in a loop under FEX (squark records 25.77), per call: GetLastError 26.3 -> 4.7 ns,
+SetLastError 26.4 -> 4.7, GetCurrentThreadId 25.8 -> 4.0, TlsGetValue 26.2 -> 4.6, FlsGetValue 28.1 -> 6.9,
+EnterCriticalSection + LeaveCriticalSection 59.8 -> 13.6, AcquireSRWLockShared + ReleaseSRWLockShared 70.8 -> 25.0;
+cos (not listed) unchanged. With the simulator's exits of 25.77, the table covers 54 % of them, 72 % of the main
+thread's.
+
+diff --git a/Source/Windows/ARM64EC/Module.S b/Source/Windows/ARM64EC/Module.S
+index 0d02211..7fe6022 100644
+--- a/Source/Windows/ARM64EC/Module.S
++++ b/Source/Windows/ARM64EC/Module.S
+@@ -55,17 +55,22 @@ BeginSimulation:
+   // Expects the target code address in x9
+ .global ExitFunctionEC
+ ExitFunctionEC:
+-  // A target in FPCRNeutralTargets (zero-terminated, see Module.cpp) does no floating-point arithmetic, so it runs
+-  // with the JIT's FPCR: writing FPCR here and again on the way back costs more than a short memmove. sub and cbz
+-  // leave NZCV alone.
+-  adrp x17, FPCRNeutralTargets
+-  add x17, x17, #:lo12:FPCRNeutralTargets
++  // A target in FPCRNeutralHash (squark 0036, 0043; Module.cpp) is not affected by the JIT's FPCR bits, so it runs
++  // with them: writing FPCR here and again on the way back costs more than most such calls. Open addressing with
++  // linear probing over 1 << 15 slots, 0 ends a probe, 1 is a removed entry. x16, x17 and x23 are free here (all three
++  // are overwritten below before use); eor, ubfx, add, and, sub and cbz leave NZCV alone.
++  eor x16, x9, x9, lsr #15
++  ubfx x16, x16, #2, #15
++  adrp x17, FPCRNeutralHash
++  add x17, x17, #:lo12:FPCRNeutralHash
+ 2:
+-  ldr x16, [x17], #8
+-  cbz x16, 3f
+-  sub x16, x16, x9
+-  cbnz x16, 2b
+-  b 1f
++  ldr x23, [x17, x16, lsl #3]
++  cbz x23, 3f
++  sub x23, x23, x9
++  cbz x23, 1f
++  add x16, x16, #1
++  and x16, x16, #0x7fff
++  b 2b
+ 3:
+   // Clear any the AFP NEP and AH bits in FPCR as native code won't expect their behaviour.
+   mrs x17, fpcr
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+index e42bd84..2876123 100644
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -84,9 +84,10 @@ extern uint64_t SyscallTableEnd[];
+ void* X64ReturnInstr; // See Module.S
+ uintptr_t NtDllBase;
+ 
+-// Native functions that ExitFunctionEC (Module.S) calls without switching FPCR out of the JIT's mode, zero-terminated.
+-// Filled by AddFPCRNeutralTargets; a slot of an unmapped image becomes 1, which no target address matches.
+-uint64_t FPCRNeutralTargets[16];
++// Native functions that ExitFunctionEC (Module.S) calls without switching FPCR out of the JIT's mode: an open-addressing
++// set (linear probing, see FPCRNeutral::Hash); 0 is an empty slot, 1 one whose target's image was unmapped.
++// Filled by AddFPCRNeutralTargets.
++uint64_t FPCRNeutralHash[1 << 15];
+ 
+ // SQUARK_FEX_EC_STATS (squark 0042): ExitFunctionECStats (Module.S) stores {target, thread id} at
+ // ECStatsRing[(ECStatsIndex++ & (RingEntries - 1)) * 2]; off (both zero) without the variable.
+@@ -468,14 +469,117 @@ bool InitSyscalls() {
+   return true;
+ }
+ 
++namespace FPCRNeutral {
++// squark 0043: which native functions x64 code may call without FPCR leaving the JIT's mode. Two sources:
++// - 0036: memcpy, memmove and memset of Wine's builtin ucrtbase, msvcrt and ntdll (AddCRTTargets);
++// - FPCRNeutralTable.inc, generated when the runtime is built by squark-app's runtime/fex/fpcrscan.py from that
++//   build's Wine DLLs: every function from which nothing reachable is affected by AH, NEP or the trap enables (no
++//   floating-point data processing, no FPCR write, no unknown indirect call); an image is used only when its name,
++//   TimeDateStamp and .text size are the ones scanned. Calls into Wine's syscall and unix call dispatchers, its debug
++//   output and its ARM64EC syscall wrappers are allowed because Wine patch 0070 drops the JIT's bits there, and calls
++//   into FEX's own exports because they do too (FPCRFence below). SQUARK_FEX_FPCR_TABLE=0 leaves the table out.
++// Inserted under ThreadCreationMutex (image map), read without a lock by ExitFunctionEC.
++constexpr uint64_t Slots = std::size(FPCRNeutralHash);
++static_assert(Slots == (1 << 15), "Module.S masks with 0x7fff");
++uint64_t Used;
++
++uint64_t Hash(uint64_t Target) {
++  return ((Target ^ (Target >> 15)) >> 2) & (Slots - 1);
++}
++
++bool Insert(uint64_t Target) {
++  for (uint64_t i = Hash(Target);; i = (i + 1) & (Slots - 1)) {
++    const uint64_t Value = FPCRNeutralHash[i];
++    if (Value == Target) {
++      return false;
++    }
++    if (Value <= 1) {
++      if (Value == 0) {
++        if (Used >= Slots * 3 / 4) {
++          return false; // keep empty slots so that every probe ends
++        }
++        Used++;
++      }
++      __atomic_store_n(&FPCRNeutralHash[i], Target, __ATOMIC_RELEASE);
++      return true;
++    }
++  }
++}
++
++struct Image {
++  const char* Name;
++  uint32_t TimeDateStamp;
++  uint32_t TextSize; // VirtualSize of .text: strip keeps it, unlike SizeOfImage
++  size_t Count;
++  const uint32_t* RVAs;
++};
++using FPCRNeutralImage = Image;
++#if __has_include("FPCRNeutralTable.inc")
++#include "FPCRNeutralTable.inc"
++#else
++static const FPCRNeutralImage FPCRNeutralImages[] = {{"", 0, 0, 0, nullptr}};
++#endif
++
++bool TableEnabled() {
++  static const bool Enabled = [] {
++    const char* Setting = std::getenv("SQUARK_FEX_FPCR_TABLE");
++    return !Setting || strcmp(Setting, "0");
++  }();
++  return Enabled;
++}
++
++bool NameIs(std::string_view ModuleName, std::string_view Name) {
++  return ModuleName.size() == Name.size() &&
++         std::equal(Name.begin(), Name.end(), ModuleName.begin(), [](char a, char b) { return a == std::tolower(b); });
++}
++
++void AddTableTargets(std::string_view ModuleName, uint64_t Address) {
++  if (!TableEnabled()) {
++    return;
++  }
++  const auto* Nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(Address + reinterpret_cast<const IMAGE_DOS_HEADER*>(Address)->e_lfanew);
++  for (const auto& Entry : FPCRNeutralImages) {
++    if (!Entry.Count || !NameIs(ModuleName, Entry.Name)) {
++      continue;
++    }
++    uint32_t TextSize = 0;
++    const auto* Section = IMAGE_FIRST_SECTION(Nt);
++    for (unsigned i = 0; i < Nt->FileHeader.NumberOfSections; i++) {
++      if (!memcmp(Section[i].Name, ".text\0\0", 8)) {
++        TextSize = Section[i].Misc.VirtualSize;
++      }
++    }
++    if (Nt->FileHeader.TimeDateStamp != Entry.TimeDateStamp || TextSize != Entry.TextSize) {
++      LogMan::Msg::IFmt("FEX: {} is not the build FPCRNeutralTable was made from, no entries", ModuleName);
++      continue;
++    }
++    size_t Added = 0;
++    for (size_t i = 0; i < Entry.Count; i++) {
++      Added += Insert(Address + Entry.RVAs[i]);
++    }
++    LogMan::Msg::IFmt("FEX: {} {} functions keep the JIT's FPCR ({} slots used)", ModuleName, Added, Used);
++  }
++}
++} // namespace FPCRNeutral
++
++// squark 0043: FEX's exports that ntdll calls through pointers (pNotifyMemoryAlloc...) can be reached from a native
++// function that runs with the JIT's FPCR. They drop its bits for the rest of the call, like Wine's debug output and
++// syscall wrappers do (Wine patch 0070); the JIT writes them back when the call returns to x64 code.
++static inline void NativeFPCR() {
++  uint64_t Value;
++  __asm__ volatile("mrs %0, fpcr" : "=r"(Value));
++  if (Value & 0x9f06) { // AH, NEP, the trap enables IOE DZE OFE UFE IXE IDE
++    __asm__ volatile("msr fpcr, %0" ::"r"(Value & ~uint64_t {0x9f06}));
++  }
++}
++
+ // memcpy, memmove and memset of Wine's own CRT and ntdll only load, store and move data (their ARM64EC code has no
+ // floating-point arithmetic), so FPCR's AH, NEP and trap enables change nothing they do. x64 code calls them often
+ // (wasm2c's memory.copy and memory.fill, compilers' struct copies), and each call that leaves the JIT otherwise writes
+ // FPCR twice. Only builtin images: a native CRT someone installed is not known to be the same. Under ThreadCreationMutex.
+-void AddFPCRNeutralTargets(std::string_view ModuleName, uint64_t Address) {
++void AddCRTTargets(std::string_view ModuleName, uint64_t Address) {
+   auto Is = [&](std::string_view Name) {
+-    return ModuleName.size() == Name.size() &&
+-           std::equal(Name.begin(), Name.end(), ModuleName.begin(), [](char a, char b) { return a == std::tolower(b); });
++    return FPCRNeutral::NameIs(ModuleName, Name);
+   };
+   if (!Is("ucrtbase.dll") && !Is("msvcrt.dll") && !Is("ntdll.dll")) {
+     return;
+@@ -531,32 +635,19 @@ void AddFPCRNeutralTargets(std::string_view ModuleName, uint64_t Address) {
+       }
+     }
+     const uint64_t Target = Address + RVA;
+-    bool Present = false;
+-    size_t Free = std::size(FPCRNeutralTargets);
+-    for (size_t i = 0; i + 1 < std::size(FPCRNeutralTargets); i++) {
+-      const uint64_t Value = FPCRNeutralTargets[i];
+-      if (Value == Target) {
+-        Present = true;
+-        break;
+-      }
+-      if (Value <= 1 && Free == std::size(FPCRNeutralTargets)) {
+-        Free = i;
+-      }
+-      if (Value == 0) {
+-        break;
+-      }
++    if (FPCRNeutral::Insert(Target)) {
++      LogMan::Msg::IFmt("FEX: {}!{} {:x} keeps the JIT's FPCR", ModuleName, Name, Target);
+     }
+-    if (Present || Free == std::size(FPCRNeutralTargets)) {
+-      continue;
+-    }
+-    // The last slot stays zero, and a zero slot is only ever the first one past the filled ones.
+-    __atomic_store_n(&FPCRNeutralTargets[Free], Target, __ATOMIC_RELEASE);
+-    LogMan::Msg::IFmt("FEX: {}!{} {:x} keeps the JIT's FPCR", ModuleName, Name, Target);
+   }
+ }
+ 
++void AddFPCRNeutralTargets(std::string_view ModuleName, uint64_t Address) {
++  AddCRTTargets(ModuleName, Address);
++  FPCRNeutral::AddTableTargets(ModuleName, Address);
++}
++
+ void RemoveFPCRNeutralTargets(uint64_t Address, uint64_t Size) {
+-  for (auto& Target : FPCRNeutralTargets) {
++  for (auto& Target : FPCRNeutralHash) {
+     if (Target > 1 && Target - Address < Size) {
+       __atomic_store_n(&Target, 1, __ATOMIC_RELEASE);
+     }
+@@ -1584,6 +1675,7 @@ NTSTATUS ResetToConsistentState(EXCEPTION_RECORD* Exception, CONTEXT* GuestConte
+ }
+ 
+ void NotifyMemoryAlloc(void* Address, SIZE_T Size, ULONG Type, ULONG Prot, BOOL After, NTSTATUS Status) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1611,6 +1703,7 @@ void NotifyMemoryAlloc(void* Address, SIZE_T Size, ULONG Type, ULONG Prot, BOOL
+ }
+ 
+ void NotifyMemoryFree(void* Address, SIZE_T Size, ULONG FreeType, BOOL After, NTSTATUS Status) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1642,6 +1735,7 @@ void NotifyMemoryFree(void* Address, SIZE_T Size, ULONG FreeType, BOOL After, NT
+ }
+ 
+ void NotifyMemoryProtect(void* Address, SIZE_T Size, ULONG NewProt, BOOL After, NTSTATUS Status) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1665,6 +1759,7 @@ void NotifyMemoryProtect(void* Address, SIZE_T Size, ULONG NewProt, BOOL After,
+ }
+ 
+ NTSTATUS NotifyMapViewOfSection(void* Unk1, void* Address, void* Unk2, SIZE_T Size, ULONG AllocType, ULONG Prot) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return STATUS_SUCCESS;
+   }
+@@ -1679,6 +1774,7 @@ NTSTATUS NotifyMapViewOfSection(void* Unk1, void* Address, void* Unk2, SIZE_T Si
+ }
+ 
+ void NotifyUnmapViewOfSection(void* Address, BOOL After, NTSTATUS Status) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1695,6 +1791,7 @@ void NotifyUnmapViewOfSection(void* Address, BOOL After, NTSTATUS Status) {
+ }
+ 
+ void FlushInstructionCacheHeavy(const void* Address, SIZE_T Size) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1704,6 +1801,7 @@ void FlushInstructionCacheHeavy(const void* Address, SIZE_T Size) {
+ }
+ 
+ void BTCpu64FlushInstructionCache(const void* Address, SIZE_T Size) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1713,6 +1811,7 @@ void BTCpu64FlushInstructionCache(const void* Address, SIZE_T Size) {
+ }
+ 
+ void BTCpu64NotifyMemoryDirty(void* Address, SIZE_T Size) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker || !GetCPUArea().ThreadState()) {
+     return;
+   }
+@@ -1722,6 +1821,7 @@ void BTCpu64NotifyMemoryDirty(void* Address, SIZE_T Size) {
+ }
+ 
+ void BTCpu64NotifyReadFile(HANDLE Handle, void* Address, SIZE_T Size, BOOL After, NTSTATUS Status) {
++  NativeFPCR(); // squark 0043
+   auto* ThreadState = GetCPUArea().ThreadState();
+   if (!InvalidationTracker || !ThreadState) {
+     return;
+@@ -1915,6 +2015,7 @@ NTSTATUS ThreadTerm(HANDLE Thread, LONG ExitCode) {
+ }
+ 
+ BOOLEAN BTCpu64IsProcessorFeaturePresent(UINT Feature) {
++  NativeFPCR(); // squark 0043
+   return CPUFeatures->IsFeaturePresent(Feature) ? TRUE : FALSE;
+ }
+ 
+@@ -1924,6 +2025,7 @@ BOOLEAN BTCpu64IsProcessorFeaturePresent(UINT Feature) {
+ // runs with the trap enables off. The status flags are FPSR, and native code keeps RC, FZ and DAZ in FPCR as well,
+ // which the JIT takes back when it is entered again.
+ BOOL GetX64Mxcsr(UINT32* Mxcsr) {
++  NativeFPCR(); // squark 0043
+   auto* Thread = GetCPUArea().ThreadState();
+   if (!Thread) {
+     return FALSE;
+@@ -1933,6 +2035,7 @@ BOOL GetX64Mxcsr(UINT32* Mxcsr) {
+ }
+ 
+ BOOL SetX64Mxcsr(UINT32 Mxcsr) {
++  NativeFPCR(); // squark 0043
+   auto* Thread = GetCPUArea().ThreadState();
+   if (!Thread) {
+     return FALSE;
+@@ -1945,6 +2048,7 @@ BOOL SetX64Mxcsr(UINT32 Mxcsr) {
+ // (DebugRegistersAsKept): ntdll puts the debug registers of a context it hands on (SetThreadContext, NtContinue) in
+ // this form, and this export tells it that the emulator implements them. Only the Dr fields are read and written.
+ void KeepX64DebugRegisters(CONTEXT* Context) {
++  NativeFPCR(); // squark 0043
+   const uint64_t DR[4] = {Context->Dr0, Context->Dr1, Context->Dr2, Context->Dr3};
+   const auto Regs = FEXCore::X86State::DebugRegistersAsKept(DR, Context->Dr7);
+   Context->Dr0 = Regs.DR[0];
+@@ -1961,6 +2065,7 @@ void KeepX64DebugRegisters(CONTEXT* Context) {
+ // SMC tracking, and a program must not see that step. A program that saved a page's protection, changed it and
+ // restored what it saved got read-execute back from FEX and faulted on its own next write (smcprot.exe, 2026-10-18).
+ ULONG GuestProtection(void* Address, ULONG Prot) {
++  NativeFPCR(); // squark 0043
+   if (!InvalidationTracker) {
+     return Prot;
+   }
+@@ -1969,6 +2074,7 @@ ULONG GuestProtection(void* Address, ULONG Prot) {
+ 
+ // Optional ntdll query hook: report guest protections and their next boundary.
+ BOOL GuestProtectionRange(void* Address, ULONG* Prot, SIZE_T* Size) {
++  NativeFPCR(); // squark 0043
+   return !InvalidationTracker ||
+          InvalidationTracker->GuestProtectionRange(reinterpret_cast<uint64_t>(Address), *Prot, *Size);
+ }
+@@ -1980,6 +2086,7 @@ BOOL GuestProtectionRange(void* Address, ULONG* Prot, SIZE_T* Size) {
+ // in ST(i) order); MXCSR and the XMM registers are left to the caller. The JIT is not running on this thread here, so
+ // the thread state holds the current values.
+ void GetX87State(XMM_SAVE_AREA32* FltSave) {
++  NativeFPCR(); // squark 0043
+   auto* Thread = GetCPUArea().ThreadState();
+   if (!Thread) {
+     return;
+@@ -1997,5 +2104,6 @@ void GetX87State(XMM_SAVE_AREA32* FltSave) {
+ }
+ 
+ void UpdateProcessorInformation(SYSTEM_CPU_INFORMATION* Info) {
++  NativeFPCR(); // squark 0043
+   CPUFeatures->UpdateInformation(Info);
+ }

@@ -1,0 +1,193 @@
+ARM64EC: SQUARK_FEX_EC_STATS counts which native functions x64 code calls
+
+Every call from x64 code to native ARM64EC code (an export of an ARM64X or builtin DLL, a COM method of
+vkd3d-proton, a return into native code) leaves the JIT through ExitFunctionEC, which writes FPCR to drop the
+JIT's bits and writes it again when the call returns. SQUARK_FEX_EC_STATS=<Windows path> points each thread's
+ExitFunctionEC at ExitFunctionECStats, which stores the target and the thread id in a ring of 1M entries before
+exiting as usual. A worker thread tallies the ring every 100 ms (it samples when more exits than the ring holds
+happened in between) and rewrites the file every 5 s: the exits counted, the image of each target (allocation base
+and mapped file) and the 400 most frequent {thread, target} pairs. For measuring only; off without the variable.
+
+Microsoft Flight Simulator 2024, A380X at RCTP 05R, 66 s in the cockpit (squark records 25.77): about 9.1 million
+exits a second over the process; the main thread mostly RtlEnterCriticalSection/RtlLeaveCriticalSection, SRW locks,
+_isnan and libm, Coherent GT's thread FlsGetValue and GetCurrentThreadId, the 17 job workers vkd3d-proton's
+CopyDescriptorsSimple, CreateConstantBufferView and SetGraphicsRootDescriptorTable.
+
+diff --git a/Source/Windows/ARM64EC/Module.S b/Source/Windows/ARM64EC/Module.S
+index b9d521d..0d02211 100644
+--- a/Source/Windows/ARM64EC/Module.S
++++ b/Source/Windows/ARM64EC/Module.S
+@@ -114,6 +114,24 @@ ret_sp_misaligned:
+   ldr lr, [lr, #:lo12:X64ReturnInstr]
+   br x17
+ 
++  // SQUARK_FEX_EC_STATS (squark 0042): ThreadInit points Pointers.ExitFunctionEC here instead. Records the target
++  // (x9) and the thread (TEB ClientId.UniqueThread) in ECStatsRing, then exits as usual. x16 and x17 are free here, as
++  // ExitFunctionEC overwrites both first; ldadd, and and add leave NZCV alone.
++.arch_extension lse
++.global ExitFunctionECStats
++ExitFunctionECStats:
++  adrp x17, ECStatsIndex
++  add x17, x17, #:lo12:ECStatsIndex
++  mov x16, #1
++  ldadd x16, x16, [x17]
++  and x16, x16, #0xfffff // ECStats::RingEntries - 1
++  adrp x17, ECStatsRing
++  ldr x17, [x17, #:lo12:ECStatsRing]
++  add x17, x17, x16, lsl #4
++  ldr x16, [x18, #0x48] // TEB->ClientId.UniqueThread
++  stp x9, x16, [x17]
++  b ExitFunctionEC
++
+ .global ExitFunctionSuspendPoint
+ ExitFunctionSuspendPoint:
+   brk #0xCAFE
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+index f06008e..e42bd84 100644
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -88,6 +88,12 @@ uintptr_t NtDllBase;
+ // Filled by AddFPCRNeutralTargets; a slot of an unmapped image becomes 1, which no target address matches.
+ uint64_t FPCRNeutralTargets[16];
+ 
++// SQUARK_FEX_EC_STATS (squark 0042): ExitFunctionECStats (Module.S) stores {target, thread id} at
++// ECStatsRing[(ECStatsIndex++ & (RingEntries - 1)) * 2]; off (both zero) without the variable.
++extern void* ExitFunctionECStats;
++uint64_t ECStatsIndex;
++uint64_t* ECStatsRing;
++
+ // Exports on ARM64EC point to x64 fast forward sequences to allow for redirecting to the JIT if functions are hotpatched. This LUT is from their addresses to the relative addresses of the native code exports.
+ uint32_t* NtDllRedirectionLUT;
+ uint32_t NtDllRedirectionLUTSize;
+@@ -1161,6 +1167,113 @@ static void HbJitWriteToggle(bool Enable) {
+   NtSetInformationThread(GetCurrentThread(), static_cast<THREADINFOCLASS>(0x7fe), &Value, sizeof(Value));
+ }
+ 
++namespace ECStats {
++// SQUARK_FEX_EC_STATS=<Windows path> (squark 0042): which native (ARM64EC) functions x64 code calls through
++// ExitFunctionEC, per thread. Every exit leaves the JIT's FPCR and comes back to it (two FPCR writes, about 8 ns each on
++// Apple cores), so this is the list to look at for exits that could keep it. A worker tallies the ring every 100 ms
++// (it samples when more than the ring's worth of exits happened in between) and rewrites the file every 5 s: the
++// exits counted, the loaded image of each target (allocation base, mapped file) and the 400 most frequent
++// {thread, target} pairs. For measuring only: the ring store costs a few ns per exit.
++constexpr uint64_t RingEntries = 1 << 20;
++bool Enabled;
++char OutPath[MAX_PATH];
++fextl::unique_ptr<FEXCore::Threads::Thread> Worker;
++
++void Dump(const fextl::unordered_map<uint64_t, uint64_t>& Counts, uint64_t Sampled, uint64_t Exits, double Secs) {
++  fextl::vector<std::pair<uint64_t, uint64_t>> Sorted(Counts.begin(), Counts.end());
++  std::sort(Sorted.begin(), Sorted.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
++  fextl::unordered_map<uint64_t, uint64_t> PerThread;
++  for (const auto& [Key, Count] : Counts) {
++    PerThread[Key >> 48] += Count;
++  }
++  fextl::string Out = fextl::fmt::format("ecstats secs={:.1f} exits={} sampled={} keys={}\n", Secs, Exits, Sampled, Counts.size());
++  for (const auto& [Tid, Count] : PerThread) {
++    Out += fextl::fmt::format("thread {:x} {}\n", Tid, Count);
++  }
++  fextl::unordered_map<uint64_t, bool> Bases;
++  const size_t Top = std::min<size_t>(Sorted.size(), 400);
++  for (size_t i = 0; i < Top; i++) {
++    const uint64_t Target = Sorted[i].first & 0xffff'ffff'ffffULL;
++    MEMORY_BASIC_INFORMATION Info {};
++    uint64_t Base = 0;
++    if (NtQueryVirtualMemory(NtCurrentProcess(), reinterpret_cast<void*>(Target), MemoryBasicInformation, &Info, sizeof(Info), nullptr) >= 0) {
++      Base = reinterpret_cast<uint64_t>(Info.AllocationBase);
++    }
++    Out += fextl::fmt::format("{:x} {:x} {:x} {}\n", Sorted[i].first >> 48, Target, Base, Sorted[i].second);
++    if (Base && !Bases.contains(Base)) {
++      Bases[Base] = true;
++      struct {
++        UNICODE_STRING Name;
++        WCHAR Buffer[1024];
++      } Name {};
++      char Narrow[1024] {};
++      if (NtQueryVirtualMemory(NtCurrentProcess(), reinterpret_cast<void*>(Base), MemoryMappedFilenameInformation, &Name, sizeof(Name), nullptr) >= 0) {
++        ULONG Len = 0;
++        RtlUnicodeToMultiByteN(Narrow, sizeof(Narrow) - 1, &Len, Name.Name.Buffer, Name.Name.Length);
++        Narrow[Len] = 0;
++      }
++      Out += fextl::fmt::format("image {:x} {}\n", Base, Narrow);
++    }
++  }
++  HANDLE File = CreateFileA(OutPath, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
++  if (File == INVALID_HANDLE_VALUE) {
++    return;
++  }
++  DWORD Written;
++  WriteFile(File, Out.data(), Out.size(), &Written, nullptr);
++  CloseHandle(File);
++}
++
++void* Run(void*) {
++  fextl::unordered_map<uint64_t, uint64_t> Counts;
++  uint64_t Last = 0, Sampled = 0, Exits = 0;
++  LARGE_INTEGER Freq, Start, Now;
++  QueryPerformanceFrequency(&Freq);
++  QueryPerformanceCounter(&Start);
++  double NextDump = 5.0;
++  for (;;) {
++    LARGE_INTEGER Delay {.QuadPart = -100 * 10000LL};
++    NtDelayExecution(FALSE, &Delay);
++    const uint64_t Index = __atomic_load_n(&ECStatsIndex, __ATOMIC_ACQUIRE);
++    const uint64_t Delta = Index - Last;
++    // Leave the oldest part of the ring alone: writers may be lapping it.
++    const uint64_t N = std::min<uint64_t>(Delta, RingEntries - 65536);
++    for (uint64_t i = Index - N; i < Index; i++) {
++      const uint64_t* Entry = &ECStatsRing[(i & (RingEntries - 1)) * 2];
++      const uint64_t Target = __atomic_load_n(&Entry[0], __ATOMIC_RELAXED);
++      if (Target) {
++        Counts[(__atomic_load_n(&Entry[1], __ATOMIC_RELAXED) << 48) | (Target & 0xffff'ffff'ffffULL)]++;
++      }
++    }
++    Sampled += N;
++    Exits += Delta;
++    Last = Index;
++    QueryPerformanceCounter(&Now);
++    const double Secs = double(Now.QuadPart - Start.QuadPart) / double(Freq.QuadPart);
++    if (Secs >= NextDump) {
++      Dump(Counts, Sampled, Exits, Secs);
++      NextDump = Secs + 5.0;
++    }
++  }
++  return nullptr;
++}
++
++void Init() {
++  const char* Setting = std::getenv("SQUARK_FEX_EC_STATS");
++  if (!Setting || !Setting[0] || strlen(Setting) >= sizeof(OutPath)) {
++    return;
++  }
++  ECStatsRing = static_cast<uint64_t*>(::VirtualAlloc(nullptr, RingEntries * 16, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
++  if (!ECStatsRing) {
++    return;
++  }
++  strcpy(OutPath, Setting);
++  Enabled = true;
++  Worker = FEXCore::Threads::Thread::Create(Run, nullptr, {.Internal = true}, "SquarkECStats");
++  LogMan::Msg::IFmt("FEX: SQUARK_FEX_EC_STATS writes {}", OutPath);
++}
++} // namespace ECStats
++
+ NTSTATUS ProcessInit() {
+   if (!InitSyscalls()) {
+     return STATUS_NOT_SUPPORTED;
+@@ -1235,6 +1348,7 @@ NTSTATUS ProcessInit() {
+   HandleImageMap(NtDllBase);
+ 
+   CPUFeatures.emplace(*CTX);
++  ECStats::Init();
+ 
+   X64ReturnInstr = ::VirtualAlloc(nullptr, FEXCore::Utils::FEX_PAGE_SIZE, MEM_COMMIT | MEM_TOP_DOWN, PAGE_EXECUTE_READWRITE);
+   InvalidationTracker->HandleMemoryProtectionNotification(reinterpret_cast<uint64_t>(X64ReturnInstr), FEXCore::Utils::FEX_PAGE_SIZE,
+@@ -1704,7 +1818,8 @@ NTSTATUS ThreadInit() {
+   Frame->State.cs_cached = FEXCore::Core::CPUState::CalculateGDTBase(GDT);
+ 
+   FEX::Windows::CallRetStack::InitializeThread(Thread);
+-  Thread->CurrentFrame->Pointers.ExitFunctionEC = reinterpret_cast<uintptr_t>(&ExitFunctionEC);
++  Thread->CurrentFrame->Pointers.ExitFunctionEC =
++    reinterpret_cast<uintptr_t>(ECStats::Enabled ? &ExitFunctionECStats : &ExitFunctionEC);
+   CPUArea.StateFrame() = Thread->CurrentFrame;
+ 
+   uint64_t EnterEC = Thread->CurrentFrame->Pointers.DispatcherLoopTopEnterEC;

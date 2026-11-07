@@ -1,0 +1,156 @@
+Squark: ntdll drops FEX's JIT FPCR bits before the unix side, debug output and the ARM64EC syscall wrappers
+
+FEX patch 0043 lets x64 code call native functions that nothing FPCR's AH, NEP or trap enables change can run in
+without leaving the JIT's FPCR mode (a write to FPCR costs Apple cores tens of cycles each way). The functions are
+checked when the runtime is built; what they reach that the check does not follow is fenced here:
+
+- __wine_syscall_dispatcher already saves FPCR in the syscall frame and writes it back on return; it now also drops
+  AH, NEP and the trap enables (0x9f06) for the unix side when they are set. x13 holds the mask: x11 still holds the
+  user stack for the arguments past the eighth.
+- __wine_unix_call_dispatcher did not save FPCR. It now keeps the caller's in frame->fpcr, drops the bits for the
+  unix side and writes the caller's back when the call returns, only if it had them. A signal in the dispatcher's
+  first instructions fills the frame from the signal context (save_syscall_entry_frame), so frame->fpcr is the
+  caller's then too.
+- __wine_dbg_header, __wine_dbg_strdup and __wine_dbg_output, and enter_syscall_callback (first thing in the ARM64EC
+  wrappers of NtAllocateVirtualMemory(Ex), NtFreeVirtualMemory, NtProtectVirtualMemory, NtQueryVirtualMemory,
+  NtMapViewOfSection(Ex), NtUnmapViewOfSection(Ex), NtFlushInstructionCache, NtReadFile, NtTerminateProcess and
+  NtTerminateThread) drop them for the rest of the call. Debug output formats, allocates and makes unix calls; those
+  wrappers notify the emulator, capture a context or notify another process. Native code is always fine with the
+  native FPCR, and FEX writes the JIT's back when the call returns to x64 code.
+
+Without FEX's bits in FPCR (every native caller) each of these is one mrs and a branch more.
+
+diff --git a/dlls/ntdll/unix/signal_arm64.c b/dlls/ntdll/unix/signal_arm64.c
+index 7842dc3..7ec19a4 100644
+--- a/dlls/ntdll/unix/signal_arm64.c
++++ b/dlls/ntdll/unix/signal_arm64.c
+@@ -1953,6 +1953,14 @@ __ASM_GLOBAL_FUNC( __wine_syscall_dispatcher,
+                    "str w8, [x10, #0x120]\n\t"
+                    "mrs x12, FPCR\n\t"
+                    "str w12, [x10, #0x128]\n\t"
++                   /* squark 0070: a native ARM64EC function may run with FEX's JIT FPCR (FEX patch 0043): drop AH,
++                    * NEP and the trap enables (0x9f06) for the unix side; the return path writes the saved FPCR back */
++                   "mov x13, #0x9f06\n\t"     /* x11 still holds the user stack for the arguments */
++                   "and x13, x12, x13\n\t"
++                   "cbz x13, " __ASM_LOCAL_LABEL("__wine_syscall_dispatcher_fpcr_native") "\n\t"
++                   "eor x12, x12, x13\n\t"
++                   "msr FPCR, x12\n"
++                   __ASM_LOCAL_LABEL("__wine_syscall_dispatcher_fpcr_native") ":\n\t"
+                    "mrs x12, FPSR\n\t"
+                    "str w12, [x10, #0x12c]\n\t"
+                    "stp q0,  q1,  [x10, #0x130]\n\t"
+@@ -2127,6 +2135,16 @@ __ASM_GLOBAL_FUNC( __wine_unix_call_dispatcher,
+                    "stp x30, x9, [x10, #0xf0]\n\t"
+                    "mrs x9, NZCV\n\t"
+                    "stp x30, x9, [x10, #0x100]\n\t"
++                   /* squark 0070: as in __wine_syscall_dispatcher, the unix side runs without FEX's JIT FPCR bits;
++                    * the caller's FPCR is kept in frame->fpcr and written back on return if it had them */
++                   "mrs x9, FPCR\n\t"
++                   "str w9, [x10, #0x128]\n\t"
++                   "mov x11, #0x9f06\n\t"
++                   "and x11, x9, x11\n\t"
++                   "cbz x11, " __ASM_LOCAL_LABEL("__wine_unix_call_dispatcher_fpcr_native") "\n\t"
++                   "eor x9, x9, x11\n\t"
++                   "msr FPCR, x9\n"
++                   __ASM_LOCAL_LABEL("__wine_unix_call_dispatcher_fpcr_native") ":\n\t"
+                    /* switch to kernel stack */
+                    "mov sp, x10\n\t"
+                    /* we're now on the kernel stack, stitch unwind info with previous frame */
+@@ -2149,6 +2167,13 @@ __ASM_GLOBAL_FUNC( __wine_unix_call_dispatcher,
+                    "ldr x16, [x0, x1, lsl 3]\n\t"
+                    "mov x0, x2\n\t"             /* args */
+                    "blr x16\n\t"
++                   /* squark 0070: the caller's JIT FPCR bits back */
++                   "ldr w16, [sp, #0x128]\n\t"
++                   "mov x17, #0x9f06\n\t"
++                   "and x17, x16, x17\n\t"
++                   "cbz x17, " __ASM_LOCAL_LABEL("__wine_unix_call_dispatcher_fpcr_back") "\n\t"
++                   "msr FPCR, x16\n"
++                   __ASM_LOCAL_LABEL("__wine_unix_call_dispatcher_fpcr_back") ":\n\t"
+                    "ldr w16, [sp, #0x10c]\n\t"  /* frame->restore_flags */
+                    "cbnz w16, " __ASM_LOCAL_LABEL("__wine_syscall_dispatcher_return") "\n\t"
+                    __ASM_CFI_CFA_IS_AT2(sp, 0x98, 0x02) /* frame->syscall_cfa */
+diff --git a/dlls/ntdll/signal_arm64ec.c b/dlls/ntdll/signal_arm64ec.c
+index 16630ec..b66a947 100644
+--- a/dlls/ntdll/signal_arm64ec.c
++++ b/dlls/ntdll/signal_arm64ec.c
+@@ -110,6 +110,13 @@ static inline BOOL is_valid_arm64ec_frame( ULONG_PTR frame )
+ 
+ static inline BOOL enter_syscall_callback(void)
+ {
++    /* squark 0070: these wrappers notify the emulator, may capture a context or notify another process before the
++     * syscall. Drop FEX's JIT FPCR bits (AH, NEP, trap enables, 0x9f06) that a caller from x64 code may have left
++     * (FEX patch 0043) for the rest of the call; FEX writes them back when the call returns to x64 code. */
++    unsigned long fpcr;
++    __asm__ __volatile__( "mrs %0, fpcr" : "=r" (fpcr) );
++    if (fpcr & 0x9f06) __asm__ __volatile__( "msr fpcr, %0" :: "r" (fpcr & ~0x9f06ul) );
++
+     if (get_arm64ec_cpu_area()->InSyscallCallback) return FALSE;
+     get_arm64ec_cpu_area()->InSyscallCallback = 1;
+     return TRUE;
+diff --git a/dlls/ntdll/thread.c b/dlls/ntdll/thread.c
+index 1c25c8f..543a46b 100644
+--- a/dlls/ntdll/thread.c
++++ b/dlls/ntdll/thread.c
+@@ -119,12 +119,28 @@ unsigned char __cdecl __wine_dbg_get_channel_flags( struct __wine_debug_channel
+     return flags;
+ }
+ 
++/* squark 0070: FEX patch 0043 lets x64 code call some native functions without leaving the JIT's FPCR (AH, NEP and
++ * the trap enables armed from MXCSR, 0x9f06). Their debug output paths (formatting, the heap, unix calls) are not
++ * checked for that: the debug entry points drop those bits for the rest of the call. Native code is always fine with
++ * the native FPCR; FEX writes the JIT's back when the call returns to x64 code. */
++static inline void native_fpcr(void)
++{
++#if defined(__aarch64__) || defined(__arm64ec__)
++    unsigned long fpcr;
++    __asm__ __volatile__( "mrs %0, fpcr" : "=r" (fpcr) );
++    if (fpcr & 0x9f06) __asm__ __volatile__( "msr fpcr, %0" :: "r" (fpcr & ~0x9f06ul) );
++#endif
++}
++
+ /***********************************************************************
+  *		__wine_dbg_strdup  (NTDLL.@)
+  */
+ const char * __cdecl __wine_dbg_strdup( const char *str )
+ {
+-    struct debug_info *info = get_info();
++    struct debug_info *info;
++
++    native_fpcr();
++    info = get_info();
+     unsigned int pos = info->str_pos;
+     size_t n = strlen( str ) + 1;
+ 
+@@ -141,9 +157,12 @@ int __cdecl __wine_dbg_header( enum __wine_debug_class cls, struct __wine_debug_
+                                const char *function )
+ {
+     static const char * const classes[] = { "fixme", "err", "warn", "trace" };
+-    struct debug_info *info = get_info();
+-    char *pos = info->output;
++    struct debug_info *info;
++    char *pos;
+ 
++    native_fpcr();
++    info = get_info();
++    pos = info->output;
+     if (!(__wine_dbg_get_channel_flags( channel ) & (1 << cls))) return -1;
+ 
+     /* only print header if we are at the beginning of the line */
+@@ -178,10 +197,14 @@ int WINAPI __wine_dbg_write( const char *str, unsigned int len )
+  */
+ int __cdecl __wine_dbg_output( const char *str )
+ {
+-    struct debug_info *info = get_info();
+-    const char *end = strrchr( str, '\n' );
++    struct debug_info *info;
++    const char *end;
+     int ret = 0;
+ 
++    native_fpcr();
++    info = get_info();
++    end = strrchr( str, '\n' );
++
+     if (end)
+     {
+         ret += append_output( info, str, end + 1 - str );
