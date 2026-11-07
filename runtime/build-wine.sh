@@ -61,7 +61,8 @@ D3DMETAL=""
 FEX_SERIES=""
 # arm64 only: yes builds winegstreamer against the official GStreamer framework and stages it.
 GSTREAMER=""
-# arm64 only: yes gives winebus its SDL bus (Homebrew's sdl2-compat and SDL3, as Highball ships them).
+# arm64 only: yes gives winebus its SDL bus (Homebrew's sdl2-compat and SDL3, as Highball ships them;
+# HADRON_SDL3 names another SDL3).
 SDL=""
 # shellcheck disable=SC1090
 . "$definition"
@@ -351,15 +352,27 @@ fi
 # @loader_path/libSDL3.dylib (never as libSDL3.0.dylib; without that name it shows an error
 # dialog from winedevice that never returns). Without SDL, winebus reads gamepads raw through
 # IOHID, and xinput takes a Bluetooth Xbox controller's right stick (Z/Rz) for its triggers.
+# HADRON_SDL3, a libSDL3.0.dylib, takes the place of Homebrew's SDL3 (squark's tools/sdl-build:
+# SDL that opens only the controllers when it enumerates, as Homebrew's opening every HID device
+# on each enumeration panicked the kernel); it is copied in again whenever it changes.
 SDL_LIBS="libSDL2-2.0.0.dylib libSDL3.0.dylib"
 sdl_cflags="" sdl_libs="" sdl_soname=""
 if [ "$SDL" = yes ]; then
     [ "$ARCH" = arm64 ] || die "SDL=yes is for arm64 runtimes"
+    if [ -n "${HADRON_SDL3:-}" ] && [ -f "$DEPS/lib/libSDL3.dylib" ] && \
+        [ "$(cat "$DEPS/share/licenses/SDL3.source" 2>/dev/null)" != "$(shasum -a 256 < "$HADRON_SDL3")" ]; then
+        rm -f "$DEPS/lib/libSDL3.dylib"
+    fi
     if [ ! -f "$DEPS/lib/libSDL3.dylib" ]; then
         echo "==> taking Homebrew's sdl2-compat and SDL3 into $DEPS"
         brew_opt="$(brew --prefix)/opt"
         for pair in sdl2-compat:libSDL2-2.0.0.dylib sdl3:libSDL3.0.dylib; do
             src="$brew_opt/${pair%%:*}/lib/${pair#*:}"
+            if [ "${pair%%:*}" = sdl3 ] && [ -n "${HADRON_SDL3:-}" ]; then
+                src="$HADRON_SDL3"
+                [ -f "$src" ] || die "no $src (HADRON_SDL3)"
+                echo "==> SDL3 from $src"
+            fi
             [ -f "$src" ] || die "SDL=yes needs Homebrew's ${pair%%:*} (brew install sdl2-compat sdl3)"
             rm -f "$DEPS/lib/${pair#*:}"
             cp "$(readlink -f "$src")" "$DEPS/lib/${pair#*:}"
@@ -372,6 +385,11 @@ if [ "$SDL" = yes ]; then
         mkdir -p "$DEPS/share/licenses"
         cp "$brew_opt/sdl2-compat/LICENSE.txt" "$DEPS/share/licenses/sdl2-compat.txt"
         cp "$brew_opt/sdl3/LICENSE.txt" "$DEPS/share/licenses/SDL3.txt"
+        if [ -n "${HADRON_SDL3:-}" ]; then
+            shasum -a 256 < "$HADRON_SDL3" > "$DEPS/share/licenses/SDL3.source"
+        else
+            rm -f "$DEPS/share/licenses/SDL3.source"
+        fi
         ln -sf libSDL2-2.0.0.dylib "$DEPS/lib/libSDL2.dylib"
         ln -sf libSDL3.0.dylib "$DEPS/lib/libSDL3.dylib"
     fi
