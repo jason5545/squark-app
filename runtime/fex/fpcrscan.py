@@ -12,7 +12,8 @@ our other images, following forwarders and api sets) and rejects it when any rea
 
 - floating-point data processing: a mnemonic starting with 'f' other than fmov, scvtf/ucvtf, bf*. AH changes the
   results of some of them (NaN and signed-zero handling of fmin/fmax, estimates), NEP what scalar ones leave in the
-  upper lanes, and the trap enables can make them trap. Loads, stores, moves, fmov and integer SIMD are unaffected;
+  upper lanes, and the trap enables can make them trap. Loads, stores, moves, fmov and integer SIMD are unaffected.
+  Scalar arithmetic is the exception, see "scalar functions" below;
 - a write to FPCR (msr fpcr). Reading it is fine: RtlCaptureContext only stores it in a CONTEXT;
 - an indirect branch or call whose target is not known here. Known ones: the import table; jump tables of a switch
   (the whole function is then walked); Wine's syscall and unix call dispatchers, which Wine patch 0070 makes drop
@@ -30,6 +31,35 @@ Raising an exception (RtlRaiseException, RtlRaiseStatus) ends a path: only error
 dispatch then runs with the JIT's FPCR as it already does for every exception raised in JIT code (self-modifying-code
 write faults, guest access violations): the unix side gives KiUserExceptionDispatcher the faulting context's FPCR.
 
+Scalar functions (FEX patch 0044). A second class, listed with bit 0 of the RVA set: the C runtime's math functions
+named in SCALAR_ALLOW, when their reachable code does floating-point arithmetic only with scalar instructions
+(SCALAR_OK below: add, subtract, multiply, divide, fused multiply-add, square root, compares, selects, conversions, the
+frint family, fmaxnm/fminnm, fabs, fneg). Those give the same value in the low lane with or without the JIT's bits:
+- NEP only changes what a scalar instruction leaves above the low lane of its destination (the first source's lanes
+  instead of zero). So nothing may look above the low lane of a register a scalar instruction wrote: no 128-bit
+  store of it, no element access, no vector instruction on it. Scan.taint follows this through each function that
+  has both kinds of instruction: every vector register counts as scalar-written at the function's entry and after
+  each call, a scalar instruction marks its destination, a load or a vector instruction that writes the whole
+  register clears it, bit operations on whole registers (and, orr, eor, bic, orn, bit, bif, bsl, not) pass the
+  mark from their sources on, and a vector instruction that reads a marked register rejects the
+  function. A function without scalar arithmetic may use vectors freely, as before (its vector code initialises
+  what it reads). Arguments and results travel in the low lane; an x64 caller of a double-returning function gets
+  unspecified upper lanes in xmm0, as from any x64 function.
+- AH changes fmax/fmin on NaNs and zeros and the estimate instructions (never allowed), makes a generated default NaN
+  negative as x86 does, and detects tininess after rounding as x86 does. It also makes fabs and fneg leave a NaN
+  as it is, sign included. That one matters: the compiler builds the mask 0x7fff... as fneg of all-ones (a NaN
+  pattern), which stays all-ones with AH set, so log, cbrt and _copysign returned other values; vector fneg/fabs are
+  never allowed. A scalar fabs/fneg of a negative NaN keeps the sign, and code that then reads the exponent from the
+  bits can miss its NaN check (hypot went on to sqrt and set errno). No rule here can tell such code apart, so the
+  class is limited to SCALAR_ALLOW: the functions whose values, NaN counts and errno squark-private's
+  tools/msfs-harness/mods/x64shape/mathsweep.c found identical with and without the JIT's bits (special values, NaNs
+  of both signs, every exponent; only the sign and payload of NaN results differ). Compare again with that program
+  after any change to Wine's math code or the compiler before trusting a new table.
+- the trap enables are only armed when the guest unmasked an exception in MXCSR. FEX checks them on such a call and
+  switches FPCR as before when any is set.
+msvcrt's math_error ends a path: Wine patch 0073 makes it drop the JIT's bits before it calls the program's matherr
+handler (any code) and sets errno.
+
 Only for images built from source here (Wine, vkd3d-proton): it reads their code, never anything closed.
 
 build-wine.sh runs it on the Wine build's unstripped DLLs (it needs their symbols; strip keeps TimeDateStamp and the
@@ -42,6 +72,7 @@ import bisect, re, struct, subprocess, sys, os
 
 # llvm-mingw's (build-wine.sh puts it on PATH); LLVM_OBJDUMP names another
 OBJDUMP = os.environ.get('LLVM_OBJDUMP', 'llvm-objdump')
+READOBJ = os.environ.get('LLVM_READOBJ', 'llvm-readobj')
 
 
 class PE:
@@ -172,6 +203,31 @@ def disassemble(pe):
     return code
 
 
+def hybrid_exports(pe):
+    """Export name -> RVA of the ARM64EC code x64 callers of an ARM64X image's export end up in: the export table of
+    its ARM64EC view (llvm-readobj prints it under HybridObject; the one in the file's own header is the ARM64 view)
+    through the image's redirection table (x64 entry -> ARM64EC function). Empty for an image without that view."""
+    out = subprocess.run([READOBJ, '--coff-exports', pe.path], capture_output=True, text=True).stdout
+    meta = pe.chpe()
+    red = {}
+    if meta and meta[4]:
+        o = pe.off(meta[4])
+        red = dict(struct.iter_unpack('<II', pe.d[o:o + 8 * meta[13]]))
+    res, hybrid, name = {}, False, None
+    for line in out.splitlines():
+        t = line.strip()
+        if t.startswith('HybridObject'):
+            hybrid = True
+        elif hybrid and t.startswith('Name:'):
+            name = t[5:].strip()
+        elif hybrid and t.startswith('RVA:') and name:
+            rva = int(t[4:].strip(), 16)
+            if rva in red:
+                res[name] = red[rva]
+            name = None
+    return res
+
+
 def symbols(pe):
     """[(name, RVA, is function)] from the COFF symbol table of our own builds."""
     out = subprocess.run([OBJDUMP, '-t', pe.path], capture_output=True, text=True).stdout
@@ -197,7 +253,9 @@ SINKS = ('RtlRaiseException', 'RtlRaiseStatus', '#RtlRaiseException', '#RtlRaise
 # The CRT's assertion failure ends the process (message, then abort): vkd3d-proton's release build keeps its asserts,
 # whose failure ends a path. Not listed themselves (the check can't follow them: an x64 caller keeps the switch).
 # ntdll's own _assert is checked as before (it raises an exception).
-ASSERTS = ('_assert', '#_assert', '_wassert', '#_wassert')
+# _amsg_exit is the CRT's fatal runtime error (message, then _exit(255)): msvcrt_get_thread_data calls it when a
+# thread's data cannot be allocated, which kept _errno, the ctype functions, _stricmp, calloc and rand off the list.
+ASSERTS = ('_assert', '#_assert', '_wassert', '#_wassert', '_amsg_exit', '#_amsg_exit')
 ASSERT_IMAGES = ('ucrtbase.dll', 'msvcrt.dll')
 # Wine patch 0070: ntdll's debug output entry points drop the JIT's FPCR bits for the rest of the call, so a path that
 # calls one ends there (everything after it runs with the native FPCR, which native code is always fine with)
@@ -212,6 +270,9 @@ FENCES += tuple('#%s$hp_target' % n for n in (
 # vkd3d-proton (our fork): vkd3d_squark_native_fpcr drops the JIT's bits for the rest of the call; VK_CALL and the
 # debug output (vkd3d_dbg_printf, vkd3d_dbg_vsprintf) call it first, so a path ends there like at Wine's debug output
 FENCES += ('vkd3d_squark_native_fpcr', '#vkd3d_squark_native_fpcr')
+# Wine patch 0073: msvcrt's math_error (every math function's error path: the program's matherr handler, errno) drops
+# them first thing
+FENCES += ('math_error', '#math_error')
 # Checked indirect calls (ARM64EC's icall checker, then blr x11) with a fixed set of targets, by the function they are
 # in: (targets, how many checked calls the function has, its only indirect calls). vkd3d-proton's descriptor copy
 # calls the heap's copy template, one of vkd3d_descriptor_copy_desc_<n>_single (vkd3d_bindless_find_copy_template_single),
@@ -235,10 +296,51 @@ def writes(mn, op, reg):
     return mn not in READS_ONLY and op.split(',')[0].strip() == reg
 
 
-def fp_affected(mn):
-    if mn.startswith('f') and mn != 'fmov':
-        return True
-    return mn.startswith(('scvtf', 'ucvtf', 'bfcvt', 'bfm', 'bfdot'))
+SCALAR_OK = frozenset(
+    'fadd fsub fmul fdiv fnmul fmadd fmsub fnmadd fnmsub fabs fneg fsqrt fcmp fcmpe fccmp fccmpe fcsel fcvt fcvtzs '
+    'fcvtzu fcvtas fcvtau fcvtms fcvtmu fcvtns fcvtnu fcvtps fcvtpu frinta frinti frintm frintn frintp frintx frintz '
+    'fmaxnm fminnm fabd scvtf ucvtf'.split())
+LANEWISE = frozenset('and orr eor bic orn bit bif bsl mvn not movi mvni mov'.split())
+# The scalar class: only these exports of these images (see "scalar functions" at the top). log, cbrt, _copysign,
+# hypot and _hypot compared unequal; atanf, atan2f, sinh, cosh, tanh, _nextafter store 128-bit registers; fabs and
+# fabsf compared equal but would return a negative NaN with its sign (x86 code clears it, and never calls them).
+SCALAR_IMAGES = ('ucrtbase.dll', 'msvcrt.dll')
+SCALAR_ALLOW = frozenset(
+    'cos sin tan acos asin atan exp log10 sqrt floor ceil round trunc exp2 log2 rint _logb atan2 fmod pow fmax fmin '
+    'remainder fdim modf ldexp frexp cosf sinf tanf acosf asinf expf logf sqrtf floorf ceilf roundf truncf tanhf log10f '
+    'powf fmodf'.split())
+VECTOR_REG = re.compile(r'\bv\d+\.|\bq\d+\b|\bz\d+\b')
+ELEMENT = re.compile(r'\[\d+\]|\bq\d+\b')
+
+
+FP_REG = re.compile(r'\b(?:v(\d+)(\.\w+)?(\[\d+\])?|([qdshb])(\d+))\b')
+STORES = frozenset('str stur stp stnp st1 st2 st3 st4'.split())
+LOADS = frozenset('ldr ldur ldp ldnp ld1 ld2 ld3 ld4 ld1r ld2r ld3r ld4r'.split())
+COMPARES = frozenset('fcmp fcmpe fccmp fccmpe'.split())
+# the destination is also a source
+ACCUMULATE = frozenset('bit bif bsl mla mls fmla fmls saba uaba sli sri tbx ins sdot udot usdot'.split())
+
+
+def fp_regs(ops):
+    """The vector registers an instruction names, in order: (number, element access)."""
+    return [(int(m.group(1) if m.group(1) is not None else m.group(5)), m.group(3) is not None)
+            for m in FP_REG.finditer(re.sub(r'<[^>]*>', '', ops))]
+
+
+def fp_class(mn, ops):
+    """None: the JIT's FPCR bits change nothing here. 'bad': they can. 'scalar': scalar arithmetic, the same low lane
+    either way, the destination's upper lanes differ (NEP). 'vector': looks above the low lane of a vector register,
+    fine unless a scalar instruction wrote that register (Scan.taint)."""
+    vec = bool(VECTOR_REG.search(ops))
+    if mn.startswith(('bfcvt', 'bfm', 'bfdot')):
+        return 'bad'
+    if (mn.startswith('f') and mn != 'fmov') or mn.startswith(('scvtf', 'ucvtf')):
+        if vec:
+            return 'bad'  # also fneg and fabs: with AH set they leave NaN patterns alone, and masks are built that way
+        return 'scalar' if mn in SCALAR_OK else 'bad'
+    if vec:
+        return None if mn in LANEWISE and not ELEMENT.search(ops) else 'vector'
+    return None
 
 
 REGISTRY = {}  # dll name (lower case) -> Scan
@@ -373,19 +475,32 @@ class Scan:
         if rva in self.sinks or rva in self.fences:
             return None, edges
         work, seen, checked_x11 = [rva], set(), False
+        scalar = vector = None  # the first instruction of each kind
+        flow = {}  # address -> the addresses the walk went on to from it
         while work:
             a = work.pop()
-            while a not in seen:
-                seen.add(a)
-                if a in self.sinks:
+            prev = None
+            while True:
+                if prev is not None:
+                    flow.setdefault(prev, []).append(a)
+                if a in seen:
                     break
+                seen.add(a)
+                if a in self.sinks or a in self.fences:  # also when a tail call jumps there
+                    break
+                prev = a
                 ins = self.code.get(a)
                 if ins is None:
                     return 'no code at %#x' % a, edges
                 mn, ops = ins
                 reg = ops.split(',')[0].strip()
-                if fp_affected(mn) or (mn == 'msr' and 'fpcr' in ops.lower()):
+                kind = fp_class(mn, ops)
+                if kind == 'bad' or (mn == 'msr' and 'fpcr' in ops.lower()):
                     return '%#x %s %s' % (a, mn, ops), edges
+                if kind == 'scalar' and scalar is None:
+                    scalar = '%#x %s %s' % (a, mn, ops)
+                elif kind == 'vector' and vector is None:
+                    vector = '%#x %s %s' % (a, mn, ops)
                 if mn == 'brk' and ops in ('#0x1', '#0xf003'):
                     break
                 if mn in ('svc', 'hvc', 'brk', 'udf', 'smc', 'eret'):
@@ -443,6 +558,7 @@ class Scan:
                         if fe == fb or fe - fb > 0x10000:
                             return '%#x jump table outside a known function' % a, edges
                         work.extend(range(fb, fe, 4))
+                        flow.setdefault(a, []).extend(range(fb, fe, 4))
                         break
                     return '%#x %s %s' % (a, mn, ops), edges
                 if mn in ('bl', 'b') or mn.startswith('b.') or mn in CONDITIONAL:
@@ -458,8 +574,62 @@ class Scan:
                             continue
                         else:
                             work.append(tr)
+                            flow.setdefault(a, []).append(tr)
                 a += 4
+        if scalar and vector:
+            why = self.taint(rva, flow)
+            if why:
+                return why, edges
+        if scalar:
+            SCALAR.add((self.pe.path, rva))
         return None, edges
+
+    def taint(self, entry, flow):
+        """The NEP rule for a function with scalar arithmetic and vector instructions (see the top of the file): why
+        it fails, or None. A bit per vector register: something above its low lane may differ with NEP set."""
+        every = (1 << 32) - 1
+        state, work = {entry: every}, [entry]
+        while work:
+            a = work.pop()
+            if a in self.sinks or a in self.fences or a not in self.code:
+                continue
+            mn, ops = self.code[a]
+            t = state[a]
+            regs = fp_regs(ops)
+            if mn == 'bl' or (mn in INDIRECT and mn.startswith('bl')):
+                t = every  # the callee's scalar instructions
+            elif regs:
+                kind = fp_class(mn, ops)
+                first = FP_REG.match(ops.lstrip('{ ')) is not None
+                if mn in STORES or mn in COMPARES or not first:
+                    writes, reads = [], regs
+                elif mn in LOADS:
+                    writes, reads = regs, []
+                else:
+                    writes, reads = regs[:1], regs[1:]
+                    if mn in ACCUMULATE or regs[0][1]:  # an element of the destination: the rest of it stays
+                        reads = regs
+                marked = any(t >> n & 1 for n, e in reads)
+                if kind == 'vector':
+                    if marked:
+                        return 'vector use of a register a scalar instruction wrote: %#x %s %s' % (a, mn, ops)
+                    for n, e in writes:
+                        t &= ~(1 << n)
+                elif kind is None and (VECTOR_REG.search(ops) or mn in LOADS):
+                    # whole-register bit operations pass the mark on, movi/mvni and loads write clean registers
+                    for n, e in writes:
+                        t = t | 1 << n if marked else t & ~(1 << n)
+                elif mn == 'fmov' and writes and not reads and '#' not in ops:
+                    t &= ~(1 << writes[0][0])  # from a general register: the rest is zero
+                else:
+                    for n, e in writes:  # scalar arithmetic, scalar moves, scalar integer SIMD
+                        t |= 1 << n
+            for nxt in flow.get(a, ()):
+                new = state.get(nxt, 0) | t
+                if nxt not in state or new != state[nxt]:
+                    state[nxt] = new
+                    work.append(nxt)
+        return None
 
     def check(self, rva):
         return check_node(self, rva)
@@ -488,6 +658,8 @@ def resolve_import(dll, name, hops=0):
 
 
 RESULT = {}  # (image path, rva) -> None or reason
+SCALAR = set()  # (image path, rva) of walked functions that do scalar floating-point arithmetic
+USES_SCALAR = {}  # (image path, rva) of a good node -> whether anything it reaches does
 
 
 def check_node(scan, rva):
@@ -520,7 +692,29 @@ def check_node(scan, rva):
                     break
     for k in nodes:
         RESULT[k] = bad.get(k)
+    # scalar arithmetic anywhere below a good node puts it in the second class
+    uses = {k: k in SCALAR for k in nodes if k not in bad}
+    changed = True
+    while changed:
+        changed = False
+        for k in uses:
+            if not uses[k] and any(uses.get(ek) or USES_SCALAR.get(ek) for ek, label in nodes[k][1]):
+                uses[k] = changed = True
+    USES_SCALAR.update(uses)
     return RESULT[key]
+
+
+def uses_scalar(scan, rva):
+    return USES_SCALAR.get((scan.pe.path, rva), False)
+
+
+def scalar_targets(scan):
+    """The functions of the scalar class in an image: the ARM64EC code of each SCALAR_ALLOW export, when it passes."""
+    out = set()
+    for name, rva in hybrid_exports(scan.pe).items():
+        if name in SCALAR_ALLOW and rva not in scan.asserts and scan.check(rva) is None and uses_scalar(scan, rva):
+            out.add(rva)
+    return out
 
 
 def data_pointers(scan):
@@ -566,13 +760,20 @@ def main():
             SEARCH.append(os.path.dirname(os.path.abspath(d)))
         lines = ['// Generated by squark-app runtime/fex/fpcrscan.py --table: native functions that run with',
                  '// the JIT\'s FPCR (FEX patch 0043). Keyed by image name, TimeDateStamp and .text size (both kept by',
-                 '// strip, unlike SizeOfImage): another build of the image gets no entries.', '']
+                 '// strip, unlike SizeOfImage): another build of the image gets no entries.',
+                 '// An RVA with bit 0 set: a function that does scalar floating-point arithmetic (FEX patch 0044).', '']
         total, images = 0, []
         for d in dlls:
             name = os.path.basename(d).lower()
             sc = image(name)
             cands = candidates(sc)
-            rvas = sorted({r for n, r in cands.items() if r not in sc.asserts and sc.check(r) is None})
+            good = sorted({r for n, r in cands.items() if r not in sc.asserts and sc.check(r) is None})
+            # the scalar class: what the allowed exports really lead to (an export and a function of the same name can
+            # be two things: ucrtbase's exp is MSVCRT_exp, its sqrt a wrapper of the math library's)
+            scalar_ok = scalar_targets(sc) if name in SCALAR_IMAGES else set()
+            good = sorted({r for r in good if not uses_scalar(sc, r)} | scalar_ok)
+            nscalar = len(scalar_ok)
+            rvas = [r | 1 if r in scalar_ok else r for r in good]
             total += len(rvas)
             ident = 'FPCRNeutral_' + re.sub(r'\W', '_', name)
             lines.append('static const uint32_t %s[] = {' % ident)
@@ -581,7 +782,8 @@ def main():
             lines.append('};')
             text = [vs for n, va, vs, ra, rs, ch in sc.pe.secs if n == '.text'][0]
             images.append('  {"%s", 0x%08x, 0x%x, std::size(%s), %s},' % (name, sc.pe.timestamp, text, ident, ident))
-            print('# %s: %d neutral of %d candidates' % (name, len(rvas), len(cands)), file=sys.stderr)
+            print('# %s: %d neutral of %d candidates, %d of them scalar floating point' % (name, len(rvas), len(cands), nscalar),
+                  file=sys.stderr)
         lines += ['', 'static const FPCRNeutralImage FPCRNeutralImages[] = {'] + images + ['};']
         open(out, 'w').write('\n'.join(lines) + '\n')
         print('# %d entries -> %s' % (total, out), file=sys.stderr)
@@ -594,11 +796,20 @@ def main():
     else:
         targets = {n: sc.ec_entry(n, r) for n, r in sc.pe.exports().items() if not isinstance(r, str)}
     ok = 0
+    allowed = os.path.basename(path).lower() in SCALAR_IMAGES
+    hybrid = hybrid_exports(sc.pe)
+    if '--rvas' not in args:
+        targets = {n: hybrid.get(n, r) for n, r in targets.items()}  # where x64 callers of the export really go
     for name, rva in sorted(targets.items()):
         why = sc.check(rva)
-        ok += why is None
+        if why is None and uses_scalar(sc, rva):
+            why = 'SCALAR' if allowed and name in SCALAR_ALLOW else 'scalar arithmetic, not in SCALAR_ALLOW'
+            ok += why == 'SCALAR'
+        elif why is None:
+            why = 'NEUTRAL'
+            ok += 1
         if '--why' in args or '--rvas' in args:
-            print('%-40s %#8x %s' % (name, rva, 'NEUTRAL' if why is None else why))
+            print('%-40s %#8x %s' % (name, rva, why))
     print('# %s: %d of %d neutral' % (os.path.basename(path), ok, len(targets)), file=sys.stderr)
 
 

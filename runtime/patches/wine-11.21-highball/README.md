@@ -198,3 +198,23 @@ commit on 11.21):
   window at the lowest level showed the four cases 40 seconds on: no activity 4T, user-initiated allowing idle
   sleep 20T, the same plus latency-critical 46T/31T, `NSActivityUserInitiated|LatencyCritical` 47T but with
   a `PreventUserIdleSystemSleep` assertion. Unchanged without background mode (squark records 25.78).
+- `0072-ntdll-arm64ec-native-calls-skip-kernel32-import-prologues.patch`: 0051 gives kernel32's 792 `-import`
+  exports (`GetLastError`, `TlsGetValue`, `FlsGetValue`, `HeapFree`, `CloseHandle`, `SetEvent`,
+  `WaitForSingleObject`, `QueryPerformanceCounter`, ...) an x64 entry: a hotpatch prologue (`lea 0x0(%rsp),%rsp`)
+  and `jmp *__imp_Name(%rip)`. x64 callers are fine with it. ARM64EC callers ask `arm64x_check_call`, which knew the
+  fast-forward sequence, the syscall sequence and a bare `jmp *xxx(%rip)` but not this, so every such call went
+  through the exit thunk into the emulator and back out: 75 to 100 ns each in a loop (four FPCR writes among it).
+  That is ucrtbase's `free` (`HeapFree`) and its per-thread data (`TlsGetValue`: `_errno`, the ctype functions,
+  `_stricmp` per character, `sprintf`), vkd3d-proton and DXVK (48 and 45 such imports), most of Wine's own DLLs, and
+  Microsoft's ARM64X VC runtime in a prefix. `arm64x_check_call` now recognises the untouched prologue plus jmp and
+  goes on with what the import slot holds; a prologue an x64 hook rewrote takes the exit thunk as before. From an
+  ARM64EC test program, per call: `GetLastError` 74.9 -> 2.9 ns, `TlsGetValue` 75.4 -> 3.0, `HeapAlloc` + `HeapFree`
+  100.3 -> 17.5, `SetEvent` 85.8 -> 18.1, `QueryPerformanceCounter` 80.7 -> 17.5; `malloc` + `free` from x64 code
+  135.8 -> 60.2. Harness, three alternated rounds against the runtime of 11/8: the replay of the simulator's D3D12
+  frames 81.4 -> 79.0 ms a frame, the A380X's WASM gauges 0.359 -> 0.341 ms a frame, a new HTTPS connection 0.42
+  -> 0.35 ms; 66 checks pass (squark records 25.81). The table of FEX patch 0043 is unaffected: fpcrscan.py already
+  followed these imports to kernelbase.
+- `0073-msvcrt-math-error-drops-FEX-JIT-FPCR-bits.patch`: goes with FEX patch 0044, which lets x64 code call the
+  scalar math functions of ucrtbase and msvcrt without FPCR leaving the JIT's mode. Their error path, `math_error`,
+  calls the program's matherr handler (any code) and sets errno; it now drops AH, NEP and the trap enables first when
+  any is set, as the debug output entry points do since 0070. One `mrs` and a branch for every other caller.

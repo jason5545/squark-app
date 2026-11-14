@@ -1,0 +1,120 @@
+ARM64EC: the C runtime's scalar math functions keep the JIT's FPCR too
+
+0043 lists the native functions nothing FPCR's AH, NEP or trap enables change can run in, which excluded every
+function with a floating-point instruction. What was left of the two FPCR writes per call on Microsoft Flight
+Simulator's main thread (5.9 % of its time after 0043, squark records 25.77) is the C runtime's math functions: cos,
+atan2, fmod, powf, acos, modf, sin, log, pow, tanf, exp, about 256,000 calls a second in the cockpit.
+
+Their arithmetic is scalar (add, multiply, divide, fused multiply-add, square root, compares, conversions, rounding),
+and a scalar result's low lane is the same value with or without the JIT's bits: NEP only changes what the
+instruction leaves above the low lane of its destination; AH changes fmax/fmin on NaNs and zeros and the estimate
+instructions (never allowed), the sign of a generated default NaN (negative, as on x86), when tininess is detected
+(after rounding, as on x86), and it makes fabs and fneg leave a NaN alone, sign included. The last one does change
+values: compilers build the mask 0x7fff... as fneg of all-ones, and a negative NaN that keeps its sign through fabs
+can miss an exponent check further on (log, cbrt, _copysign and hypot came out different in squark-private's
+mathsweep.c). So fpcrscan.py lists a second class, with bit 0 of the RVA set, only for the exports of ucrtbase and
+msvcrt named in its SCALAR_ALLOW (43 and 32 functions), when nothing they reach does vector floating-point
+arithmetic or looks above the low lane of a register a scalar instruction wrote, and only those mathsweep.c found
+equal in value, NaN count and errno with and without the JIT's bits (special values, NaNs of both signs, every
+exponent, three MXCSR modes). msvcrt's math_error ends a path (Wine patch 0073).
+
+- AddTableTargets inserts a marked RVA as address | 1. Hash() ignores bit 0, so both kinds probe from the same slot.
+- ExitFunctionEC: a probe that finds target | 1 reads FPCR and keeps it only when no trap enable is armed (IOE DZE
+  OFE UFE IXE IDE, set while the guest has an exception unmasked in MXCSR); otherwise it writes FPCR as for an
+  unlisted target. Unmarked entries are as before: no read.
+- SQUARK_FEX_FPCR_SCALAR=0 leaves the marked entries out; SQUARK_FEX_FPCR_TABLE=0 the whole table, as before.
+
+Per x64 call under FEX in a loop (M5 Max): cos 30.4 -> 6.9 ns, sin 30.6 -> 8.0, atan2 36.8 -> 9.1, fmod 28.2 -> 7.8,
+powf 41.7 -> 7.6, acos 47.4 -> 11.0, modf 26.2 -> 5.0, exp 34.7 -> 7.6, sqrt 25.9 -> 5.6, floor 25.9 -> 5.5,
+pow 41.7 -> 18.4. Results that are NaN for a reason of the function's own (acos(2), fmod(x, 0)) are now negative
+NaNs, as on x86; nothing else changes.
+
+A table without marked RVAs (0043's fpcrscan.py) behaves exactly as before.
+
+diff --git a/Source/Windows/ARM64EC/Module.S b/Source/Windows/ARM64EC/Module.S
+--- a/Source/Windows/ARM64EC/Module.S
++++ b/Source/Windows/ARM64EC/Module.S
+@@ -58,7 +58,9 @@
+   // A target in FPCRNeutralHash (squark 0036, 0043; Module.cpp) is not affected by the JIT's FPCR bits, so it runs
+   // with them: writing FPCR here and again on the way back costs more than most such calls. Open addressing with
+   // linear probing over 1 << 15 slots, 0 ends a probe, 1 is a removed entry. x16, x17 and x23 are free here (all three
+-  // are overwritten below before use); eor, ubfx, add, and, sub and cbz leave NZCV alone.
++  // are overwritten below before use); eor, ubfx, add, and, orr, sub, cbz and cbnz leave NZCV alone.
++  // An entry with bit 0 set (squark 0044) is a function that does scalar floating-point arithmetic: AH and NEP do
++  // not change its values, an armed trap enable could make it trap, so it keeps the JIT's FPCR only while none is.
+   eor x16, x9, x9, lsr #15
+   ubfx x16, x16, #2, #15
+   adrp x17, FPCRNeutralHash
+@@ -68,9 +70,17 @@
+   cbz x23, 3f
+   sub x23, x23, x9
+   cbz x23, 1f
++  sub x23, x23, #1
++  cbz x23, 4f
+   add x16, x16, #1
+   and x16, x16, #0x7fff
+   b 2b
++4:
++  mrs x17, fpcr
++  and x16, x17, #0x1f00 // IOE DZE OFE UFE IXE
++  and x23, x17, #0x8000 // IDE
++  orr x16, x16, x23
++  cbz x16, 1f
+ 3:
+   // Clear any the AFP NEP and AH bits in FPCR as native code won't expect their behaviour.
+   mrs x17, fpcr
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -478,6 +478,10 @@
+ //   TimeDateStamp and .text size are the ones scanned. Calls into Wine's syscall and unix call dispatchers, its debug
+ //   output and its ARM64EC syscall wrappers are allowed because Wine patch 0070 drops the JIT's bits there, and calls
+ //   into FEX's own exports because they do too (FPCRFence below). SQUARK_FEX_FPCR_TABLE=0 leaves the table out.
++//   squark 0044: an RVA with bit 0 set is a function whose floating-point arithmetic is scalar only and never looked
++//   at above the low lane (the C runtime's math functions: fpcrscan.py's "scalar functions"). AH and NEP leave its
++//   values alone; it goes in with bit 0 set and ExitFunctionEC keeps the JIT's FPCR for it unless a trap enable is
++//   armed. SQUARK_FEX_FPCR_SCALAR=0 leaves these out.
+ // Inserted under ThreadCreationMutex (image map), read without a lock by ExitFunctionEC.
+ constexpr uint64_t Slots = std::size(FPCRNeutralHash);
+ static_assert(Slots == (1 << 15), "Module.S masks with 0x7fff");
+@@ -528,6 +532,14 @@
+   return Enabled;
+ }
+ 
++bool ScalarEnabled() {
++  static const bool Enabled = [] {
++    const char* Setting = std::getenv("SQUARK_FEX_FPCR_SCALAR");
++    return !Setting || strcmp(Setting, "0");
++  }();
++  return Enabled;
++}
++
+ bool NameIs(std::string_view ModuleName, std::string_view Name) {
+   return ModuleName.size() == Name.size() &&
+          std::equal(Name.begin(), Name.end(), ModuleName.begin(), [](char a, char b) { return a == std::tolower(b); });
+@@ -553,11 +565,21 @@
+       LogMan::Msg::IFmt("FEX: {} is not the build FPCRNeutralTable was made from, no entries", ModuleName);
+       continue;
+     }
+-    size_t Added = 0;
+-    for (size_t i = 0; i < Entry.Count; i++) {
+-      Added += Insert(Address + Entry.RVAs[i]);
++    size_t Added = 0, Scalar = 0;
++    for (size_t i = 0; i < Entry.Count; i++) {
++      const uint32_t RVA = Entry.RVAs[i];
++      if (RVA & 1) {
++        if (ScalarEnabled()) {
++          const bool New = Insert((Address + (RVA & ~3u)) | 1);
++          Added += New;
++          Scalar += New;
++        }
++        continue;
++      }
++      Added += Insert(Address + RVA);
+     }
+-    LogMan::Msg::IFmt("FEX: {} {} functions keep the JIT's FPCR ({} slots used)", ModuleName, Added, Used);
++    LogMan::Msg::IFmt("FEX: {} {} functions keep the JIT's FPCR, {} of them scalar floating point ({} slots used)", ModuleName,
++                      Added, Scalar, Used);
+   }
+ }
+ } // namespace FPCRNeutral

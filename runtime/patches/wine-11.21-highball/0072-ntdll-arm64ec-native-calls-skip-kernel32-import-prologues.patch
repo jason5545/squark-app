@@ -1,0 +1,72 @@
+Squark: ntdll: ARM64EC code calls kernel32's import exports without entering the emulator
+
+Patch 0051 gives the kernel32 exports that only forward to kernelbase (the spec's -import ones: GetLastError,
+TlsGetValue, FlsGetValue, HeapFree, CloseHandle, SetEvent, WaitForSingleObject, QueryPerformanceCounter, 792 in all)
+an x64 entry, so that x64 code finds a prologue it can patch there:
+
+    48 8d a4 24 00 00 00 00   lea  0x0(%rsp),%rsp
+    ff 25 xx xx xx xx         jmp  *__imp_Name(%rip)
+
+x64 callers run those two instructions and leave for kernelbase. ARM64EC callers (ucrtbase's free and its
+per-thread data, vkd3d-proton, DXVK, most of Wine's own DLLs, Microsoft's ARM64X VC runtime in a prefix) ask
+arm64x_check_call where to go. It knew the fast-forward sequence, the syscall sequence and a bare jmp *xxx(%rip),
+not this one, so it sent each such call through the exit thunk: into the emulator for two instructions, out again
+to the native function, and back the same way. Measured from an ARM64EC test program on an M5 Max, per call:
+GetLastError 74.9 ns, TlsGetValue 75.4, HeapAlloc + HeapFree 100.3, SetEvent 85.8, QueryPerformanceCounter 80.7;
+malloc + free from x64 code 135.8 (free is ucrtbase calling HeapFree).
+
+arm64x_check_call now also recognises the untouched prologue followed by the jmp and continues with what the import
+slot holds, as it already does for the bare jmp. With this: 2.9, 3.0, 17.5, 18.1, 17.5 ns. A prologue an x64 hook
+has rewritten no longer matches and takes the exit thunk as before; a hooked import slot is read at call time, and
+an x64 address in it goes through the same checks. The eight-byte read happens only when sixteen bytes of the
+target's page remain.
+
+diff --git a/dlls/ntdll/signal_arm64ec.c b/dlls/ntdll/signal_arm64ec.c
+--- a/dlls/ntdll/signal_arm64ec.c
++++ b/dlls/ntdll/signal_arm64ec.c
+@@ -2216,7 +2216,7 @@
+          ".Ljmp:\n\t"
+          "ldrb w16, [x11]\n\t"
+          "cmp w16, #0xff\n\t"
+-         "b.ne .Lexit\n\t"
++         "b.ne .Lhotpatch\n\t"
+          "ldrb w16, [x11, #1]\n\t"
+          "cmp w16, #0x25\n\t"               /* ff 25 jmp *xxx(%rip) */
+          "b.ne .Lexit\n\t"
+@@ -2224,6 +2224,25 @@
+          "add x16, x11, #6\n\t"             /* address after jump */
+          "ldr x11, [x16, w9, sxtw]\n\t"
+          "b \"#arm64x_check_call\"\n"       /* restart checks with jump destination */
++         /* check for an untouched hotpatch prologue followed by a jmp sequence (kernel32's import exports) */
++         ".Lhotpatch:\n\t"
++         "cmp w16, #0x48\n\t"
++         "b.ne .Lexit\n\t"
++         "and x16, x11, #0xfff\n\t"         /* the 14 bytes read below stay inside dest's page */
++         "cmp x16, #0xff0\n\t"
++         "b.hi .Lexit\n\t"
++         "ldr x16, [x11]\n\t"
++         "ldr x17, .Lhotpatch_seq\n\t"
++         "cmp x16, x17\n\t"
++         "b.ne .Lexit\n\t"
++         "ldrh w16, [x11, #8]\n\t"
++         "mov w17, #0x25ff\n\t"             /* ff 25 jmp *xxx(%rip) */
++         "cmp w16, w17\n\t"
++         "b.ne .Lexit\n\t"
++         "ldr w9, [x11, #10]\n\t"
++         "add x16, x11, #14\n\t"            /* address after jump */
++         "ldr x11, [x16, w9, sxtw]\n\t"
++         "b \"#arm64x_check_call\"\n"       /* restart checks with jump destination */
+          /* not a special sequence, call the exit thunk */
+          ".Lexit:\n\t"
+          "mov x9, x11\n\t"
+@@ -2240,6 +2259,10 @@
+          ".byte 0xe9\n\t"                   /* jmp  arm_code */
+          ".byte 0, 0, 0, 0, 0, 0\n"
+ 
++         ".Lhotpatch_seq:\n\t"
++         ".byte 0x48, 0x8d, 0xa4, 0x24\n\t" /* lea  0x0(%rsp),%rsp */
++         ".byte 0, 0, 0, 0\n"
++
+          ".Lsyscall_seq:\n\t"
+          ".byte 0x4c, 0x8b, 0xd1\n\t"       /* mov  %rcx,%r10 */
+          ".byte 0xb8, 0, 0, 0, 0\n\t"       /* mov  $xxx,%eax */

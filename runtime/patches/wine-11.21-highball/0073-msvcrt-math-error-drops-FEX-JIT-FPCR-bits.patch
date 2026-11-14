@@ -1,0 +1,30 @@
+Squark: msvcrt: math_error drops FEX's JIT FPCR bits before the matherr handler
+
+FEX patch 0044 lets x64 code call the C runtime's math functions (cos, sin, atan2, fmod, pow, ...) without FPCR
+leaving the JIT's mode: their arithmetic is scalar, and AH and NEP do not change a scalar result's value. Each of
+them reports errors through math_error, which calls the program's matherr handler (any code, native or x64) and
+sets errno. math_error now drops AH, NEP and the trap enables (0x9f06) first when any is set, like the debug output
+entry points of patch 0070; the rest of the call, back in the math function included, runs with the native FPCR, and
+FEX writes its own back when the call returns to x64 code. One mrs and a branch for every other caller.
+
+fpcrscan.py (squark-app runtime/fex) ends a path at math_error for this reason.
+
+diff --git a/dlls/msvcrt/math.c b/dlls/msvcrt/math.c
+--- a/dlls/msvcrt/math.c
++++ b/dlls/msvcrt/math.c
+@@ -123,6 +123,15 @@
+ {
+     struct _exception exception = {type, (char *)name, arg1, arg2, retval};
+ 
++#ifdef __arm64ec__
++    /* FEX can call a math function with its JIT's FPCR bits still set (AH, NEP, the trap enables it arms from
++     * MXCSR): scalar arithmetic gives the same values either way. The matherr handler called below is any
++     * code, so the rest of this call runs with the native bits; FEX writes its own back on return to x64. */
++    unsigned __int64 fpcr;
++    __asm__ __volatile__( "mrs %0, fpcr" : "=r" (fpcr) );
++    if (fpcr & 0x9f06) __asm__ __volatile__( "msr fpcr, %0" : : "r" (fpcr & ~(unsigned __int64)0x9f06) );
++#endif
++
+     TRACE("(%d, %s, %g, %g, %g)\n", type, debugstr_a(name), arg1, arg2, retval);
+ 
+     if (MSVCRT_default_matherr_func && MSVCRT_default_matherr_func(&exception))

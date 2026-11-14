@@ -72,6 +72,28 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   ends a path. 365 more functions, `CopyDescriptorsSimple`, `CreateConstantBufferView` and
   `SetGraphicsRootDescriptorTable` among them: about 34 % of the simulator's exits in the cockpit went into d3d12core
   (squark records 25.79).
+- `0044`: the C runtime's scalar math functions keep the JIT's FPCR too. After 0043 the two FPCR writes per call
+  that were left on the simulator's main thread (5.9 % of its time) were `cos`, `atan2`, `fmod`, `powf`, `acos`,
+  `modf`, `sin`, `log`, `pow`, `tanf`, `exp`: about 256,000 calls a second. Scalar arithmetic gives the same low lane
+  with or without AH and NEP, with one exception that `../fpcrscan.py` had to learn the hard way: AH makes `fabs`
+  and `fneg` leave a NaN alone, compilers build `0x7fff...` as `fneg` of all-ones, and a negative NaN that keeps its
+  sign can miss an exponent check (`log`, `cbrt`, `_copysign`, `hypot` came out different). So the second class of the
+  table (an RVA with bit 0 set) is only the exports of ucrtbase and msvcrt named in `SCALAR_ALLOW`, found through
+  the image's ARM64EC export view and redirection table (ucrtbase's `exp` is `MSVCRT_exp`, its `sqrt` a wrapper),
+  when nothing they reach does vector floating-point arithmetic or looks above the low lane of a register a scalar
+  instruction wrote (`Scan.taint`), and only functions squark-private's `tools/msfs-harness/mods/x64shape/mathsweep.c`
+  found equal in value, NaN count and errno with and without the JIT's bits. 43 in ucrtbase, 32 in msvcrt; `log`,
+  `cbrt`, `_copysign`, `hypot`, `fabs`, `atanf`, `atan2f`, `sinh`, `cosh`, `tanh` stay out. `ExitFunctionEC` reads FPCR
+  for a marked target and switches as before when a trap enable is armed. `SQUARK_FEX_FPCR_SCALAR=0` leaves the
+  class out. Per x64 call in a loop: `cos` 30.4 -> 6.9 ns, `sin` 30.6 -> 8.0, `atan2` 36.8 -> 9.1, `fmod` 28.2 -> 7.8,
+  `powf` 41.7 -> 7.6, `acos` 47.4 -> 11.0, `sqrt` 25.9 -> 5.6, `floor` 25.9 -> 5.5. A NaN the function makes itself
+  (`acos(2)`) is now negative, as on x86. Needs Wine patch 0073 (`math_error` drops the bits before the matherr
+  handler). After a change to Wine's math code, the compiler or `SCALAR_ALLOW`: run `mathsweep.c` on the new runtime
+  with `SQUARK_FEX_FPCR_SCALAR=0` and without, and compare with `mathcmp.py` (squark records 25.81).
+  `fpcrscan.py` also takes the CRT's `_amsg_exit` (fatal runtime error: message, then `_exit(255)`) as the end of a
+  path now. `msvcrt_get_thread_data` calls it when a thread's data cannot be allocated, which had kept everything
+  that touches errno or the locale off the list: 380 more functions of ucrtbase and 187 of msvcrt (`_errno`,
+  `calloc`, `rand`, `isalpha`, `isdigit`, `isspace`, `strtok`, ...). The table: 4864 -> 5514 functions.
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
