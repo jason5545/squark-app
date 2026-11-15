@@ -94,6 +94,27 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   path now. `msvcrt_get_thread_data` calls it when a thread's data cannot be allocated, which had kept everything
   that touches errno or the locale off the list: 380 more functions of ucrtbase and 187 of msvcrt (`_errno`,
   `calloc`, `rand`, `isalpha`, `isdigit`, `isspace`, `strtok`, ...). The table: 4864 -> 5514 functions.
+- `0045`: a return whose call-return stack prediction holds falls through to its `ret`. The L1 lookup for the other
+  case (eight instructions) sat between the compare and the `ret`, and every return branched over it; it is now
+  emitted after the unit's code, the same instructions ending in the same `ret`. `SQUARK_FEX_RET_LOOKUP_INLINE=1`
+  puts it back. With `0046`, the first two steps against translated code that is slow because it is large, not
+  because of its instructions: x64shape's `foot_direct` (squark-private `tools/msfs-harness`: N small functions
+  called directly in a fixed shuffled order) takes 2.2 ns a call with 16 functions and 12.9 ns with 65,536, 94 % of
+  the pipeline's slots lost to instruction delivery, three quarters of that instruction cache latency (Instruments'
+  CPU Counters, squark records 25.82). Alone, ns per call: 4,096 functions 3.19 -> 2.58, 65,536 13.31 -> 12.14,
+  16,384 unchanged.
+- `0046`: 0040's stale exits live outside their unit. They were 52 bytes per entry point after the unit's code,
+  and every call's return site is an entry point: 104 of the 409 bytes `foot_direct` had per call, 182 of which
+  run. `CompileCode` emits them behind the unit and copies them to an exit area of the thread's in the same code
+  buffer (64 KB at a time from the buffer's allocator, `ClaimStaleExitSpace`; the unit is allocated again if
+  claiming the space moved the thread to a new buffer); `SetStaleEntry` takes an exit before the entry as well as
+  after. The areas are not blocks: a host PC there is in no block, nothing in a stub faults. Their pages are never
+  executed: with 65,536 functions the code buffer's executable pages go from 25.6 MB to 19.8 MB.
+  `SQUARK_FEX_STALE_EXIT_INLINE=1` keeps the stubs in the unit. `foot_direct`, installed runtime -> 0045 and 0046,
+  ns per call: 1,024 functions 2.40 -> 2.30, 4,096 3.11 -> 2.47, 16,384 4.72 -> 3.88, 65,536 12.91 -> 9.41;
+  `tools/smc-subpage` 0 stale of 32,800 calls (2,728 with `SQUARK_FEX_STALE_EXIT=0`). Still in the unit, for a later
+  step: the link thunks (40 bytes per call site), the block header, tail and RIP entries (about 70 bytes per
+  unit).
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
