@@ -1,0 +1,244 @@
+JIT: stale exits live outside their unit
+
+0040 gave every entry point an exit stub (13 instructions, 52 bytes) after its unit's code, for when the block is
+erased. Every call's return site is an entry point, so call-dense code carried about 100 bytes of stubs per call
+that it never runs, between the code that does: of the 409 bytes x64shape's foot_direct had per call (callee unit
+272, the caller's share 137), 104 were stale exits, 182 were code that runs.
+
+The stubs are position independent, and the entry's first instruction reaches them with a B (128 MB either way), so
+they need not be in the unit:
+
+- CompileCode emits them behind the unit in the temporary buffer, once the unit's size is known, and copies them to
+  this thread's exit area in the same code buffer. ClaimStaleExitSpace takes the areas from the buffer's own
+  allocator, 64 KB at a time (or the size of one unit's exits when that is more); a thread starts a new area when
+  its area is full or it has moved to another code buffer. If claiming the space moves the thread to a new code
+  buffer (the current one was full), the unit is allocated again there: exits and unit stay in one buffer, which is
+  what keeps the branch in range and the exits alive as long as the unit.
+- SetStaleEntry accepts an exit before the entry as well as after it (a signed 26-bit offset; it required a
+  positive one).
+- The exits' RIP move is a plain constant load: a relocatable one would record an offset outside the unit. Units
+  written to the code cache (off here) are not affected: a block loaded from the cache never had stale exits.
+- The area is made coherent with dc cvau / ic ivau directly (SyncStaleExits), not a second ClearICache per unit:
+  __builtin___clear_cache is FlushInstructionCache on Windows targets, a system call.
+- The areas are not registered as blocks. A host PC in one is in the code buffer but in no block
+  (FindBlockHeader returns 0, RestoreRIPFromHostPC falls back to State.rip, which the stub's fourth instruction
+  sets); nothing in a stub can fault, and threads are suspended at the suspend checks, not inside stubs.
+
+SQUARK_FEX_STALE_EXIT_INLINE=1 keeps the stubs in the unit, relocatable as before. SQUARK_FEX_STALE_EXIT=0 and =2
+mean what they did.
+
+Units get smaller (foot_direct's callee 272 -> 224 bytes with 0045, a 64-call chunk 8,768 -> 5,440) and the stubs'
+pages are never executed: with 65,536 functions the code buffer's executable pages go from 25.6 MB to 19.8 MB, and
+7.0 MB of stubs stay read-write (vmmap; Wine maps a code page executable when it first runs).
+
+foot_direct, ns per call, the fastest of three alternated rounds (functions: installed runtime -> 0045 -> 0045 and
+this patch; this patch without 0045): 1,024: 2.40 -> 2.32 -> 2.30; 2.32. 4,096: 3.11 -> 2.58 -> 2.47; 2.97.
+16,384: 4.72 -> 4.74 -> 3.88; 4.10. 65,536: 12.91 -> 12.14 -> 9.41; 10.25. Checksums unchanged. squark
+tools/smc-subpage (S9 is the case 0040 was written for), 32,800 calls: 0 stale, 0 with the stubs inline, 2,728 with
+SQUARK_FEX_STALE_EXIT=0.
+
+diff --git a/FEXCore/Source/Interface/Core/JIT/JIT.cpp b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/JIT.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+@@ -927,8 +927,53 @@
+     return Setting ? atoi(Setting) : 1;
+   }();
+   return Mode == 1 || (Mode == 2 && Thread->FrontendDecoder->IsEntryWritable());
++}
++
++// squark: see EmitStaleExitStubs in CompileCode
++bool Arm64JITCore::StaleExitsInline() {
++  static const bool On = [] {
++    const char* Setting = getenv("SQUARK_FEX_STALE_EXIT_INLINE");
++    return Setting && Setting[0] == '1';
++  }();
++  return On;
++}
++
++// squark: Size bytes for a unit's stale exits in the current code buffer, outside any unit. Each thread takes an area
++// from the buffer's allocator and fills it unit by unit; a new buffer (the thread moved to another generation, or
++// this call filled the current one) or a full area starts the next. The areas are not registered as blocks: a host PC
++// there is in the code buffer but in no block, and nothing in an exit can fault.
++uint8_t* Arm64JITCore::ClaimStaleExitSpace(size_t Size) {
++  constexpr size_t AreaSize = 64 * 1024;
++  Size = FEXCore::AlignUp(Size, 16);
++  if (StaleExitBuffer.lock() != CurrentCodeBuffer || static_cast<size_t>(StaleExitEnd - StaleExitCursor) < Size) {
++    const size_t Area = std::max(Size, AreaSize);
++    const auto Allocated = AllocateCodeBufferInSharedCache(Area);
++    StaleExitBuffer = CurrentCodeBuffer;
++    StaleExitCursor = Allocated.BufferAllocationOffset;
++    StaleExitEnd = StaleExitCursor + Area;
++  }
++  const auto Result = StaleExitCursor;
++  StaleExitCursor += Size;
++  return Result;
+ }
+ 
++// squark: data to instruction cache coherency for exits just written, in place of a second ClearICache per unit
++// (__builtin___clear_cache is FlushInstructionCache on Windows targets: a system call, as in SetStaleEntry). The
++// stride is the smallest cache line the architecture allows, so no line is skipped whatever the core's size is.
++static void SyncStaleExits(const uint8_t* Begin, size_t Size) {
++  constexpr uintptr_t Stride = 16;
++  const auto Start = reinterpret_cast<uintptr_t>(Begin) & ~(Stride - 1);
++  const auto End = reinterpret_cast<uintptr_t>(Begin) + Size;
++  for (auto Line = Start; Line < End; Line += Stride) {
++    asm volatile("dc cvau, %0" : : "r"(Line) : "memory");
++  }
++  asm volatile("dsb ish" : : : "memory");
++  for (auto Line = Start; Line < End; Line += Stride) {
++    asm volatile("ic ivau, %0" : : "r"(Line) : "memory");
++  }
++  asm volatile("dsb ish\n\tisb" : : : "memory");
++}
++
+ // squark: see PendingReturnLookups (JITClass.h)
+ bool Arm64JITCore::ReturnLookupOutOfLine() {
+   static const bool On = [] {
+@@ -1169,16 +1214,25 @@
+     ret(TMP2);
+   }
+ 
+-  if (EmitStaleExits) {
+-    // One exit per entry point, for when the block is erased: host code that still leads here (a call-ret stack
+-    // prediction, a stale L1 entry, a link being severed) goes back to the dispatcher with this entry's RIP instead of
+-    // running code for guest bytes that may have changed. The L1 slot for the RIP is cleared if it still points here, so
+-    // the dispatcher's lookup cannot come straight back. Entry points have the canonical guest state (static registers,
+-    // NZCV) and free temporaries; nothing here sets flags.
++  // One exit per entry point, for when the block is erased: host code that still leads here (a call-ret stack
++  // prediction, a stale L1 entry, a link being severed) goes back to the dispatcher with this entry's RIP instead of
++  // running code for guest bytes that may have changed. The L1 slot for the RIP is cleared if it still points here, so
++  // the dispatcher's lookup cannot come straight back. Entry points have the canonical guest state (static registers,
++  // NZCV) and free temporaries; nothing here sets flags.
++  // squark: the exits are position independent, and by default they are not part of the unit: they are emitted
++  // behind it (below, once the unit's size is known) and copied to this thread's exit area in the same code buffer
++  // (ClaimStaleExitSpace). Inside the unit they were 52 bytes per entry point between the code that runs, and every
++  // call's return site is an entry point. SQUARK_FEX_STALE_EXIT_INLINE=1 keeps them in the unit, with the RIP move
++  // relocatable as before.
++  const auto EmitStaleExitStubs = [&](bool Relocatable) {
+     for (auto [EntryRIP, EntryHost] : CodeData.EntryPoints) {
+       ARMEmitter::ForwardLabel l_KeepL1;
+       CodeData.StaleExits.emplace(EntryRIP, GetCursorAddress<uint8_t*>());
+-      InsertGuestRIPMove(TMP1, EntryRIP);
++      if (Relocatable) {
++        InsertGuestRIPMove(TMP1, EntryRIP);
++      } else {
++        LoadConstant(ARMEmitter::Size::i64Bit, TMP1, EntryRIP);
++      }
+       str(TMP1, STATE, offsetof(FEXCore::Core::CpuStateFrame, State.rip));
+       ldp<ARMEmitter::IndexType::OFFSET>(TMP2, TMP3, STATE, offsetof(FEXCore::Core::CpuStateFrame, State.L1Pointer));
+       and_(ARMEmitter::Size::i64Bit, TMP3, TMP3, TMP1, ARMEmitter::ShiftType::LSL, FEXCore::ilog2(sizeof(LookupCache::LookupCacheEntry)));
+@@ -1191,6 +1245,10 @@
+       ldr(TMP2, STATE, offsetof(FEXCore::Core::CpuStateFrame, Pointers.DispatcherLoopTop));
+       br(TMP2);
+     }
++  };
++  const bool StaleExitsOutside = EmitStaleExits && !StaleExitsInline();
++  if (EmitStaleExits && !StaleExitsOutside) {
++    EmitStaleExitStubs(true);
+   }
+ 
+   ARMEmitter::ForwardLabel l_ExitLink;
+@@ -1283,6 +1341,13 @@
+ 
+   // Beginning of emission is guaranteed to be offset zero. So the code data size is just the current cursor offset.
+   CodeData.Size = GetCursorOffset();
++
++  // squark: the stale exits, behind the unit in the temporary buffer; they go to the thread's exit area below
++  size_t StaleExitsSize = 0;
++  if (StaleExitsOutside) {
++    EmitStaleExitStubs(false);
++    StaleExitsSize = GetCursorOffset() - CodeData.Size;
++  }
+   // v18 (diagnosis): dhit = bytes used in this thread's current code buffer (absolute)
+   if (ThreadState->ThreadStats) {
+     ThreadState->ThreadStats->AccumulatedDiskCacheHitCount = CurrentCodeBuffer->AllocatedSpaceUsed();
+@@ -1304,18 +1369,31 @@
+     LOGMAN_THROW_A_FMT(CodeData.Size % 16 == 0, "Needs to be 16B aligned!");
+ 
+     auto AllocatedInfo = AllocateCodeBufferInSharedCache(CodeData.Size);
++    // squark: the exits must be in the unit's code buffer (the entry's branch reaches 128MB, and the buffer's
++    // lifetime is the unit's). Claiming their space can move this thread to a new code buffer when the current one is
++    // full: the unit is then allocated again there, and its first allocation stays unused.
++    uint8_t* StaleExitsDest = nullptr;
++    while (StaleExitsSize) {
++      const auto UnitBuffer = CurrentCodeBuffer;
++      StaleExitsDest = ClaimStaleExitSpace(StaleExitsSize);
++      if (CurrentCodeBuffer == UnitBuffer) {
++        break;
++      }
++      AllocatedInfo = AllocateCodeBufferInSharedCache(CodeData.Size);
++    }
+     // NOTE: 16-byte alignment of the new cursor offset must be preserved for block linking records
+     LOGMAN_THROW_A_FMT((reinterpret_cast<uintptr_t>(AllocatedInfo.BufferAllocationOffset) % 16) == 0, "Allocated buffer wasn't 16B "
+                                                                                                       "aligned?");
+ 
+     // Adjust host addresses
+     const auto Delta = AllocatedInfo.BufferAllocationOffset - CodeData.BlockBegin;
++    const auto StaleExitsDelta = StaleExitsDest ? StaleExitsDest - (CodeData.BlockBegin + CodeData.Size) : Delta;
+     CodeData.BlockBegin += Delta;
+     for (auto& EntryPoint : CodeData.EntryPoints) {
+       EntryPoint.second += Delta;
+     }
+     for (auto& StaleExit : CodeData.StaleExits) {
+-      StaleExit.second += Delta;
++      StaleExit.second += StaleExitsDelta;
+     }
+     CodeBegin += Delta;
+     CodeData.HostCodeOffset = CodeData.BlockBegin - CurrentCodeBuffer->GetBufferBase();
+@@ -1323,7 +1401,13 @@
+     // Copy over CodeBuffer contents
+     FEXCore::Context::HbJitWrite(true);
+     memcpy(AllocatedInfo.BufferAllocationOffset, TempCodeBuffer, CodeData.Size);
++    if (StaleExitsDest) {
++      memcpy(StaleExitsDest, TempCodeBuffer + CodeData.Size, StaleExitsSize);
++    }
+     FEXCore::Context::HbJitWrite(false);
++    if (StaleExitsDest) {
++      SyncStaleExits(StaleExitsDest, StaleExitsSize);
++    }
+ 
+     // Before the block can be reached: a fault in it looks it up by host PC
+     CurrentCodeBuffer->RegisterBlock(CodeData.BlockBegin);
+diff --git a/FEXCore/Source/Interface/Core/JIT/JITClass.h b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+--- a/FEXCore/Source/Interface/Core/JIT/JITClass.h
++++ b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+@@ -30,6 +30,7 @@
+ #include <array>
+ #include <cstdint>
+ #include <functional>
++#include <memory>
+ #include <optional>
+ #include <utility>
+ #include <variant>
+@@ -156,6 +157,13 @@
+   // squark: whether this unit's entry points get a patchable nop and an exit stub (JIT.cpp, StaleEntryExits)
+   bool EmitStaleExits {};
+   static bool StaleEntryExits(FEXCore::Core::InternalThreadState* Thread);
++  // squark: the exit stubs live outside their units, in areas this thread takes from the code buffer
++  // (JIT.cpp, ClaimStaleExitSpace); SQUARK_FEX_STALE_EXIT_INLINE=1 keeps them inside the unit
++  static bool StaleExitsInline();
++  uint8_t* ClaimStaleExitSpace(size_t Size);
++  std::weak_ptr<CodeBuffer> StaleExitBuffer;
++  uint8_t* StaleExitCursor {};
++  uint8_t* StaleExitEnd {};
+ 
+   Utils::PoolBufferWithTimedRetirement<uint8_t*, 5000, 500> TempCodeBufferAllocator;
+ 
+diff --git a/FEXCore/Source/Interface/Core/LookupCache.cpp b/FEXCore/Source/Interface/Core/LookupCache.cpp
+--- a/FEXCore/Source/Interface/Core/LookupCache.cpp
++++ b/FEXCore/Source/Interface/Core/LookupCache.cpp
+@@ -19,11 +19,12 @@
+ namespace FEXCore {
+ void SetStaleEntry(uint64_t HostCode, uint64_t StaleExit, bool Stale) {
+   constexpr uint32_t Nop = 0xD503201FU;
++  // The exit is in the entry's code buffer, before or after it (squark: the exits live outside their units)
+   const int64_t Words = (static_cast<int64_t>(StaleExit) - static_cast<int64_t>(HostCode)) / 4;
+-  if (Words <= 0 || Words >= (1 << 25)) {
++  if (Words == 0 || Words < -(1 << 25) || Words >= (1 << 25)) {
+     return;
+   }
+-  const uint32_t Branch = 0x14000000U | static_cast<uint32_t>(Words);
++  const uint32_t Branch = 0x14000000U | (static_cast<uint32_t>(Words) & 0x03ffffffU);
+   auto Inst = std::atomic_ref<uint32_t>(*reinterpret_cast<uint32_t*>(HostCode));
+   const uint32_t From = Stale ? Nop : Branch;
+   if (Inst.load(std::memory_order_relaxed) != From) {

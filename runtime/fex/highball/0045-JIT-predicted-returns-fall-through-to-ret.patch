@@ -1,0 +1,128 @@
+JIT: a return whose call-return stack prediction holds falls through to its ret
+
+A guest return pops the pair its call pushed on the call-return stack (guest return address, host return PC) and
+compares the address with the one it is returning to. When they match it ends in "ret <host PC>", which the host's
+return predictor follows. The L1 lookup for the other case, eight instructions, sat between the compare and the ret,
+so every return branched over it:
+
+    ldp x10, x11, [x17], #16 ; sub x10, x10, x6 ; cbz x10, 1f ; <L1 lookup> ; 1: ret x11
+
+The lookup is now emitted after the unit's code (PendingReturnLookups, like the link thunks), and the return is
+
+    ldp x10, x11, [x17], #16 ; sub x10, x10, x6 ; cbnz x10, <lookup> ; ret x11
+
+The lookup is the same instructions in the same order and ends in the same ret, so a missed prediction costs one
+taken branch more and nothing else changes. With Highball's call-return epoch (HB_FEX_CALLRET_EPOCH=1) both of its
+compares branch to the lookup. SQUARK_FEX_RET_LOOKUP_INLINE=1 puts the lookup back between the compare and the ret.
+
+Why: code with a large footprint is limited by instruction delivery under FEX, not by the instructions themselves.
+x64shape's foot_direct (squark-private tools/msfs-harness: N small functions called directly in a fixed shuffled
+order) takes 2.2 ns a call with 16 functions and 12.9 ns with 65,536, where Instruments' CPU Counters put 94 % of
+the pipeline's slots under "instruction delivery", three quarters of that latency from the instruction cache
+(squark records 25.82). Every return carried 32 bytes it never ran and one more taken branch than native code.
+
+foot_direct, ns per call, the fastest of three alternated rounds, this patch alone against the same DLL with the
+switch (functions: before -> after): 1,024: 2.36 -> 2.32; 4,096: 3.19 -> 2.58; 16,384: 4.65 -> 4.74;
+65,536: 13.31 -> 12.14. Checksums unchanged.
+
+diff --git a/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp b/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
+@@ -217,6 +217,27 @@
+     ARMEmitter::ForwardLabel SkipFullLookup;
+     auto RipReg = GetReg(Op->NewRIP);
+ 
++    if (Op->Hint == IR::BranchHint::Return && ReturnLookupOutOfLine()) {
++      // squark: a return whose call-ret stack prediction holds falls through to the ret. The L1 lookup for the other
++      // case used to sit between the compare and the ret, eight instructions every return branched over; it is emitted
++      // after the unit's code (JIT.cpp, PendingReturnLookups), the same instructions in the same order.
++      auto& Lookup = PendingReturnLookups.emplace_back();
++      Lookup.RipReg = RipReg;
++      ldp<ARMEmitter::IndexType::POST>(TMP1, TMP2, REG_CALLRET_SP, CallRetEntrySize);
++      sub(TMP1, TMP1, RipReg.X());
++      cbnz_OrRestart(ARMEmitter::Size::i64Bit, TMP1, &Lookup.Label);
++      if (UseCallRetEpoch) {
++        ldur(TMP1, REG_CALLRET_SP, -0x10);
++        LoadConstant(ARMEmitter::Size::i64Bit, TMP3, offsetof(FEXCore::Core::CpuStateFrame, CallRetEpoch));
++        add(TMP3, STATE, TMP3);
++        ldar(TMP3, TMP3);
++        sub(TMP1, TMP1, TMP3);
++        cbnz_OrRestart(ARMEmitter::Size::i64Bit, TMP1, &Lookup.Label);
++      }
++      ret(TMP2);
++      return;
++    }
++
+     if (Op->Hint == IR::BranchHint::Return) {
+       // First try to pop from the call-ret stack, otherwise follow the normal path (but ending in a ret)
+       ldp<ARMEmitter::IndexType::POST>(TMP1, TMP2, REG_CALLRET_SP, CallRetEntrySize);
+diff --git a/FEXCore/Source/Interface/Core/JIT/JIT.cpp b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/JIT.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/JIT.cpp
+@@ -929,6 +929,15 @@
+   return Mode == 1 || (Mode == 2 && Thread->FrontendDecoder->IsEntryWritable());
+ }
+ 
++// squark: see PendingReturnLookups (JITClass.h)
++bool Arm64JITCore::ReturnLookupOutOfLine() {
++  static const bool On = [] {
++    const char* Setting = getenv("SQUARK_FEX_RET_LOOKUP_INLINE");
++    return !(Setting && Setting[0] == '1');
++  }();
++  return On;
++}
++
+ CodeBuffer::CodeBufferAllocation Arm64JITCore::AllocateCodeBufferInSharedCache(size_t Size) {
+   CodeBuffer::CodeBufferAllocation AllocatedInfo {};
+   LOGMAN_THROW_A_FMT(CurrentCodeBuffer->LookupCache.get() == ThreadState->LookupCache->Shared, "INVARIANT VIOLATED: SharedLookupCache "
+@@ -987,6 +996,7 @@
+   JumpTargets.clear();
+   CallReturnTargets.clear();
+   PendingJumpThunks.clear();
++  PendingReturnLookups.clear();
+   JumpTargets.resize(IR->GetHeader()->BlockCount, {});
+   Relocations.resize(PrevNumAllocations, FEXCore::CPU::Relocation::Default()); // Discard any relocations generated from a previous attempt
+ 
+@@ -1142,6 +1152,23 @@
+   }
+   PendingTargetLabel = nullptr;
+ 
++  // squark: the L1 lookups of the unit's returns, for when the call-ret stack prediction misses (BranchOps.cpp,
++  // ExitFunction): the instructions that used to follow the compare, ending in the same ret.
++  for (auto& Lookup : PendingReturnLookups) {
++    ARMEmitter::ForwardLabel l_Found;
++    BindOrRestart(&Lookup.Label);
++    ldp<ARMEmitter::IndexType::OFFSET>(TMP1, TMP2, STATE, offsetof(FEXCore::Core::CpuStateFrame, State.L1Pointer));
++    and_(ARMEmitter::Size::i64Bit, TMP2, TMP2, Lookup.RipReg, ARMEmitter::ShiftType::LSL, FEXCore::ilog2(sizeof(LookupCache::LookupCacheEntry)));
++    add(TMP1, TMP1, TMP2);
++    ldp<ARMEmitter::IndexType::OFFSET>(TMP2, TMP1, TMP1, 0);
++    sub(TMP1, TMP1, Lookup.RipReg.X());
++    (void)cbz(ARMEmitter::Size::i64Bit, TMP1, &l_Found);
++    ldr(TMP2, STATE, offsetof(FEXCore::Core::CpuStateFrame, Pointers.DispatcherLoopTop));
++    str(Lookup.RipReg.X(), STATE, offsetof(FEXCore::Core::CpuStateFrame, State.rip));
++    (void)Bind(&l_Found);
++    ret(TMP2);
++  }
++
+   if (EmitStaleExits) {
+     // One exit per entry point, for when the block is erased: host code that still leads here (a call-ret stack
+     // prediction, a stale L1 entry, a link being severed) goes back to the dispatcher with this entry's RIP instead of
+diff --git a/FEXCore/Source/Interface/Core/JIT/JITClass.h b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+--- a/FEXCore/Source/Interface/Core/JIT/JITClass.h
++++ b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+@@ -144,6 +144,15 @@
+     uint8_t PatchSiteSize = 0;
+   };
+   fextl::vector<PendingJumpThunk> PendingJumpThunks;
++  // squark: returns whose L1 lookup (the call-ret stack prediction missed) is emitted after the unit's code, so that
++  // the predicted return falls through to its ret (BranchOps.cpp, ExitFunction). SQUARK_FEX_RET_LOOKUP_INLINE=1 puts
++  // the lookup back between the compare and the ret.
++  struct PendingReturnLookup {
++    ARMEmitter::ForwardLabel Label;
++    ARMEmitter::Register RipReg {ARMEmitter::Reg::r0};
++  };
++  fextl::vector<PendingReturnLookup> PendingReturnLookups;
++  static bool ReturnLookupOutOfLine();
+   // squark: whether this unit's entry points get a patchable nop and an exit stub (JIT.cpp, StaleEntryExits)
+   bool EmitStaleExits {};
+   static bool StaleEntryExits(FEXCore::Core::InternalThreadState* Thread);
