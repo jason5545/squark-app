@@ -1,0 +1,310 @@
+Decoder: units in a JIT engine's code pool stop where code is already translated
+
+A unit (multiblock) runs on from its entry through every branch target and call return in range, up to
+MaxInstPerBlock (5,000). In JavaScriptCore's code pool every call's return address is an entry point and inline
+cache stubs jump back into the middle of functions, so FEX compiled a new unit at each of those addresses and each
+one decoded on to the end of the function again. With the A380X's SystemsHost gauge (Bun 1.4.4, JIT on, cold, 300
+frames) FEX translated 68-78 million guest instructions from the pool for about 1.2 million that run; 97 % of them
+lay at or past an address that was already a live entry point of another unit. The big units spanned many pages,
+so each write fault (a new function, an inline cache repatch) threw away more of them, 70 % of the pool's compiles
+were entries compiled before, and the 128 MB code buffer filled and was cleared 10 times. The first 300 frames took
+25-30 s with frames of 6 s; in Microsoft Flight Simulator this is Coherent's UI Thread when the cockpit loads
+(squark records 25.83).
+
+When the unit's entry is in a JIT engine's code pool (0041's test, a private executable reservation of 256 MB or
+more), the decoder stops where this thread's code buffer already holds a live entry point:
+
+- an instruction reached by falling through ends the block before it (FinishOp then exits to it, linkable);
+- a branch target there is not added to the unit (the branch exits to it);
+- a call's return address there is not added either. The call still pushes a call-ret entry, for a linked branch
+  to that address placed right after the call (JIT ExitFunction, SquarkJoinedReturn), so the return stays
+  predicted by the call-ret stack and the host's return stack. That branch runs none of this unit's guest code:
+  it stays correct when this unit is erased, and the other unit's own exits and 0040's stale exits cover it being
+  erased.
+
+The pool test runs once per compile and only when a live entry is met, so units elsewhere are not affected.
+SQUARK_FEX_JITPOOL_JOIN=0 decodes as before; =2 stops at live entries in any writable code (measuring only).
+SQUARK_FEX_HOT_JITPOOLS=1 no longer turns the pool test off for this (SqJitPoolTestFn, set unconditionally).
+
+SystemsHost cold, 300 frames: 1.64 / 1.68 / 1.65 s (was 24.5-29.6 s), longest frame 332-365 ms (6.1-6.9 s), pool
+instructions translated 1.33 M (78.3 M with the switch off in the same build), code buffer clears 2 (10).
+
+diff --git a/FEXCore/include/FEXCore/Core/Context.h b/FEXCore/include/FEXCore/Core/Context.h
+--- a/FEXCore/include/FEXCore/Core/Context.h
++++ b/FEXCore/include/FEXCore/Core/Context.h
+@@ -53,6 +53,8 @@
+ // squark: set by the Windows frontend. True for guest code in a JIT engine's code pool (a private executable reservation
+ // of 256 MB or more, such as JavaScriptCore's), which HB_FEX_SMC_HOT_MAXINST leaves uncapped.
+ FEX_DEFAULT_VISIBILITY extern bool (*SqJitPoolFn)(uint64_t RIP);
++// squark: the same test, set whatever SQUARK_FEX_HOT_JITPOOLS says (for the decoder's joins, 0047)
++FEX_DEFAULT_VISIBILITY extern bool (*SqJitPoolTestFn)(uint64_t RIP);
+ 
+ enum OperatingMode {
+   MODE_32BIT,
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -102,6 +102,7 @@
+ void (*HbJitWriteFn)(bool Enable) = nullptr;
+ bool (*SqABILocalFlagsFn)(uint64_t RIP) = nullptr;
+ bool (*SqJitPoolFn)(uint64_t RIP) = nullptr;
++bool (*SqJitPoolTestFn)(uint64_t RIP) = nullptr;
+ 
+ #ifdef ARCHITECTURE_arm64ec
+ // Private profiling data, separate from the versioned shared statistics layout.
+diff --git a/FEXCore/Source/Interface/Core/Frontend.cpp b/FEXCore/Source/Interface/Core/Frontend.cpp
+--- a/FEXCore/Source/Interface/Core/Frontend.cpp
++++ b/FEXCore/Source/Interface/Core/Frontend.cpp
+@@ -1152,8 +1152,11 @@
+       return;
+     }
+ 
+-    AddBranchTarget(InstEnd);
+-    BlockInfo.EntryPoints.emplace(InstEnd);
++    if (AddBranchTarget(InstEnd)) {
++      BlockInfo.EntryPoints.emplace(InstEnd);
++    } else {
++      JoinedReturns.insert(InstEnd);
++    }
+     return;
+   }
+ 
+@@ -1299,9 +1302,32 @@
+   return false;
+ }
+ 
+-void Decoder::AddBranchTarget(uint64_t Target) {
++// squark 0047: whether the unit being decoded stops at Address and leaves to the unit already translated there. Code in a
++// JIT engine's code pool (JavaScriptCore's) has an entry point at every call's return address and blocks reached from
++// outside (inline cache stubs jump back into the function), and each translation used to run on from its entry to
++// MaxInstPerBlock: the same code was translated once per entry, and a write fault on any of its pages threw all of it
++// away. Ends only where the translation is live in this thread's code buffer, so it is reached through a linked exit.
++bool Decoder::JoinsLiveEntry(uint64_t Address) {
++  if (!JoinCandidate || Address == EntryPoint) {
++    return false;
++  }
++  {
++    auto& Map = *Thread->LookupCache->Shared;
++    auto lk = Map.AcquireReadLock();
++    if (!Map.HbContains(Address, lk)) {
++      return false;
++    }
++  }
++  if (JoinPool < 0) {
++    JoinPool = FEXCore::Context::SqJitPoolTestFn(EntryPoint) ? 1 : 0;
++  }
++  return JoinPool;
++}
++
++// Returns false when Target is left to the unit translated there (JoinsLiveEntry)
++bool Decoder::AddBranchTarget(uint64_t Target) {
+   if (VisitedBlocks.contains(Target)) {
+-    return;
++    return true;
+   }
+ 
+   auto BlockSuccIt = std::lower_bound(BlockInfo.Blocks.begin(), BlockInfo.Blocks.end(), Target,
+@@ -1349,14 +1375,22 @@
+       // misaligned the jump will just leave the multiblock, mark it as visited to avoid running
+       // this code path again and just bail out early.
+       VisitedBlocks.insert(Target);
+-      return;
++      return true;
+     }
+   }
+ 
++  if (JoinsLiveEntry(Target)) {
++    if (ExternalBranches) {
++      ExternalBranches->insert(Target);
++    }
++    return false;
++  }
++
+   CurrentBlockTargets.insert(Target);
+   if (Target >= DecodeInst->PC + DecodeInst->InstSize && Target < NextBlockStartAddress) {
+     NextBlockStartAddress = Target;
+   }
++  return true;
+ }
+ 
+ const Decoder::DecodeStream Decoder::AdjustAddrForSpecialRegion(const uint8_t* _InstStream, uint64_t EntryPoint, uint64_t RIP) {
+@@ -1600,6 +1634,11 @@
+       auto OpMinPage = OpAddress & FEXCore::Utils::FEX_PAGE_MASK;
+       auto OpMaxPage = OpMaxAddress & FEXCore::Utils::FEX_PAGE_MASK;
+ 
++      // squark 0047: falls through to the unit already translated from here (before the page joins this unit's)
++      if (BlockIt->NumInstructions && JoinsLiveEntry(OpAddress)) {
++        break;
++      }
++
+       if (!EntryBlock && OpMinPage == OpMaxPage && PeekByte(0).value_or(0) == 0 && PeekByte(1).value_or(0) == 0) [[unlikely]] {
+         // End the multiblock early if we hit 2 consecutive null bytes (add [rax], al) in the same page with the
+         // assumption we are most likely trying to explore garbage code.
+@@ -1841,6 +1880,15 @@
+   if (EntryHot && MaxInst > HotMaxInst) {
+     MaxInst = HotMaxInst;
+   }
++  // squark 0047: SQUARK_FEX_JITPOOL_JOIN=0 translates from each entry to MaxInstPerBlock as before; 2 joins in any
++  // writable code, not only JIT engines' code pools (measuring only)
++  static const int JoinMode = [] {
++    const char* Env = getenv("SQUARK_FEX_JITPOOL_JOIN");
++    return Env && Env[0] ? atoi(Env) : 1;
++  }();
++  JoinCandidate = JoinMode && EntryWritable && Thread && Thread->LookupCache && FEXCore::Context::SqJitPoolTestFn;
++  JoinPool = JoinMode == 2 ? 1 : -1;
++  JoinedReturns.clear();
+   if (EntryWritable && RwxMaxInst && MaxInst > RwxMaxInst) {
+     MaxInst = RwxMaxInst;
+   }
+diff --git a/FEXCore/Source/Interface/Core/Frontend.h b/FEXCore/Source/Interface/Core/Frontend.h
+--- a/FEXCore/Source/Interface/Core/Frontend.h
++++ b/FEXCore/Source/Interface/Core/Frontend.h
+@@ -99,6 +99,10 @@
+   bool IsEntryHot() const {
+     return EntryHot;
+   }
++  // squark 0047: a call's return address this unit left to the unit translated there
++  bool IsJoinedReturn(uint64_t Address) const {
++    return !JoinedReturns.empty() && JoinedReturns.contains(Address);
++  }
+ 
+ private:
+   // To pass any information from instruction prefixes
+@@ -121,7 +125,8 @@
+   bool IsBranchMonoTailcall(uint64_t NumInstructions) const;
+   bool InstCanContinue() const;
+ 
+-  void AddBranchTarget(uint64_t Target);
++  bool AddBranchTarget(uint64_t Target);
++  bool JoinsLiveEntry(uint64_t Address);
+ 
+   void DetectDataMasks(uint64_t OpAddress, DecodedBlocks& Block);
+   void PruneInlinedBranchDataMasks();
+@@ -164,6 +169,10 @@
+   bool ExecutableRangeWritable {};
+   bool EntryWritable {};
+   bool EntryHot {};
++  // squark 0047: this unit may end where another unit's entry point is live (JoinMode, decided at the first such entry)
++  bool JoinCandidate {};
++  int8_t JoinPool {};
++  fextl::set<uint64_t> JoinedReturns;
+   bool HitNonExecutableRange {};
+   bool HitBadRelocation {};
+ 
+diff --git a/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp b/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
+--- a/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
++++ b/FEXCore/Source/Interface/Core/JIT/BranchOps.cpp
+@@ -8,6 +8,7 @@
+ #include "Interface/Context/Context.h"
+ #include "FEXCore/IR/IR.h"
+ #include "Interface/Core/LookupCache.h"
++#include "Interface/Core/Frontend.h"
+ 
+ #include "Interface/Core/JIT/JITClass.h"
+ 
+@@ -41,6 +42,30 @@
+ 
+   // Return to the thunk
+   ret();
++}
++
++// squark 0047: the guest return address of a call whose return block the decoder left to another unit (Decoder::
++// JoinsLiveEntry), or 0. Such a call still pushes a call-ret entry, for a branch to that unit placed after the call:
++// the return is predicted (call-ret stack and the host's return stack) as when the return block was in this unit.
++uint64_t Arm64JITCore::SquarkJoinedReturn(const IR::IROp_ExitFunction* Op) const {
++  uint64_t ReturnRIP = 0;
++  if (Op->Hint != IR::BranchHint::Call || !Op->CallReturnBlock.IsInvalid() || Op->CallReturnAddress.IsInvalid()) {
++    return 0;
++  }
++  if (Op->CallReturnAddress.IsImmediate()) {
++    return 0;
++  }
++  // CALLOp's return address is GetRelocatedPC: an EntrypointOffset
++  const auto Header = IR->GetOp<IR::IROp_Header>(Op->CallReturnAddress);
++  if (Header->Op == IR::IROps::OP_ENTRYPOINTOFFSET) {
++    ReturnRIP = Entry + Header->C<IR::IROp_EntrypointOffset>()->Offset;
++    if (Header->Size == IR::OpSize::i32Bit) {
++      ReturnRIP &= 0xFFFF'FFFFULL;
++    }
++  } else if (!IsInlineConstant(Op->CallReturnAddress, &ReturnRIP) && !IsInlineEntrypointOffset(Op->CallReturnAddress, &ReturnRIP)) {
++    return 0;
++  }
++  return ThreadState->FrontendDecoder->IsJoinedReturn(ReturnRIP) ? ReturnRIP : 0;
+ }
+ 
+ DEF_OP(ExitFunction) {
+@@ -184,10 +209,13 @@
+ 
+       ARMEmitter::ForwardLabel l_BranchHost;
+       ARMEmitter::ForwardLabel l_CallReturn;
++      const uint64_t JoinedReturn = SquarkJoinedReturn(Op);
+       if (Op->Hint == IR::BranchHint::Call) {
+-        if (!Op->CallReturnBlock.IsInvalid()) {
++        if (!Op->CallReturnBlock.IsInvalid() || JoinedReturn) {
+           auto CallReturnAddressReg = GetReg(Op->CallReturnAddress).X();
+-          PendingCallReturnTargetLabel = &CallReturnTargets.try_emplace(Op->CallReturnBlock.ID()).first->second;
++          if (!JoinedReturn) {
++            PendingCallReturnTargetLabel = &CallReturnTargets.try_emplace(Op->CallReturnBlock.ID()).first->second;
++          }
+           LoadCallRetEpoch();
+           (void)adr(TMP1, &l_CallReturn);
+           stp<ARMEmitter::IndexType::PRE>(CallReturnAddressReg, TMP1, REG_CALLRET_SP, -CallRetEntrySize);
+@@ -210,6 +238,10 @@
+ 
+       EmitLinkedBranch(NewRIP, Op->Hint == IR::BranchHint::Call, Op->PatchSiteAddress, Op->PatchSiteSize);
+       (void)Bind(&l_CallReturn);
++      if (JoinedReturn) {
++        // squark 0047: the return lands here and goes on to the unit translated at the return address
++        EmitLinkedBranch(JoinedReturn, false);
++      }
+ #ifdef ARCHITECTURE_arm64ec
+     }
+ #endif
+@@ -276,9 +308,12 @@
+     (void)Bind(&SkipFullLookup);
+     if (Op->Hint == IR::BranchHint::Call) {
+       ARMEmitter::ForwardLabel l_CallReturn;
+-      if (!Op->CallReturnBlock.IsInvalid()) {
++      const uint64_t JoinedReturn = SquarkJoinedReturn(Op);
++      if (!Op->CallReturnBlock.IsInvalid() || JoinedReturn) {
+         auto CallReturnAddressReg = GetReg(Op->CallReturnAddress).X();
+-        PendingCallReturnTargetLabel = &CallReturnTargets.try_emplace(Op->CallReturnBlock.ID()).first->second;
++        if (!JoinedReturn) {
++          PendingCallReturnTargetLabel = &CallReturnTargets.try_emplace(Op->CallReturnBlock.ID()).first->second;
++        }
+         LoadCallRetEpoch();
+         (void)adr(TMP1, &l_CallReturn);
+         stp<ARMEmitter::IndexType::PRE>(CallReturnAddressReg, TMP1, REG_CALLRET_SP, -CallRetEntrySize);
+@@ -289,6 +324,9 @@
+       }
+       blr(TMP2);
+       (void)Bind(&l_CallReturn);
++      if (JoinedReturn) {
++        EmitLinkedBranch(JoinedReturn, false);
++      }
+     } else if (Op->Hint == IR::BranchHint::Return) {
+       ret(TMP2);
+     } else {
+diff --git a/FEXCore/Source/Interface/Core/JIT/JITClass.h b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+--- a/FEXCore/Source/Interface/Core/JIT/JITClass.h
++++ b/FEXCore/Source/Interface/Core/JIT/JITClass.h
+@@ -401,6 +401,8 @@
+     uint32_t Begin;
+     uint32_t End;
+   };
++
++  uint64_t SquarkJoinedReturn(const IR::IROp_ExitFunction* Op) const;
+ 
+   void EmitLinkedBranch(uint64_t GuestRIP, bool Call, uint64_t PatchSiteAddress = 0, uint8_t PatchSiteSize = 0) {
+     PendingJumpThunks.push_back({GetCursorAddress<uint64_t>(), GuestRIP, {}, PatchSiteAddress, PatchSiteSize});
+diff --git a/Source/Windows/ARM64EC/Module.cpp b/Source/Windows/ARM64EC/Module.cpp
+--- a/Source/Windows/ARM64EC/Module.cpp
++++ b/Source/Windows/ARM64EC/Module.cpp
+@@ -827,6 +827,7 @@
+ }
+ 
+ void InitJitPools() {
++  FEXCore::Context::SqJitPoolTestFn = IsJitPoolCode;
+   const char* Setting = std::getenv("SQUARK_FEX_HOT_JITPOOLS");
+   if (!Setting || strcmp(Setting, "1")) {
+     FEXCore::Context::SqJitPoolFn = IsJitPoolCode;

@@ -115,6 +115,15 @@ upstream has a `0034` of its own (MAP_JIT backfill), not taken here; ours start 
   `tools/smc-subpage` 0 stale of 32,800 calls (2,728 with `SQUARK_FEX_STALE_EXIT=0`). Still in the unit, for a later
   step: the link thunks (40 bytes per call site), the block header, tail and RIP entries (about 70 bytes per
   unit).
+- `0047`: a unit whose entry is in a JIT engine's code pool (0041's test) stops where this thread's code buffer
+  already has a live entry point: a fall-through ends the block before it, a branch target or a call's return address
+  there is left out of the unit. Such a call still pushes a call-ret entry, for a linked branch to that address right
+  after the call, so the return stays predicted. JavaScriptCore's code has an entry point at every call's return and
+  inline cache stubs jump back into functions; each unit used to decode on to `MaxInstPerBlock` from each of them.
+  The A380X's SystemsHost cold (Bun, 300 frames): pool instructions translated 78.3 M -> 1.33 M, code buffer clears
+  10 -> 2, the 300 frames 24.5-29.6 s -> 1.64-1.68 s, longest frame 6.1-6.9 s -> 332-365 ms (squark records 25.84).
+  `SQUARK_FEX_JITPOOL_JOIN=0` decodes as before; `=2` joins in any writable code (measuring only). Not yet measured
+  enough: the cost after the gauges have settled (two interleaved rounds of the 24 gauges, noisy).
 
 Measured on Apple M5 Max: the call/return path of call-dense code is bound by its stores and the memory-ordering
 flushes around them, not by instruction count, so 0035-0038 cut instructions without cutting cycles there.
